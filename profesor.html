@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -36,9 +36,33 @@
             color: #F4A300;
         }
 
+        .header .user-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
         .header .user-info {
             font-size: 14px;
             text-align: right;
+        }
+
+        .header .user-info strong {
+            display: block;
+        }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.25);
         }
 
         .tabs {
@@ -104,10 +128,16 @@
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
+            transition: background 0.2s;
         }
 
         .btn:hover {
             background: #3a1555;
+        }
+
+        .btn:disabled {
+            background: #8e6ba8;
+            cursor: not-allowed;
         }
 
         .btn-green {
@@ -131,6 +161,7 @@
             border-radius: 8px;
             font-size: 14px;
             margin-bottom: 12px;
+            outline: none;
         }
 
         table {
@@ -193,6 +224,12 @@
             gap: 12px;
         }
 
+        .empty-state {
+            text-align: center;
+            color: #777;
+            padding: 15px 0;
+        }
+
         @media (max-width: 600px) {
             .grid-2 {
                 grid-template-columns: 1fr;
@@ -203,17 +240,20 @@
 <body>
     <div class="header">
         <div class="logo">uni<span>caribe</span></div>
-        <div class="user-info">
-            <strong>Profesor</strong>
-            <span>Panel de administración</span>
+        <div class="user-container">
+            <div class="user-info">
+                <strong>Profesor Principal</strong>
+                <span>Panel de administración</span>
+            </div>
+            <button class="btn-logout" onclick="cerrarSesion()">Salir</button>
         </div>
     </div>
 
     <div class="tabs">
-        <div class="tab active" onclick="mostrarSeccion('asistencia')">Asistencia</div>
-        <div class="tab" onclick="mostrarSeccion('estudiantes')">Estudiantes</div>
-        <div class="tab" onclick="mostrarSeccion('notas')">Notas</div>
-        <div class="tab" onclick="mostrarSeccion('reportes')">Reportes</div>
+        <div class="tab active" onclick="mostrarSeccion('asistencia', this)">Asistencia</div>
+        <div class="tab" onclick="mostrarSeccion('estudiantes', this)">Estudiantes</div>
+        <div class="tab" onclick="mostrarSeccion('notas', this)">Notas</div>
+        <div class="tab" onclick="mostrarSeccion('reportes', this)">Reportes</div>
     </div>
 
     <div class="content">
@@ -227,13 +267,10 @@
                 </p>
 
                 <select id="materiaAsistencia">
-                    <option value="">Selecciona la materia</option>
-                    <option value="1">Estadística Descriptiva - G1</option>
-                    <option value="2">Cálculo Diferencial - G2</option>
-                    <option value="3">Física Mecánica - G1</option>
+                    <option value="">Cargando asignaturas...</option>
                 </select>
 
-                <button class="btn btn-green" onclick="generarContrasena()">Generar contraseña aleatoria</button>
+                <button class="btn btn-green" id="btnGenClave" onclick="generarContrasena()">Generar contraseña aleatoria</button>
 
                 <div class="password-box" id="passwordBox" style="display:none;">
                     <div style="font-size:13px; color:#666;">Contraseña generada:</div>
@@ -246,33 +283,17 @@
         <!-- SECCIÓN: Estudiantes -->
         <div id="estudiantes" class="section">
             <div class="card">
-                <h3>Lista de estudiantes</h3>
+                <h3>Lista de estudiantes registrados</h3>
                 <table>
                     <thead>
                         <tr>
                             <th>Nombre</th>
                             <th>Documento</th>
                             <th>Programa</th>
-                            <th>Acciones</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>Juan Pérez</td>
-                            <td>1001234567</td>
-                            <td>Sistemas Informáticos</td>
-                            <td>
-                                <button class="btn-outline" style="padding:5px 10px; font-size:12px;">Ver</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>María Gómez</td>
-                            <td>1009876543</td>
-                            <td>Procesos Industriales</td>
-                            <td>
-                                <button class="btn-outline" style="padding:5px 10px; font-size:12px;">Ver</button>
-                            </td>
-                        </tr>
+                    <tbody id="tablaEstudiantes">
+                        <tr><td colspan="3" class="empty-state">Cargando lista...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -285,14 +306,10 @@
 
                 <div class="grid-2">
                     <select id="notaMateria">
-                        <option value="">Materia</option>
-                        <option value="1">Estadística Descriptiva</option>
-                        <option value="2">Cálculo Diferencial</option>
+                        <option value="">Cargando materias...</option>
                     </select>
                     <select id="notaEstudiante">
-                        <option value="">Estudiante</option>
-                        <option value="1">Juan Pérez</option>
-                        <option value="2">María Gómez</option>
+                        <option value="">Cargando estudiantes...</option>
                     </select>
                 </div>
 
@@ -314,7 +331,7 @@
 
                 <input type="number" id="notaValor" placeholder="Nota (0.0 - 5.0)" min="0" max="5" step="0.1">
 
-                <button class="btn" onclick="guardarNota()">Guardar nota</button>
+                <button class="btn" id="btnGuardarNota" onclick="guardarNota()">Guardar nota</button>
             </div>
         </div>
 
@@ -322,30 +339,20 @@
         <div id="reportes" class="section">
             <div class="card">
                 <h3>Reporte de asistencia</h3>
-                <select style="margin-bottom:15px;">
-                    <option>Estadística Descriptiva - G1</option>
-                    <option>Cálculo Diferencial - G2</option>
+                <select id="reporteMateria" onchange="cargarReporteAsistencia()" style="margin-bottom:15px;">
+                    <option value="">Todas las materias</option>
                 </select>
 
                 <table>
                     <thead>
                         <tr>
-                            <th>Estudiante</th>
+                            <th>ID Estudiante</th>
                             <th>Fecha</th>
-                            <th>Estado</th>
+                            <th>Hora</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>Juan Pérez</td>
-                            <td>04/08/2026</td>
-                            <td><span class="badge badge-green">Asistió</span></td>
-                        </tr>
-                        <tr>
-                            <td>María Gómez</td>
-                            <td>04/08/2026</td>
-                            <td><span class="badge badge-red">No asistió</span></td>
-                        </tr>
+                    <tbody id="tablaReporte">
+                        <tr><td colspan="3" class="empty-state">Selecciona una materia para consultar...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -354,30 +361,241 @@
     </div>
 
     <script>
-        function mostrarSeccion(id) {
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            event.target.classList.add('active');
-        }
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec';
+        let timerInterval = null;
 
-        function generarContrasena() {
-            // Generar contraseña aleatoria de 6 caracteres
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let password = '';
-            for (let i = 0; i < 6; i++) {
-                password += chars.charAt(Math.floor(Math.random() * chars.length));
+        document.addEventListener('DOMContentLoaded', function() {
+            const sesionStr = sessionStorage.getItem('usuarioSesion');
+            if (!sesionStr) {
+                window.location.href = 'index.html';
+                return;
             }
 
-            document.getElementById('passwordBox').style.display = 'block';
-            document.getElementById('passwordDisplay').textContent = password;
+            const usuario = JSON.parse(sesionStr);
+            if (usuario.rol !== 'profesor') {
+                window.location.href = 'index.html';
+                return;
+            }
 
-            // Aquí después conectaremos con Apps Script para guardar la contraseña
-            alert('Contraseña generada (aún no se guarda en el servidor):\n' + password);
+            cargarAsignaturas();
+            cargarEstudiantes();
+        });
+
+        function mostrarSeccion(id, element) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+            document.getElementById(id).classList.add('active');
+            element.classList.add('active');
         }
 
-        function guardarNota() {
-            alert('Función de guardar nota aún no conectada.');
+        async function cargarAsignaturas() {
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ accion: 'obtenerAsignaturas' })
+                });
+
+                const data = await response.json();
+                const selects = [
+                    document.getElementById('materiaAsistencia'),
+                    document.getElementById('notaMateria'),
+                    document.getElementById('reporteMateria')
+                ];
+
+                if (data.ok && data.asignaturas && data.asignaturas.length > 0) {
+                    selects.forEach(sel => {
+                        sel.innerHTML = '<option value="">-- Selecciona asignatura --</option>';
+                        data.asignaturas.forEach(a => {
+                            sel.innerHTML += `<option value="${a.id}">${a.asignatura} (Grupo ${a.grupo || 'G1'})</option>`;
+                        });
+                    });
+                }
+            } catch (error) {
+                console.error('Error al cargar asignaturas:', error);
+            }
+        }
+
+        async function cargarEstudiantes() {
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ accion: 'obtenerEstudiantes' })
+                });
+
+                const data = await response.json();
+                const tabla = document.getElementById('tablaEstudiantes');
+                const selectNota = document.getElementById('notaEstudiante');
+
+                if (data.ok && data.estudiantes && data.estudiantes.length > 0) {
+                    tabla.innerHTML = '';
+                    selectNota.innerHTML = '<option value="">-- Selecciona un estudiante --</option>';
+
+                    data.estudiantes.forEach(e => {
+                        tabla.innerHTML += `
+                            <tr>
+                                <td>${e.nombre}</td>
+                                <td>${e.documento}</td>
+                                <td>${e.programa}</td>
+                            </tr>
+                        `;
+                        selectNota.innerHTML += `<option value="${e.id}">${e.nombre} (${e.documento})</option>`;
+                    });
+                } else {
+                    tabla.innerHTML = '<tr><td colspan="3" class="empty-state">No hay estudiantes registrados.</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error al cargar estudiantes:', error);
+            }
+        }
+
+        async function generarContrasena() {
+            const idAsignatura = document.getElementById('materiaAsistencia').value;
+            const btn = document.getElementById('btnGenClave');
+
+            if (!idAsignatura) {
+                alert('Por favor selecciona una materia primero.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Generando...';
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'generarContrasenaAsistencia',
+                        idAsignatura: idAsignatura
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.ok) {
+                    document.getElementById('passwordBox').style.display = 'block';
+                    document.getElementById('passwordDisplay').textContent = data.contrasena;
+
+                    iniciarCuentaRegresiva(10 * 60);
+                } else {
+                    alert(data.mensaje || 'Error al generar la contraseña.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión con el servidor.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Generar contraseña aleatoria';
+            }
+        }
+
+        function iniciarCuentaRegresiva(segundos) {
+            if (timerInterval) clearInterval(timerInterval);
+
+            let tiempoRestante = segundos;
+            const display = document.getElementById('expiraEn');
+
+            timerInterval = setInterval(() => {
+                const minutos = Math.floor(tiempoRestante / 60);
+                const segs = tiempoRestante % 60;
+
+                display.textContent = `Expira en ${minutos}:${segs < 10 ? '0' : ''}${segs}`;
+
+                if (tiempoRestante <= 0) {
+                    clearInterval(timerInterval);
+                    display.textContent = 'La contraseña ha expirado';
+                }
+                tiempoRestante--;
+            }, 1000);
+        }
+
+        async function guardarNota() {
+            const estudianteId = document.getElementById('notaEstudiante').value;
+            const asignaturaId = document.getElementById('notaMateria').value;
+            const tipo = document.getElementById('notaTipo').value;
+            const corte = document.getElementById('notaCorte').value;
+            const nota = document.getElementById('notaValor').value;
+            const btn = document.getElementById('btnGuardarNota');
+
+            if (!estudianteId || !asignaturaId || !tipo || !corte || !nota) {
+                alert('Por favor completa todos los campos para registrar la nota.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Guardando...';
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'guardarNota',
+                        estudianteId: estudianteId,
+                        asignaturaId: asignaturaId,
+                        tipo: tipo,
+                        corte: corte,
+                        nota: parseFloat(nota)
+                    })
+                });
+
+                const data = await response.json();
+                alert(data.mensaje);
+
+                if (data.ok) {
+                    document.getElementById('notaValor').value = '';
+                }
+            } catch (error) {
+                console.error('Error al guardar nota:', error);
+                alert('Error al intentar guardar la nota.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Guardar nota';
+            }
+        }
+
+        async function cargarReporteAsistencia() {
+            const idAsignatura = document.getElementById('reporteMateria').value;
+            const tabla = document.getElementById('tablaReporte');
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'obtenerReporteAsistencia',
+                        asignaturaId: idAsignatura
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.ok && data.reporte && data.reporte.length > 0) {
+                    tabla.innerHTML = '';
+                    data.reporte.forEach(r => {
+                        const fechaFormateada = new Date(r.fecha).toLocaleDateString();
+                        tabla.innerHTML += `
+                            <tr>
+                                <td>ID Estudiante: ${r.estudianteId}</td>
+                                <td>${fechaFormateada}</td>
+                                <td>${r.hora || 'Registrada'}</td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    tabla.innerHTML = '<tr><td colspan="3" class="empty-state">No hay registros de asistencia para esta asignatura.</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error al cargar reporte:', error);
+            }
+        }
+
+        function cerrarSesion() {
+            sessionStorage.clear();
+            window.location.href = 'index.html';
         }
     </script>
 </body>
