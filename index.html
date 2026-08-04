@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Estudiantil | Unicaribe</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+        body { background: linear-gradient(135deg, #4A1C6B, #2E1A47); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-container { background: white; width: 100%; max-width: 420px; border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.25); overflow: hidden; }
+        .header { background: #4A1C6B; color: white; padding: 28px 20px 22px; text-align: center; }
+        .logo-placeholder { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+        .logo-placeholder span { color: #F4A300; }
+        .header p { font-size: 13px; opacity: 0.9; margin-top: 4px; }
+        .form-area { padding: 30px 28px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; font-size: 14px; margin-bottom: 6px; color: #333; font-weight: 500; }
+        input { width: 100%; padding: 12px 14px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 15px; outline: none; }
+        input:focus { border-color: #4A1C6B; }
+        .btn { width: 100%; padding: 13px; background: #4A1C6B; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+        .btn:hover { background: #3a1555; }
+        .btn:disabled { background: #999; cursor: not-allowed; }
+        .links { text-align: center; margin-top: 22px; font-size: 14px; }
+        .links a { color: #4A1C6B; text-decoration: none; font-weight: 500; }
+        .divider { margin: 20px 0; height: 1px; background: #eee; }
+        .footer { text-align: center; padding: 12px; font-size: 12px; color: #888; background: #f8f8f8; }
+        .mensaje { padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; display: none; }
+        .mensaje.error { background: #ffebee; color: #c62828; display: block; }
+        .mensaje.ok { background: #e8f5e9; color: #2e7d32; display: block; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="header">
+            <div class="logo-placeholder">uni<span>caribe</span></div>
+            <p>Institución Universitaria del Caribe</p>
+        </div>
+
+        <div class="form-area">
+            <div id="mensaje" class="mensaje"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="documento">Número de documento</label>
+                    <input type="text" id="documento" placeholder="Ej: 1001234567" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="codigo">Código de acceso</label>
+                    <input type="password" id="codigo" placeholder="Código de estudiante o profesor" required>
+                </div>
+
+                <button type="submit" class="btn" id="btnLogin">Ingresar</button>
+            </form>
+
+            <div class="divider"></div>
+            <div class="links">
+                <a href="registro.html">¿Eres estudiante nuevo? Regístrate aquí</a>
+            </div>
+        </div>
+
+        <div class="footer">Control Estudiantil · Unicaribe</div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbyzSNprq3OVwqFoNJgtgGo-n-ZspxSLMBMl8lvuiZ6iWNIxFLhzDnsi9W5MRN6ghYiJQg/exec";
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const btn = document.getElementById('btnLogin');
+            const mensaje = document.getElementById('mensaje');
+            btn.disabled = true;
+            btn.textContent = "Ingresando...";
+            mensaje.className = "mensaje";
+            mensaje.style.display = "none";
+
+            const data = {
+                accion: "login",
+                documento: document.getElementById('documento').value.trim(),
+                codigo: document.getElementById('codigo').value.trim()
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.ok) {
+                    // Guardar datos en localStorage
+                    localStorage.setItem('rol', result.rol);
+                    
+                    if (result.rol === "profesor") {
+                        window.location.href = "profesor.html";
+                    } else {
+                        localStorage.setItem('estudianteId', result.estudianteId);
+                        localStorage.setItem('nombre', result.nombre);
+                        localStorage.setItem('documento', result.documento);
+                        localStorage.setItem('programa', result.programa);
+                        window.location.href = "estudiante.html";
+                    }
+                } else {
+                    mensaje.textContent = result.mensaje;
+                    mensaje.className = "mensaje error";
+                }
+            } catch (error) {
+                mensaje.textContent = "Error de conexión. Intenta de nuevo.";
+                mensaje.className = "mensaje error";
+            }
+
+            btn.disabled = false;
+            btn.textContent = "Ingresar";
+        });
+    </script>
+</body>
+</html>
