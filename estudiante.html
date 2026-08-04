@@ -1,50 +1,249 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel del Estudiante | Unicaribe</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
-        body { background: #f4f6f9; min-height: 100vh; }
-        .header { background: #4A1C6B; color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
-        .header .logo { font-size: 20px; font-weight: 700; }
-        .header .logo span { color: #F4A300; }
-        .header .user-info { font-size: 14px; text-align: right; }
-        .tabs { display: flex; background: white; border-bottom: 1px solid #e0e0e0; overflow-x: auto; }
-        .tab { flex: 1; min-width: 110px; padding: 14px 8px; text-align: center; font-size: 13px; font-weight: 500; color: #555; cursor: pointer; border-bottom: 3px solid transparent; }
-        .tab.active { color: #4A1C6B; border-bottom-color: #4A1C6B; background: #faf8fc; }
-        .content { padding: 20px; max-width: 900px; margin: 0 auto; }
-        .section { display: none; }
-        .section.active { display: block; }
-        .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-        .card h3 { font-size: 16px; color: #4A1C6B; margin-bottom: 14px; }
-        .materia-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
-        .materia-item:last-child { border-bottom: none; }
-        .materia-info strong { display: block; color: #333; font-size: 14px; }
-        .materia-info span { color: #777; font-size: 13px; }
-        .badge { background: #e8f5e9; color: #2e7d32; font-size: 12px; padding: 4px 10px; border-radius: 20px; }
-        .btn { background: #4A1C6B; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
-        .btn:hover { background: #3a1555; }
-        .btn:disabled { background: #999; }
-        input, select { width: 100%; padding: 11px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 12px; }
-        .asistencia-box { text-align: center; }
-        .asistencia-box input { max-width: 220px; text-align: center; letter-spacing: 2px; font-size: 16px; }
-        .nota-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
-        .promedio { background: #4A1C6B; color: white; padding: 14px; border-radius: 10px; text-align: center; margin-top: 16px; }
-        .promedio span { font-size: 24px; font-weight: 700; }
-        .mensaje { padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 14px; display: none; }
-        .mensaje.ok { background: #e8f5e9; color: #2e7d32; display: block; }
-        .mensaje.error { background: #ffebee; color: #c62828; display: block; }
-        .empty { text-align: center; color: #888; padding: 20px; font-size: 14px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background: #f4f6f9;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: #4A1C6B;
+            color: white;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        }
+
+        .header .logo {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .header .logo span {
+            color: #F4A300;
+        }
+
+        .header .user-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header .user-info {
+            font-size: 14px;
+            text-align: right;
+        }
+
+        .header .user-info strong {
+            display: block;
+        }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            overflow-x: auto;
+        }
+
+        .tab {
+            flex: 1;
+            min-width: 120px;
+            padding: 14px 10px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            color: #555;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            color: #4A1C6B;
+            border-bottom-color: #4A1C6B;
+            background: #faf8fc;
+        }
+
+        .content {
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .card h3 {
+            font-size: 16px;
+            color: #4A1C6B;
+            margin-bottom: 12px;
+        }
+
+        .materia-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .materia-item:last-child {
+            border-bottom: none;
+        }
+
+        .materia-info {
+            font-size: 14px;
+        }
+
+        .materia-info strong {
+            display: block;
+            color: #333;
+        }
+
+        .materia-info span {
+            color: #777;
+            font-size: 13px;
+        }
+
+        .badge {
+            background: #e8f5e9;
+            color: #2e7d32;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .asistencia-box {
+            text-align: center;
+            padding: 10px 0;
+        }
+
+        .asistencia-box input, .select-group select {
+            width: 100%;
+            max-width: 300px;
+            padding: 12px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+            margin: 10px 0;
+        }
+
+        .asistencia-box input {
+            text-align: center;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .btn {
+            background: #4A1C6B;
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #3a1555;
+        }
+
+        .btn:disabled {
+            background: #8e6ba8;
+            cursor: not-allowed;
+        }
+
+        .nota-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+
+        .nota-row:last-child {
+            border-bottom: none;
+        }
+
+        .promedio {
+            background: #4A1C6B;
+            color: white;
+            padding: 14px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        .promedio span {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .select-group {
+            margin-bottom: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #777;
+            font-size: 14px;
+            padding: 15px 0;
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <div class="logo">uni<span>caribe</span></div>
-        <div class="user-info">
-            <strong id="nombreEstudiante">Cargando...</strong>
-            <span id="documentoEstudiante"></span>
+        <div class="user-container">
+            <div class="user-info">
+                <strong id="nombreEstudiante">Cargando...</strong>
+                <span id="documentoEstudiante">...</span>
+            </div>
+            <button class="btn-logout" onclick="cerrarSesion()">Salir</button>
         </div>
     </div>
 
@@ -56,244 +255,299 @@
     </div>
 
     <div class="content">
-        <!-- Materias -->
+
+        <!-- Sección: Mis Materias -->
         <div id="materias" class="section active">
             <div class="card">
                 <h3>Materias inscritas</h3>
                 <div id="listaMaterias">
-                    <div class="empty">Cargando materias...</div>
+                    <p class="empty-state">Cargando materias inscritas...</p>
                 </div>
             </div>
         </div>
 
-        <!-- Asistencia -->
+        <!-- Sección: Asistencia -->
         <div id="asistencia" class="section">
             <div class="card">
                 <h3>Marcar asistencia</h3>
-                <div id="msgAsistencia" class="mensaje"></div>
                 <div class="asistencia-box">
-                    <p style="font-size:14px; color:#555; margin-bottom:10px;">Ingresa la contraseña que te dio el profesor (válida por 10 minutos)</p>
-                    <input type="text" id="claveAsistencia" placeholder="Contraseña" maxlength="8">
-                    <br>
+                    <p style="font-size:14px; color:#555; margin-bottom:8px;">
+                        Selecciona la materia e ingresa la contraseña proporcionada por el profesor
+                    </p>
+                    <div class="select-group">
+                        <select id="selectMateriaAsistencia">
+                            <option value="">-- Selecciona una materia --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <input type="text" id="claveAsistencia" placeholder="Contraseña de 6 dígitos" maxlength="6">
+                    </div>
                     <button class="btn" id="btnAsistencia" onclick="marcarAsistencia()">Registrar asistencia</button>
                 </div>
             </div>
         </div>
 
-        <!-- Notas -->
+        <!-- Sección: Notas -->
         <div id="notas" class="section">
             <div class="card">
                 <h3>Mis calificaciones</h3>
                 <div id="listaNotas">
-                    <div class="empty">Cargando notas...</div>
+                    <p class="empty-state">Cargando calificaciones...</p>
+                </div>
+                <div class="promedio">
+                    Promedio general acumulado<br>
+                    <span id="promedioAcumulado">0.0</span>
                 </div>
             </div>
         </div>
 
-        <!-- Inscribirse -->
+        <!-- Sección: Inscribirse -->
         <div id="inscribir" class="section">
             <div class="card">
                 <h3>Inscribir nueva materia</h3>
-                <div id="msgInscripcion" class="mensaje"></div>
+                
+                <div class="select-group">
+                    <label style="font-size:13px; margin-bottom:5px; display:block; color:#333;">Selecciona la asignatura</label>
+                    <select id="selectAsignatura">
+                        <option value="">Cargando asignaturas...</option>
+                    </select>
+                </div>
 
-                <label style="font-size:13px; display:block; margin-bottom:5px;">Asignatura</label>
-                <select id="selectAsignatura">
-                    <option value="">Cargando materias...</option>
-                </select>
+                <div class="select-group">
+                    <label style="font-size:13px; margin-bottom:5px; display:block; color:#333;">Grupo</label>
+                    <select id="selectGrupo">
+                        <option value="G1">G1</option>
+                        <option value="G2">G2</option>
+                    </select>
+                </div>
 
-                <label style="font-size:13px; display:block; margin-bottom:5px;">Grupo</label>
-                <select id="selectGrupo">
-                    <option value="G1">G1</option>
-                    <option value="G2">G2</option>
-                </select>
-
-                <button class="btn" style="width:100%;" id="btnInscribir" onclick="inscribirMateria()">Inscribirme</button>
+                <button class="btn" id="btnInscribir" style="width:100%; margin-top:10px;" onclick="inscribirMateria()">Inscribirme</button>
             </div>
         </div>
+
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyzSNprq3OVwqFoNJgtgGo-n-ZspxSLMBMl8lvuiZ6iWNIxFLhzDnsi9W5MRN6ghYiJQg/exec";
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec';
+        let usuarioActual = null;
 
-        // Verificar si está logueado
-        const estudianteId = localStorage.getItem('estudianteId');
-        const nombre = localStorage.getItem('nombre');
-        const documento = localStorage.getItem('documento');
+        document.addEventListener('DOMContentLoaded', function() {
+            const sesionStr = sessionStorage.getItem('usuarioSesion');
+            if (!sesionStr) {
+                window.location.href = 'index.html';
+                return;
+            }
 
-        if (!estudianteId) {
-            window.location.href = "index.html";
-        }
+            usuarioActual = JSON.parse(sesionStr);
+            if (usuarioActual.rol !== 'estudiante') {
+                window.location.href = 'index.html';
+                return;
+            }
 
-        document.getElementById('nombreEstudiante').textContent = nombre || "Estudiante";
-        document.getElementById('documentoEstudiante').textContent = documento || "";
+            document.getElementById('nombreEstudiante').textContent = usuarioActual.nombre || 'Estudiante';
+            document.getElementById('documentoEstudiante').textContent = 'Doc: ' + (usuarioActual.documento || 'N/A');
 
-        // Cargar datos al iniciar
-        cargarMateriasEstudiante();
-        cargarAsignaturasDisponibles();
-        cargarNotas();
+            cargarMateriasEstudiante();
+            cargarAsignaturasDisponibles();
+            cargarNotasEstudiante();
+        });
 
-        function mostrarSeccion(id, tab) {
+        function mostrarSeccion(id, element) {
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
             document.getElementById(id).classList.add('active');
-            tab.classList.add('active');
+            element.classList.add('active');
         }
 
         async function cargarMateriasEstudiante() {
             try {
-                const res = await fetch(API_URL, {
-                    method: "POST",
-                    body: JSON.stringify({ accion: "obtenerMateriasEstudiante", estudianteId })
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'obtenerMateriasEstudiante',
+                        estudianteId: usuarioActual.estudianteId
+                    })
                 });
-                const data = await res.json();
-                const contenedor = document.getElementById('listaMaterias');
 
-                if (data.ok && data.materias.length > 0) {
-                    contenedor.innerHTML = data.materias.map(m => `
-                        <div class="materia-item">
-                            <div class="materia-info">
-                                <strong>${m.nombre}</strong>
-                                <span>Grupo ${m.grupo} · ${m.dia} ${m.hora} · ${m.aula}</span>
+                const data = await response.json();
+                const contenedor = document.getElementById('listaMaterias');
+                const selectAsistencia = document.getElementById('selectMateriaAsistencia');
+
+                if (data.ok && data.materias && data.materias.length > 0) {
+                    contenedor.innerHTML = '';
+                    selectAsistencia.innerHTML = '<option value="">-- Selecciona una materia --</option>';
+
+                    data.materias.forEach(m => {
+                        contenedor.innerHTML += `
+                            <div class="materia-item">
+                                <div class="materia-info">
+                                    <strong>${m.nombre}</strong>
+                                    <span>Grupo ${m.grupo || 'N/A'} · ${m.dia || ''} ${m.hora || ''}</span>
+                                </div>
+                                <span class="badge">Inscrito</span>
                             </div>
-                            <span class="badge">Inscrito</span>
-                        </div>
-                    `).join('');
+                        `;
+
+                        selectAsistencia.innerHTML += `<option value="${m.id}">${m.nombre} (${m.grupo || 'G1'})</option>`;
+                    });
                 } else {
-                    contenedor.innerHTML = `<div class="empty">No tienes materias inscritas aún</div>`;
+                    contenedor.innerHTML = '<p class="empty-state">No estás inscrito en ninguna asignatura todavía.</p>';
                 }
-            } catch (e) {
-                document.getElementById('listaMaterias').innerHTML = `<div class="empty">Error al cargar materias</div>`;
+            } catch (error) {
+                console.error('Error al cargar materias:', error);
             }
         }
 
         async function cargarAsignaturasDisponibles() {
             try {
-                const res = await fetch(API_URL, {
-                    method: "POST",
-                    body: JSON.stringify({ accion: "obtenerAsignaturas" })
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ accion: 'obtenerAsignaturas' })
                 });
-                const data = await res.json();
+
+                const data = await response.json();
                 const select = document.getElementById('selectAsignatura');
 
-                if (data.ok) {
-                    select.innerHTML = `<option value="">-- Elige una materia --</option>` +
-                        data.asignaturas.map(a => 
-                            `<option value="${a.id}">${a.asignatura} (${a.grupo}) - ${a.dia}</option>`
-                        ).join('');
+                if (data.ok && data.asignaturas && data.asignaturas.length > 0) {
+                    select.innerHTML = '<option value="">-- Elige una materia --</option>';
+                    data.asignaturas.forEach(a => {
+                        select.innerHTML += `<option value="${a.id}">${a.asignatura} - Semestre ${a.semestre} (${a.programa})</option>`;
+                    });
+                } else {
+                    select.innerHTML = '<option value="">No hay asignaturas disponibles</option>';
                 }
-            } catch (e) {
-                console.error(e);
+            } catch (error) {
+                console.error('Error al cargar asignaturas:', error);
             }
         }
 
         async function inscribirMateria() {
             const asignaturaId = document.getElementById('selectAsignatura').value;
             const grupo = document.getElementById('selectGrupo').value;
-            const msg = document.getElementById('msgInscripcion');
             const btn = document.getElementById('btnInscribir');
 
             if (!asignaturaId) {
-                msg.textContent = "Selecciona una materia";
-                msg.className = "mensaje error";
+                alert('Por favor selecciona una asignatura.');
                 return;
             }
 
             btn.disabled = true;
-            btn.textContent = "Inscribiendo...";
+            btn.textContent = 'Inscribiendo...';
 
             try {
-                const res = await fetch(API_URL, {
-                    method: "POST",
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({
-                        accion: "inscribirMateria",
-                        estudianteId,
-                        asignaturaId,
-                        grupo
+                        accion: 'inscribirMateria',
+                        estudianteId: usuarioActual.estudianteId,
+                        asignaturaId: asignaturaId,
+                        grupo: grupo
                     })
                 });
-                const data = await res.json();
+
+                const data = await response.json();
+                alert(data.mensaje);
 
                 if (data.ok) {
-                    msg.textContent = data.mensaje;
-                    msg.className = "mensaje ok";
                     cargarMateriasEstudiante();
-                } else {
-                    msg.textContent = data.mensaje;
-                    msg.className = "mensaje error";
                 }
-            } catch (e) {
-                msg.textContent = "Error de conexión";
-                msg.className = "mensaje error";
+            } catch (error) {
+                console.error('Error al inscribir materia:', error);
+                alert('Ocurrió un error al intentar inscribirte.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Inscribirme';
             }
-
-            btn.disabled = false;
-            btn.textContent = "Inscribirme";
         }
 
         async function marcarAsistencia() {
+            const asignaturaId = document.getElementById('selectMateriaAsistencia').value;
             const clave = document.getElementById('claveAsistencia').value.trim();
-            const msg = document.getElementById('msgAsistencia');
             const btn = document.getElementById('btnAsistencia');
 
             if (!clave) {
-                msg.textContent = "Ingresa la contraseña";
-                msg.className = "mensaje error";
+                alert('Debes ingresar la contraseña de asistencia.');
                 return;
             }
 
             btn.disabled = true;
-            btn.textContent = "Registrando...";
+            btn.textContent = 'Registrando...';
 
             try {
-                const res = await fetch(API_URL, {
-                    method: "POST",
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({
-                        accion: "marcarAsistencia",
-                        estudianteId,
+                        accion: 'marcarAsistencia',
+                        estudianteId: usuarioActual.estudianteId,
+                        asignaturaId: asignaturaId,
                         contrasena: clave
                     })
                 });
-                const data = await res.json();
+
+                const data = await response.json();
+                alert(data.mensaje);
 
                 if (data.ok) {
-                    msg.textContent = data.mensaje;
-                    msg.className = "mensaje ok";
-                    document.getElementById('claveAsistencia').value = "";
-                } else {
-                    msg.textContent = data.mensaje;
-                    msg.className = "mensaje error";
+                    document.getElementById('claveAsistencia').value = '';
                 }
-            } catch (e) {
-                msg.textContent = "Error de conexión";
-                msg.className = "mensaje error";
+            } catch (error) {
+                console.error('Error al marcar asistencia:', error);
+                alert('Error al conectar con el servidor.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Registrar asistencia';
             }
-
-            btn.disabled = false;
-            btn.textContent = "Registrar asistencia";
         }
 
-        async function cargarNotas() {
+        async function cargarNotasEstudiante() {
             try {
-                const res = await fetch(API_URL, {
-                    method: "POST",
-                    body: JSON.stringify({ accion: "obtenerNotasEstudiante", estudianteId })
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'obtenerNotasEstudiante',
+                        estudianteId: usuarioActual.estudianteId
+                    })
                 });
-                const data = await res.json();
+
+                const data = await response.json();
                 const contenedor = document.getElementById('listaNotas');
 
-                if (data.ok && data.notas.length > 0) {
-                    contenedor.innerHTML = data.notas.map(n => `
-                        <div class="nota-row">
-                            <span>${n.tipo} (Corte ${n.corte})</span>
-                            <strong>${n.nota}</strong>
-                        </div>
-                    `).join('');
+                if (data.ok && data.notas && data.notas.length > 0) {
+                    contenedor.innerHTML = '';
+                    let sumaNotas = 0;
+
+                    data.notas.forEach(n => {
+                        const valorNota = parseFloat(n.nota) || 0;
+                        sumaNotas += valorNota;
+
+                        contenedor.innerHTML += `
+                            <div class="nota-row">
+                                <span>${n.tipo || 'Evaluación'} (Corte ${n.corte || '1'})</span>
+                                <strong>${valorNota.toFixed(1)}</strong>
+                            </div>
+                        `;
+                    });
+
+                    const promedio = sumaNotas / data.notas.length;
+                    document.getElementById('promedioAcumulado').textContent = promedio.toFixed(1);
                 } else {
-                    contenedor.innerHTML = `<div class="empty">Aún no tienes notas registradas</div>`;
+                    contenedor.innerHTML = '<p class="empty-state">No hay calificaciones registradas por el momento.</p>';
+                    document.getElementById('promedioAcumulado').textContent = '0.0';
                 }
-            } catch (e) {
-                document.getElementById('listaNotas').innerHTML = `<div class="empty">Error al cargar notas</div>`;
+            } catch (error) {
+                console.error('Error al cargar notas:', error);
             }
+        }
+
+        function cerrarSesion() {
+            sessionStorage.clear();
+            window.location.href = 'index.html';
         }
     </script>
 </body>
