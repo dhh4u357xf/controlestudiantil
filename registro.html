@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Estudiantes | Unicaribe</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+        body { background: linear-gradient(135deg, #4A1C6B, #2E1A47); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .container { background: white; width: 100%; max-width: 480px; border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.25); overflow: hidden; }
+        .header { background: #4A1C6B; color: white; padding: 24px 20px; text-align: center; }
+        .logo-placeholder { font-size: 26px; font-weight: 700; }
+        .logo-placeholder span { color: #F4A300; }
+        .header p { font-size: 13px; opacity: 0.9; margin-top: 4px; }
+        .form-area { padding: 28px 26px; }
+        .form-area h2 { font-size: 20px; color: #4A1C6B; margin-bottom: 6px; text-align: center; }
+        .subtitle { text-align: center; font-size: 13px; color: #666; margin-bottom: 22px; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 13px; margin-bottom: 5px; color: #333; font-weight: 500; }
+        input, select { width: 100%; padding: 11px 13px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; background: white; }
+        input:focus, select:focus { border-color: #4A1C6B; }
+        .btn { width: 100%; padding: 13px; background: #4A1C6B; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        .btn:hover { background: #3a1555; }
+        .btn:disabled { background: #999; }
+        .links { text-align: center; margin-top: 20px; font-size: 13px; }
+        .links a { color: #4A1C6B; text-decoration: none; font-weight: 500; }
+        .footer { text-align: center; padding: 12px; font-size: 12px; color: #888; background: #f8f8f8; }
+        .mensaje { padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; display: none; }
+        .mensaje.error { background: #ffebee; color: #c62828; display: block; }
+        .mensaje.ok { background: #e8f5e9; color: #2e7d32; display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo-placeholder">uni<span>caribe</span></div>
+            <p>Institución Universitaria del Caribe</p>
+        </div>
+
+        <div class="form-area">
+            <h2>Registro de Estudiante</h2>
+            <p class="subtitle">Completa tus datos para crear tu cuenta</p>
+
+            <div id="mensaje" class="mensaje"></div>
+
+            <form id="registroForm">
+                <div class="form-group">
+                    <label for="nombre">Nombre completo</label>
+                    <input type="text" id="nombre" placeholder="Ej: Juan Pérez Gómez" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="documento">Número de documento</label>
+                    <input type="text" id="documento" placeholder="Ej: 1001234567" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="correo">Correo electrónico</label>
+                    <input type="email" id="correo" placeholder="Ej: juan@correo.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="telefono">Teléfono</label>
+                    <input type="tel" id="telefono" placeholder="Ej: 3001234567" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="programa">Programa académico</label>
+                    <select id="programa" required>
+                        <option value="">Selecciona tu programa</option>
+                        <option value="Técnica Profesional en Operaciones de Procesos Industriales">Técnica Profesional en Operaciones de Procesos Industriales</option>
+                        <option value="Técnica Profesional en Procesos de Seguridad y Salud en el Trabajo">Técnica Profesional en Procesos de Seguridad y Salud en el Trabajo</option>
+                        <option value="Técnica Profesional en Soporte y Operación de Sistemas Informáticos">Técnica Profesional en Soporte y Operación de Sistemas Informáticos</option>
+                        <option value="Tecnología en Gestión de Sistemas Informáticos">Tecnología en Gestión de Sistemas Informáticos</option>
+                        <option value="Tecnología en Procesos Industriales">Tecnología en Procesos Industriales</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn" id="btnRegistro">Registrarme</button>
+            </form>
+
+            <div class="links">
+                <a href="index.html">← Ya tengo cuenta, iniciar sesión</a>
+            </div>
+        </div>
+
+        <div class="footer">Control Estudiantil · Unicaribe</div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbyzSNprq3OVwqFoNJgtgGo-n-ZspxSLMBMl8lvuiZ6iWNIxFLhzDnsi9W5MRN6ghYiJQg/exec";
+
+        document.getElementById('registroForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const btn = document.getElementById('btnRegistro');
+            const mensaje = document.getElementById('mensaje');
+            btn.disabled = true;
+            btn.textContent = "Registrando...";
+            mensaje.className = "mensaje";
+
+            const data = {
+                accion: "registrarEstudiante",
+                nombre: document.getElementById('nombre').value.trim(),
+                documento: document.getElementById('documento').value.trim(),
+                correo: document.getElementById('correo').value.trim(),
+                telefono: document.getElementById('telefono').value.trim(),
+                programa: document.getElementById('programa').value
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.ok) {
+                    mensaje.textContent = "¡Registro exitoso! Ahora puedes iniciar sesión.";
+                    mensaje.className = "mensaje ok";
+                    document.getElementById('registroForm').reset();
+                    
+                    setTimeout(() => {
+                        window.location.href = "index.html";
+                    }, 2000);
+                } else {
+                    mensaje.textContent = result.mensaje;
+                    mensaje.className = "mensaje error";
+                }
+            } catch (error) {
+                mensaje.textContent = "Error de conexión. Intenta de nuevo.";
+                mensaje.className = "mensaje error";
+            }
+
+            btn.disabled = false;
+            btn.textContent = "Registrarme";
+        });
+    </script>
+</body>
+</html>
