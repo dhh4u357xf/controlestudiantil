@@ -1,118 +1,246 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control Estudiantil | Unicaribe</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
-        body { background: linear-gradient(135deg, #4A1C6B, #2E1A47); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .login-container { background: white; width: 100%; max-width: 420px; border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.25); overflow: hidden; }
-        .header { background: #4A1C6B; color: white; padding: 28px 20px 22px; text-align: center; }
-        .logo-placeholder { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
-        .logo-placeholder span { color: #F4A300; }
-        .header p { font-size: 13px; opacity: 0.9; margin-top: 4px; }
-        .form-area { padding: 30px 28px; }
-        .form-group { margin-bottom: 18px; }
-        label { display: block; font-size: 14px; margin-bottom: 6px; color: #333; font-weight: 500; }
-        input { width: 100%; padding: 12px 14px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 15px; outline: none; }
-        input:focus { border-color: #4A1C6B; }
-        .btn { width: 100%; padding: 13px; background: #4A1C6B; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 8px; }
-        .btn:hover { background: #3a1555; }
-        .btn:disabled { background: #999; cursor: not-allowed; }
-        .links { text-align: center; margin-top: 22px; font-size: 14px; }
-        .links a { color: #4A1C6B; text-decoration: none; font-weight: 500; }
-        .divider { margin: 20px 0; height: 1px; background: #eee; }
-        .footer { text-align: center; padding: 12px; font-size: 12px; color: #888; background: #f8f8f8; }
-        .mensaje { padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; display: none; }
-        .mensaje.error { background: #ffebee; color: #c62828; display: block; }
-        .mensaje.ok { background: #e8f5e9; color: #2e7d32; display: block; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #4A1C6B, #2E1A47);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            width: 100%;
+            max-width: 420px;
+            border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #4A1C6B;
+            color: white;
+            padding: 28px 20px 22px;
+            text-align: center;
+        }
+
+        .logo-area {
+            margin-bottom: 12px;
+        }
+
+        .logo-area img {
+            max-width: 160px;
+            height: auto;
+        }
+
+        .logo-placeholder {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-placeholder span {
+            color: #F4A300;
+        }
+
+        .header p {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        .form-area {
+            padding: 30px 28px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 6px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: #4A1C6B;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 13px;
+            background: #4A1C6B;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #3a1555;
+        }
+
+        .btn:disabled {
+            background: #8e6ba8;
+            cursor: not-allowed;
+        }
+
+        .alert-error {
+            background-color: #fde8e8;
+            color: #9b1c1c;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: none;
+            border: 1px solid #f8b4b4;
+        }
+
+        .links {
+            text-align: center;
+            margin-top: 22px;
+            font-size: 14px;
+        }
+
+        .links a {
+            color: #4A1C6B;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
+        }
+
+        .divider {
+            margin: 20px 0;
+            height: 1px;
+            background: #eee;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 12px;
+            font-size: 12px;
+            color: #888;
+            background: #f8f8f8;
+        }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="header">
-            <div class="logo-placeholder">uni<span>caribe</span></div>
+            <div class="logo-area">
+                <div class="logo-placeholder">uni<span>caribe</span></div>
+            </div>
             <p>Institución Universitaria del Caribe</p>
         </div>
 
         <div class="form-area">
-            <div id="mensaje" class="mensaje"></div>
+            <div id="alertBox" class="alert-error"></div>
 
             <form id="loginForm">
                 <div class="form-group">
-                    <label for="documento">Número de documento</label>
-                    <input type="text" id="documento" placeholder="Ej: 1001234567" required>
+                    <label for="documento">Número de documento / Código</label>
+                    <input type="text" id="documento" placeholder="Ej: 1001234567 o PROF-2026" required>
                 </div>
 
-                <div class="form-group">
-                    <label for="codigo">Código de acceso</label>
-                    <input type="password" id="codigo" placeholder="Código de estudiante o profesor" required>
-                </div>
-
-                <button type="submit" class="btn" id="btnLogin">Ingresar</button>
+                <button type="submit" id="btnIngresar" class="btn">Ingresar</button>
             </form>
 
             <div class="divider"></div>
+
             <div class="links">
                 <a href="registro.html">¿Eres estudiante nuevo? Regístrate aquí</a>
             </div>
         </div>
 
-        <div class="footer">Control Estudiantil · Unicaribe</div>
+        <div class="footer">
+            Control Estudiantil · Unicaribe
+        </div>
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyzSNprq3OVwqFoNJgtgGo-n-ZspxSLMBMl8lvuiZ6iWNIxFLhzDnsi9W5MRN6ghYiJQg/exec";
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec';
 
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+            
+            const documentoInput = document.getElementById('documento').value.trim();
+            const alertBox = document.getElementById('alertBox');
+            const btnIngresar = document.getElementById('btnIngresar');
 
-            const btn = document.getElementById('btnLogin');
-            const mensaje = document.getElementById('mensaje');
-            btn.disabled = true;
-            btn.textContent = "Ingresando...";
-            mensaje.className = "mensaje";
-            mensaje.style.display = "none";
+            alertBox.style.display = 'none';
+            btnIngresar.disabled = true;
+            btnIngresar.textContent = 'Verificando...';
 
-            const data = {
-                accion: "login",
-                documento: document.getElementById('documento').value.trim(),
-                codigo: document.getElementById('codigo').value.trim()
+            // Preparar payload para Apps Script
+            const payload = {
+                accion: 'login',
+                codigo: documentoInput,
+                documento: documentoInput
             };
 
             try {
-                const response = await fetch(API_URL, {
-                    method: "POST",
-                    body: JSON.stringify(data)
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
                 });
 
-                const result = await response.json();
+                const data = await response.json();
 
-                if (result.ok) {
-                    // Guardar datos en localStorage
-                    localStorage.setItem('rol', result.rol);
-                    
-                    if (result.rol === "profesor") {
-                        window.location.href = "profesor.html";
-                    } else {
-                        localStorage.setItem('estudianteId', result.estudianteId);
-                        localStorage.setItem('nombre', result.nombre);
-                        localStorage.setItem('documento', result.documento);
-                        localStorage.setItem('programa', result.programa);
-                        window.location.href = "estudiante.html";
+                if (data.ok) {
+                    // Guardar sesión del usuario en navegador
+                    sessionStorage.setItem('usuarioSesion', JSON.stringify(data));
+
+                    if (data.rol === 'profesor') {
+                        window.location.href = 'profesor.html';
+                    } else if (data.rol === 'estudiante') {
+                        window.location.href = 'estudiante.html';
                     }
                 } else {
-                    mensaje.textContent = result.mensaje;
-                    mensaje.className = "mensaje error";
+                    alertBox.textContent = data.mensaje || 'Error al iniciar sesión.';
+                    alertBox.style.display = 'block';
                 }
             } catch (error) {
-                mensaje.textContent = "Error de conexión. Intenta de nuevo.";
-                mensaje.className = "mensaje error";
+                console.error('Error:', error);
+                alertBox.textContent = 'Error de conexión con el servidor. Intenta de nuevo.';
+                alertBox.style.display = 'block';
+            } finally {
+                btnIngresar.disabled = false;
+                btnIngresar.textContent = 'Ingresar';
             }
-
-            btn.disabled = false;
-            btn.textContent = "Ingresar";
         });
     </script>
 </body>
