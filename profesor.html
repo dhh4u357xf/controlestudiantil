@@ -1,1 +1,384 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel del Profesor | Unicaribe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
 
+        body {
+            background: #f4f6f9;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: #4A1C6B;
+            color: white;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        }
+
+        .header .logo {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .header .logo span {
+            color: #F4A300;
+        }
+
+        .header .user-info {
+            font-size: 14px;
+            text-align: right;
+        }
+
+        .tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            overflow-x: auto;
+        }
+
+        .tab {
+            flex: 1;
+            min-width: 110px;
+            padding: 14px 8px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            white-space: nowrap;
+        }
+
+        .tab.active {
+            color: #4A1C6B;
+            border-bottom-color: #4A1C6B;
+            background: #faf8fc;
+        }
+
+        .content {
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .card h3 {
+            font-size: 16px;
+            color: #4A1C6B;
+            margin-bottom: 14px;
+        }
+
+        .btn {
+            background: #4A1C6B;
+            color: white;
+            border: none;
+            padding: 11px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background: #3a1555;
+        }
+
+        .btn-green {
+            background: #2E8B57;
+        }
+
+        .btn-green:hover {
+            background: #246b45;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1.5px solid #4A1C6B;
+            color: #4A1C6B;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th {
+            background: #f8f5fc;
+            color: #4A1C6B;
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-green {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .badge-red {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .password-box {
+            background: #f8f5fc;
+            border: 2px dashed #4A1C6B;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .password-display {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 4px;
+            color: #4A1C6B;
+            margin: 10px 0;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        @media (max-width: 600px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">uni<span>caribe</span></div>
+        <div class="user-info">
+            <strong>Profesor</strong>
+            <span>Panel de administración</span>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="mostrarSeccion('asistencia')">Asistencia</div>
+        <div class="tab" onclick="mostrarSeccion('estudiantes')">Estudiantes</div>
+        <div class="tab" onclick="mostrarSeccion('notas')">Notas</div>
+        <div class="tab" onclick="mostrarSeccion('reportes')">Reportes</div>
+    </div>
+
+    <div class="content">
+
+        <!-- SECCIÓN: Generar contraseña de asistencia -->
+        <div id="asistencia" class="section active">
+            <div class="card">
+                <h3>Generar contraseña de asistencia</h3>
+                <p style="font-size:13px; color:#666; margin-bottom:12px;">
+                    La contraseña durará 10 minutos y será válida para todos los estudiantes de la clase.
+                </p>
+
+                <select id="materiaAsistencia">
+                    <option value="">Selecciona la materia</option>
+                    <option value="1">Estadística Descriptiva - G1</option>
+                    <option value="2">Cálculo Diferencial - G2</option>
+                    <option value="3">Física Mecánica - G1</option>
+                </select>
+
+                <button class="btn btn-green" onclick="generarContrasena()">Generar contraseña aleatoria</button>
+
+                <div class="password-box" id="passwordBox" style="display:none;">
+                    <div style="font-size:13px; color:#666;">Contraseña generada:</div>
+                    <div class="password-display" id="passwordDisplay">----</div>
+                    <div style="font-size:12px; color:#888;" id="expiraEn">Expira en 10:00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: Estudiantes -->
+        <div id="estudiantes" class="section">
+            <div class="card">
+                <h3>Lista de estudiantes</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Documento</th>
+                            <th>Programa</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Juan Pérez</td>
+                            <td>1001234567</td>
+                            <td>Sistemas Informáticos</td>
+                            <td>
+                                <button class="btn-outline" style="padding:5px 10px; font-size:12px;">Ver</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>María Gómez</td>
+                            <td>1009876543</td>
+                            <td>Procesos Industriales</td>
+                            <td>
+                                <button class="btn-outline" style="padding:5px 10px; font-size:12px;">Ver</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: Notas -->
+        <div id="notas" class="section">
+            <div class="card">
+                <h3>Registrar / Editar notas</h3>
+
+                <div class="grid-2">
+                    <select id="notaMateria">
+                        <option value="">Materia</option>
+                        <option value="1">Estadística Descriptiva</option>
+                        <option value="2">Cálculo Diferencial</option>
+                    </select>
+                    <select id="notaEstudiante">
+                        <option value="">Estudiante</option>
+                        <option value="1">Juan Pérez</option>
+                        <option value="2">María Gómez</option>
+                    </select>
+                </div>
+
+                <div class="grid-2">
+                    <select id="notaTipo">
+                        <option value="">Tipo de nota</option>
+                        <option value="Parcial">Parcial</option>
+                        <option value="Quiz">Quiz</option>
+                        <option value="Trabajo">Trabajo</option>
+                        <option value="Examen Final">Examen Final</option>
+                    </select>
+                    <select id="notaCorte">
+                        <option value="">Corte</option>
+                        <option value="1">Corte 1 (30%)</option>
+                        <option value="2">Corte 2 (30%)</option>
+                        <option value="3">Corte 3 (40%)</option>
+                    </select>
+                </div>
+
+                <input type="number" id="notaValor" placeholder="Nota (0.0 - 5.0)" min="0" max="5" step="0.1">
+
+                <button class="btn" onclick="guardarNota()">Guardar nota</button>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: Reportes -->
+        <div id="reportes" class="section">
+            <div class="card">
+                <h3>Reporte de asistencia</h3>
+                <select style="margin-bottom:15px;">
+                    <option>Estadística Descriptiva - G1</option>
+                    <option>Cálculo Diferencial - G2</option>
+                </select>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Estudiante</th>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Juan Pérez</td>
+                            <td>04/08/2026</td>
+                            <td><span class="badge badge-green">Asistió</span></td>
+                        </tr>
+                        <tr>
+                            <td>María Gómez</td>
+                            <td>04/08/2026</td>
+                            <td><span class="badge badge-red">No asistió</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function mostrarSeccion(id) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function generarContrasena() {
+            // Generar contraseña aleatoria de 6 caracteres
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let password = '';
+            for (let i = 0; i < 6; i++) {
+                password += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+
+            document.getElementById('passwordBox').style.display = 'block';
+            document.getElementById('passwordDisplay').textContent = password;
+
+            // Aquí después conectaremos con Apps Script para guardar la contraseña
+            alert('Contraseña generada (aún no se guarda en el servidor):\n' + password);
+        }
+
+        function guardarNota() {
+            alert('Función de guardar nota aún no conectada.');
+        }
+    </script>
+</body>
+</html>
