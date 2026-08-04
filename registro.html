@@ -1,33 +1,170 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro de Estudiantes | Unicaribe</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
-        body { background: linear-gradient(135deg, #4A1C6B, #2E1A47); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .container { background: white; width: 100%; max-width: 480px; border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.25); overflow: hidden; }
-        .header { background: #4A1C6B; color: white; padding: 24px 20px; text-align: center; }
-        .logo-placeholder { font-size: 26px; font-weight: 700; }
-        .logo-placeholder span { color: #F4A300; }
-        .header p { font-size: 13px; opacity: 0.9; margin-top: 4px; }
-        .form-area { padding: 28px 26px; }
-        .form-area h2 { font-size: 20px; color: #4A1C6B; margin-bottom: 6px; text-align: center; }
-        .subtitle { text-align: center; font-size: 13px; color: #666; margin-bottom: 22px; }
-        .form-group { margin-bottom: 16px; }
-        label { display: block; font-size: 13px; margin-bottom: 5px; color: #333; font-weight: 500; }
-        input, select { width: 100%; padding: 11px 13px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; background: white; }
-        input:focus, select:focus { border-color: #4A1C6B; }
-        .btn { width: 100%; padding: 13px; background: #4A1C6B; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 10px; }
-        .btn:hover { background: #3a1555; }
-        .btn:disabled { background: #999; }
-        .links { text-align: center; margin-top: 20px; font-size: 13px; }
-        .links a { color: #4A1C6B; text-decoration: none; font-weight: 500; }
-        .footer { text-align: center; padding: 12px; font-size: 12px; color: #888; background: #f8f8f8; }
-        .mensaje { padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; display: none; }
-        .mensaje.error { background: #ffebee; color: #c62828; display: block; }
-        .mensaje.ok { background: #e8f5e9; color: #2e7d32; display: block; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #4A1C6B, #2E1A47);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            width: 100%;
+            max-width: 480px;
+            border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #4A1C6B;
+            color: white;
+            padding: 24px 20px;
+            text-align: center;
+        }
+
+        .logo-placeholder {
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-placeholder span {
+            color: #F4A300;
+        }
+
+        .header p {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        .form-area {
+            padding: 28px 26px;
+        }
+
+        .form-area h2 {
+            font-size: 20px;
+            color: #4A1C6B;
+            margin-bottom: 6px;
+            text-align: center;
+        }
+
+        .form-area .subtitle {
+            text-align: center;
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 22px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 11px 13px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            background: white;
+        }
+
+        input:focus, select:focus {
+            border-color: #4A1C6B;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 13px;
+            background: #4A1C6B;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #3a1555;
+        }
+
+        .btn:disabled {
+            background: #8e6ba8;
+            cursor: not-allowed;
+        }
+
+        .alert-box {
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 18px;
+            display: none;
+            text-align: center;
+        }
+
+        .alert-error {
+            background-color: #fde8e8;
+            color: #9b1c1c;
+            border: 1px solid #f8b4b4;
+        }
+
+        .alert-success {
+            background-color: #def7ec;
+            color: #03543f;
+            border: 1px solid #84e1bc;
+        }
+
+        .links {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+        }
+
+        .links a {
+            color: #4A1C6B;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 12px;
+            font-size: 12px;
+            color: #888;
+            background: #f8f8f8;
+        }
     </style>
 </head>
 <body>
@@ -41,7 +178,7 @@
             <h2>Registro de Estudiante</h2>
             <p class="subtitle">Completa tus datos para crear tu cuenta</p>
 
-            <div id="mensaje" class="mensaje"></div>
+            <div id="alertBox" class="alert-box"></div>
 
             <form id="registroForm">
                 <div class="form-group">
@@ -76,7 +213,7 @@
                     </select>
                 </div>
 
-                <button type="submit" class="btn" id="btnRegistro">Registrarme</button>
+                <button type="submit" id="btnRegistrar" class="btn">Registrarme</button>
             </form>
 
             <div class="links">
@@ -84,23 +221,22 @@
             </div>
         </div>
 
-        <div class="footer">Control Estudiantil · Unicaribe</div>
+        <div class="footer">
+            Control Estudiantil · Unicaribe
+        </div>
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyzSNprq3OVwqFoNJgtgGo-n-ZspxSLMBMl8lvuiZ6iWNIxFLhzDnsi9W5MRN6ghYiJQg/exec";
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec';
 
         document.getElementById('registroForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const btn = document.getElementById('btnRegistro');
-            const mensaje = document.getElementById('mensaje');
-            btn.disabled = true;
-            btn.textContent = "Registrando...";
-            mensaje.className = "mensaje";
+            const btnRegistrar = document.getElementById('btnRegistrar');
+            const alertBox = document.getElementById('alertBox');
 
-            const data = {
-                accion: "registrarEstudiante",
+            const payload = {
+                accion: 'registrarEstudiante',
                 nombre: document.getElementById('nombre').value.trim(),
                 documento: document.getElementById('documento').value.trim(),
                 correo: document.getElementById('correo').value.trim(),
@@ -108,33 +244,43 @@
                 programa: document.getElementById('programa').value
             };
 
+            alertBox.style.display = 'none';
+            btnRegistrar.disabled = true;
+            btnRegistrar.textContent = 'Procesando registro...';
+
             try {
-                const response = await fetch(API_URL, {
-                    method: "POST",
-                    body: JSON.stringify(data)
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
                 });
 
-                const result = await response.json();
+                const data = await response.json();
 
-                if (result.ok) {
-                    mensaje.textContent = "¡Registro exitoso! Ahora puedes iniciar sesión.";
-                    mensaje.className = "mensaje ok";
+                if (data.ok) {
+                    alertBox.className = 'alert-box alert-success';
+                    alertBox.textContent = data.mensaje || '¡Registro exitoso! Redirigiendo al login...';
+                    alertBox.style.display = 'block';
+
                     document.getElementById('registroForm').reset();
-                    
+
                     setTimeout(() => {
-                        window.location.href = "index.html";
+                        window.location.href = 'index.html';
                     }, 2000);
                 } else {
-                    mensaje.textContent = result.mensaje;
-                    mensaje.className = "mensaje error";
+                    alertBox.className = 'alert-box alert-error';
+                    alertBox.textContent = data.mensaje || 'Error al procesar el registro.';
+                    alertBox.style.display = 'block';
                 }
             } catch (error) {
-                mensaje.textContent = "Error de conexión. Intenta de nuevo.";
-                mensaje.className = "mensaje error";
+                console.error('Error:', error);
+                alertBox.className = 'alert-box alert-error';
+                alertBox.textContent = 'Error de conexión con el servidor. Por favor, intenta de nuevo.';
+                alertBox.style.display = 'block';
+            } finally {
+                btnRegistrar.disabled = false;
+                btnRegistrar.textContent = 'Registrarme';
             }
-
-            btn.disabled = false;
-            btn.textContent = "Registrarme";
         });
     </script>
 </body>
