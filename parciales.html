@@ -154,8 +154,8 @@
                 }
 
             } catch (error) {
-                console.error('Error:', error);
-                alert('Ocurrió un error al procesar los archivos.');
+                console.error('Error detallado:', error);
+                alert('Error al procesar: ' + error.message);
             } finally {
                 btn.disabled = false;
                 document.getElementById('cargando').style.display = 'none';
