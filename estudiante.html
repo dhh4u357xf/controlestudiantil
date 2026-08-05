@@ -416,36 +416,33 @@
         }
 
         async function cargarAsignaturasDisponibles() {
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ accion: 'obtenerAsignaturas' })
-                });
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ accion: 'obtenerAsignaturas' })
+        });
 
-                const data = await response.json();
-                const select = document.getElementById('selectAsignatura');
+        const data = await response.json();
+        const select = document.getElementById('selectAsignatura');
 
-                if (data.ok && data.asignaturas && data.asignaturas.length > 0) {
-                    select.innerHTML = '<option value="">-- Elige una materia --</option>';
+        if (data.ok && data.asignaturas && data.asignaturas.length > 0) {
+            select.innerHTML = '<option value="">-- Elige una materia --</option>';
 
-                    // Filtrar por programa del estudiante
-                    const asignaturasFiltradas = data.asignaturas.filter(a => 
-                        !usuarioActual.programa || a.programa.trim().toUpperCase() === usuarioActual.programa.trim().toUpperCase()
-                    );
-
-                    const materiasAMostrar = asignaturasFiltradas.length > 0 ? asignaturasFiltradas : data.asignaturas;
-
-                    materiasAMostrar.forEach(a => {
-                        select.innerHTML += `<option value="${a.id}">${a.asignatura} (Grupo ${a.grupo}) - Sem. ${a.semestre} [${a.dia} ${a.horaInicio}-${a.horaFinal}]</option>`;
-                    });
-                } else {
-                    select.innerHTML = '<option value="">No hay asignaturas disponibles</option>';
-                }
-            } catch (error) {
-                console.error('Error al cargar asignaturas:', error);
-            }
+            // Cargar TODAS las asignaturas registradas en Google Sheets
+            data.asignaturas.forEach(a => {
+                const progText = a.programa ? ` [${a.programa}]` : '';
+                select.innerHTML += `<option value="${a.id}">${a.asignatura} (Grupo ${a.grupo || 'G1'}) - Sem. ${a.semestre}${progText} [${a.dia} ${a.horaInicio}-${a.horaFinal}]</option>`;
+            });
+        } else {
+            select.innerHTML = '<option value="">No hay asignaturas disponibles</option>';
         }
+    } catch (error) {
+        console.error('Error al cargar asignaturas:', error);
+        document.getElementById('selectAsignatura').innerHTML = '<option value="">Error al cargar materias</option>';
+    }
+}
+
 
         async function inscribirMateria() {
             const asignaturaId = document.getElementById('selectAsignatura').value;
