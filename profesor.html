@@ -441,48 +441,42 @@
         }
 
         async function filtrarEstudiantesPorMateriaSeleccionada() {
-            const idAsignatura = document.getElementById('notaMateria').value;
-            const selectEst = document.getElementById('notaEstudiante');
+    const idAsignatura = document.getElementById('notaMateria').value;
+    const selectEst = document.getElementById('notaEstudiante');
 
-            if (!idAsignatura) {
-                selectEst.innerHTML = '<option value="">-- Selecciona una materia primero --</option>';
-                return;
-            }
+    if (!idAsignatura) {
+        selectEst.innerHTML = '<option value="">-- Selecciona una materia primero --</option>';
+        return;
+    }
 
-            selectEst.innerHTML = '<option value="">Cargando estudiantes matriculados...</option>';
+    selectEst.innerHTML = '<option value="">Cargando estudiantes matriculados...</option>';
 
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({
-                        accion: 'obtenerReporteAsistencia',
-                        asignaturaId: idAsignatura
-                    })
-                });
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+                accion: 'obtenerEstudiantesPorAsignatura',
+                asignaturaId: idAsignatura
+            })
+        });
 
-                const data = await response.json();
+        const data = await response.json();
 
-                if (data.ok && data.reporte) {
-                    selectEst.innerHTML = '<option value="">-- Selecciona Estudiante --</option>';
-                    
-                    const estudiantesUnicos = {};
-                    data.reporte.forEach(r => {
-                        estudiantesUnicos[r.estudianteId] = r.estudianteNombre;
-                    });
-
-                    for (const [id, nombre] of Object.entries(estudiantesUnicos)) {
-                        selectEst.innerHTML += `<option value="${id}">${nombre}</option>`;
-                    }
-
-                    if (Object.keys(estudiantesUnicos).length === 0) {
-                        selectEst.innerHTML = '<option value="">No hay estudiantes inscritos en esta materia</option>';
-                    }
-                }
-            } catch (error) {
-                console.error('Error al filtrar estudiantes:', error);
-            }
+        if (data.ok && data.estudiantes && data.estudiantes.length > 0) {
+            selectEst.innerHTML = '<option value="">-- Selecciona Estudiante --</option>';
+            data.estudiantes.forEach(e => {
+                selectEst.innerHTML += `<option value="${e.id}">${e.nombre} (${e.documento})</option>`;
+            });
+        } else {
+            selectEst.innerHTML = '<option value="">No hay estudiantes inscritos en esta materia</option>';
         }
+    } catch (error) {
+        console.error('Error al filtrar estudiantes:', error);
+        selectEst.innerHTML = '<option value="">Error al cargar la lista</option>';
+    }
+}
+
 
         function actualizarFiltrosReporte() {
             const selectEst = document.getElementById('reporteEstudiante');
