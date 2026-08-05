@@ -106,7 +106,7 @@
     <script>
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby1l4VuqvSqGG6_t1J2fmJSlV8TjUZcE0EgAlV_1dYmxgWVWIa8Tb4OqmxhOVlh3f33/exec";
 
-        async function procesarEvaluacion() {
+async function procesarEvaluacion() {
     const estudiante = document.getElementById('nombreEstudiante').value.trim();
     const inputSolucion = document.getElementById('archivoSolucionario');
     const inputEstudiante = document.getElementById('archivoEstudiante');
@@ -119,13 +119,6 @@
 
     const fileSol = inputSolucion.files[0];
     const fileEst = inputEstudiante.files[0];
-
-    // Validar peso total combinado (Máximo ~4.5 MB sumados entre ambos)
-    const pesoTotalMB = (fileSol.size + fileEst.size) / (1024 * 1024);
-    if (pesoTotalMB > 4.5) {
-        alert(`Los archivos sumados pesan ${pesoTotalMB.toFixed(2)} MB. El límite máximo para enviar en una sola petición es de 4.5 MB. Por favor comprime o reduce la resolución de los PDF.`);
-        return;
-    }
 
     btn.disabled = true;
     document.getElementById('contenidoInicial').style.display = 'none';
@@ -141,20 +134,17 @@
             nombreEstudiante: estudiante,
             fileNameEstudiante: `${estudiante}_${fileEst.name}`,
             fileTypeEstudiante: fileEst.type || "application/pdf",
-            fileBase64Estudiante: base64Est.split(',')[1],
+            fileBase64Estudiante: base64Sol.split(',')[1] ? base64Est.split(',')[1] : base64Est,
             fileTypeSolucionario: fileSol.type || "application/pdf",
-            fileBase64Solucionario: base64Sol.split(',')[1]
+            fileBase64Solucionario: base64Sol.split(',')[1] ? base64Sol.split(',')[1] : base64Sol
         };
 
+        // Uso de text/plain para omitir restricciones CORS del navegador
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(payload)
         });
-
-        if (!response.ok) {
-            throw new Error(`Respuesta del servidor no HTTP 200: ${response.status}`);
-        }
 
         const data = await response.json();
 
@@ -166,7 +156,7 @@
 
     } catch (error) {
         console.error('Error detallado:', error);
-        alert('Error al conectar con el servidor: ' + error.message + '\n\nRevisa que el archivo no supere el tamaño permitido y que la URL en SCRIPT_URL esté correcta.');
+        alert('Error al conectar con el servidor: ' + error.message);
     } finally {
         btn.disabled = false;
         document.getElementById('cargando').style.display = 'none';
