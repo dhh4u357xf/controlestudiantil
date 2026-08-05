@@ -3,253 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Evaluador de Parciales con IA | Unicaribe</title>
+    <title>Evaluador de Parciales | Unicaribe</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: system-ui, -apple-system, sans-serif;
-        }
-
-        body {
-            background: #f4f6f9;
-            min-height: 100vh;
-            color: #333;
-        }
-
-        .header {
-            background: #4A1C6B;
-            color: white;
-            padding: 16px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-        }
-
-        .header .logo {
-            font-size: 20px;
-            font-weight: 700;
-        }
-
-        .header .logo span {
-            color: #F4A300;
-        }
-
-        .container {
-            max-width: 1100px;
-            margin: 25px auto;
-            padding: 0 20px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 850px) {
-            .container {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 22px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-        }
-
-        .card h3 {
-            font-size: 17px;
-            color: #4A1C6B;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 6px;
-            color: #444;
-        }
-
-        input[type="text"], textarea, input[type="file"] {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1.5px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
-            margin-bottom: 14px;
-            outline: none;
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 120px;
-        }
-
-        .btn {
-            background: #4A1C6B;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-            transition: background 0.2s;
-        }
-
-        .btn:hover {
-            background: #3a1555;
-        }
-
-        .btn:disabled {
-            background: #a38db5;
-            cursor: not-allowed;
-        }
-
-        /* Estilos de Calificación / Resultado */
-        .score-box {
-            background: #f8f5fc;
-            border: 2px solid #4A1C6B;
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-            margin-bottom: 18px;
-        }
-
-        .score-number {
-            font-size: 42px;
-            font-weight: 800;
-            color: #4A1C6B;
-        }
-
-        .summary-text {
-            font-size: 14px;
-            line-height: 1.5;
-            color: #555;
-            margin-bottom: 16px;
-            background: #fafafa;
-            padding: 12px;
-            border-radius: 8px;
-            border-left: 4px solid #F4A300;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-            margin-bottom: 16px;
-        }
-
-        th {
-            background: #f1ebf7;
-            color: #4A1C6B;
-            padding: 8px;
-            text-align: left;
-        }
-
-        td {
-            padding: 8px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .badge-list {
-            list-style: none;
-            padding: 0;
-            margin-bottom: 14px;
-        }
-
-        .badge-list li {
-            font-size: 13px;
-            padding: 6px 10px;
-            border-radius: 6px;
-            margin-bottom: 6px;
-        }
-
-        .fortalezas li {
-            background: #e8f5e9;
-            color: #2e7d32;
-        }
-
-        .mejoras li {
-            background: #ffebee;
-            color: #c62828;
-        }
-
-        .drive-link {
-            display: inline-block;
-            margin-top: 10px;
-            color: #4A1C6B;
-            font-weight: 600;
-            font-size: 13px;
-            text-decoration: none;
-        }
-
-        .drive-link:hover {
-            text-decoration: underline;
-        }
-
-        .loading-spinner {
-            text-align: center;
-            padding: 30px 0;
-            color: #666;
-            font-size: 14px;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+        body { background: #f4f6f9; min-height: 100vh; color: #333; }
+        .header { background: #4A1C6B; color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
+        .header .logo { font-size: 20px; font-weight: 700; }
+        .header .logo span { color: #F4A300; }
+        .container { max-width: 1100px; margin: 25px auto; padding: 0 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 850px) { .container { grid-template-columns: 1fr; } }
+        .card { background: white; border-radius: 12px; padding: 22px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+        .card h3 { font-size: 17px; color: #4A1C6B; margin-bottom: 16px; }
+        label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #444; }
+        input[type="text"], input[type="file"] { width: 100%; padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 14px; outline: none; }
+        .btn { background: #4A1C6B; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; transition: background 0.2s; }
+        .btn:hover { background: #3a1555; }
+        .btn:disabled { background: #a38db5; cursor: not-allowed; }
+        .score-box { background: #f8f5fc; border: 2px solid #4A1C6B; border-radius: 10px; padding: 15px; text-align: center; margin-bottom: 18px; }
+        .score-number { font-size: 42px; font-weight: 800; color: #4A1C6B; }
+        .summary-text { font-size: 14px; line-height: 1.5; color: #555; margin-bottom: 16px; background: #fafafa; padding: 12px; border-radius: 8px; border-left: 4px solid #F4A300; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px; }
+        th { background: #f1ebf7; color: #4A1C6B; padding: 8px; text-align: left; }
+        td { padding: 8px; border-bottom: 1px solid #eee; }
+        .badge-list { list-style: none; padding: 0; margin-bottom: 14px; }
+        .badge-list li { font-size: 13px; padding: 6px 10px; border-radius: 6px; margin-bottom: 6px; }
+        .fortalezas li { background: #e8f5e9; color: #2e7d32; }
+        .mejoras li { background: #ffebee; color: #c62828; }
+        .drive-link { display: inline-block; margin-top: 10px; color: #4A1C6B; font-weight: 600; font-size: 13px; text-decoration: none; }
+        .loading-spinner { text-align: center; padding: 30px 0; color: #666; font-size: 14px; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div class="logo">uni<span>caribe</span> | Evaluador de Parciales (IA)</div>
+        <div class="logo">uni<span>caribe</span> | Evaluador con IA</div>
     </div>
 
     <div class="container">
 
-        <!-- PANEL IZQUIERDO: FORMULARIO DE CARGA -->
+        <!-- PANEL IZQUIERDO -->
         <div class="card">
-            <h3>📝 Cargar Parcial y Rúbrica</h3>
+            <h3>📝 Cargar Documentos</h3>
 
             <label for="nombreEstudiante">Nombre del Estudiante:</label>
             <input type="text" id="nombreEstudiante" placeholder="Ej: Daniel Fontalvo">
 
-            <label for="rubricaDocente">Rúbrica y Solucionario Oficial:</label>
-            <textarea id="rubricaDocente" placeholder="Escribe aquí los criterios de evaluación y la solución paso a paso.&#10;&#10;Ejemplo:&#10;Ejercicio 1 (2.5 pts): Calcular la integral por partes de x*e^x.&#10;Solución: u=x, dv=e^x dx -> Resultado = e^x(x-1) + C.&#10;&#10;Ejercicio 2 (2.5 pts): Hallar la derivada de sin(x^2)."></textarea>
+            <label for="archivoSolucionario">Solucionario Oficial (PDF con el parcial resuelto y %):</label>
+            <input type="file" id="archivoSolucionario" accept="application/pdf">
 
-            <label for="archivoParcial">Archivo del Parcial (PDF o Imagen PNG/JPG):</label>
-            <input type="file" id="archivoParcial" accept="application/pdf, image/jpeg, image/png">
+            <label for="archivoEstudiante">Parcial del Estudiante (PDF o Foto PNG/JPG):</label>
+            <input type="file" id="archivoEstudiante" accept="application/pdf, image/jpeg, image/png">
 
-            <button class="btn" id="btnEvaluar" onclick="procesarEvaluacion()">🤖 Evaluar con Gemini IA</button>
+            <button class="btn" id="btnEvaluar" onclick="procesarEvaluacion()">🤖 Evaluar con IA</button>
         </div>
 
-        <!-- PANEL DERECHO: RESULTADO DE EVALUACIÓN -->
+        <!-- PANEL DERECHO -->
         <div class="card" id="panelResultado">
             <h3>📊 Resultado de la Calificación</h3>
 
             <div id="contenidoInicial" style="text-align: center; color: #888; padding: 40px 0;">
-                <p>Carga el archivo del parcial y la solución oficial para generar la evaluación automática.</p>
+                <p>Carga el solucionario y el examen para generar la evaluación cualitativa y cuantitativa.</p>
             </div>
 
             <div id="cargando" class="loading-spinner" style="display: none;">
-                <p>⏳ <strong>Subiendo a Google Drive y analizando con la IA...</strong></p>
-                <p style="font-size: 12px; margin-top: 8px;">Esto puede tardar entre 10 y 20 segundos.</p>
+                <p>⏳ <strong>Guardando en Google Drive y analizando respuesta con IA...</strong></p>
+                <p style="font-size: 12px; margin-top: 8px;">Por favor espera unos segundos.</p>
             </div>
 
             <div id="detalleEvaluacion" style="display: none;">
                 <div class="score-box">
-                    <div style="font-size: 12px; color: #666; text-transform: uppercase;">Nota Sugerida</div>
+                    <div style="font-size: 12px; color: #666; text-transform: uppercase;">Nota Sugerida (Max 5.0)</div>
                     <div class="score-number" id="notaIA">0.0</div>
                     <div style="font-size: 12px; color: #777;" id="nombreEstudianteResultado">Estudiante</div>
                 </div>
 
-                <div class="summary-text" id="resumenIA">
-                    Resumen de evaluación...
-                </div>
+                <div class="summary-text" id="resumenIA">Resumen de evaluación...</div>
 
                 <h4>Desglose por Ejercicio:</h4>
                 <table>
@@ -257,12 +85,10 @@
                         <tr>
                             <th>Ejercicio</th>
                             <th>Puntos</th>
-                            <th>Observaciones</th>
+                            <th>Observaciones de cercanía</th>
                         </tr>
                     </thead>
-                    <tbody id="tablaDesglose">
-                        <!-- Filas dinámicas -->
-                    </tbody>
+                    <tbody id="tablaDesglose"></tbody>
                 </table>
 
                 <h4 style="color: #2e7d32; font-size: 13px; margin-top: 10px;">✅ Fortalezas:</h4>
@@ -271,28 +97,28 @@
                 <h4 style="color: #c62828; font-size: 13px; margin-top: 10px;">⚠️ Aspectos a Mejorar:</h4>
                 <ul class="badge-list mejoras" id="listaMejoras"></ul>
 
-                <a id="linkDrive" href="#" target="_blank" class="drive-link">📁 Ver parcial almacenado en Google Drive ↗</a>
+                <a id="linkDrive" href="#" target="_blank" class="drive-link">📁 Ver examen en Google Drive ↗</a>
             </div>
         </div>
 
     </div>
 
     <script>
-        // PEGA AQUÍ LA URL DE TU WEB APP DE APPS SCRIPT (PASO 3)
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby1l4VuqvSqGG6_t1J2fmJSlV8TjUZcE0EgAlV_1dYmxgWVWIa8Tb4OqmxhOVlh3f33/exec";
+        const SCRIPT_URL = "PEGA_AQUI_LA_URL_DE_TU_WEB_APP";
 
         async function procesarEvaluacion() {
             const estudiante = document.getElementById('nombreEstudiante').value.trim();
-            const rubrica = document.getElementById('rubricaDocente').value.trim();
-            const inputFile = document.getElementById('archivoParcial');
+            const inputSolucion = document.getElementById('archivoSolucionario');
+            const inputEstudiante = document.getElementById('archivoEstudiante');
             const btn = document.getElementById('btnEvaluar');
 
-            if (!estudiante || !rubrica || !inputFile.files[0]) {
-                alert('Por favor completa todos los campos y adjunta un archivo.');
+            if (!estudiante || !inputSolucion.files[0] || !inputEstudiante.files[0]) {
+                alert('Por favor ingresa el nombre y adjunta ambos archivos PDF.');
                 return;
             }
 
-            const file = inputFile.files[0];
+            const fileSol = inputSolucion.files[0];
+            const fileEst = inputEstudiante.files[0];
 
             btn.disabled = true;
             document.getElementById('contenidoInicial').style.display = 'none';
@@ -300,16 +126,17 @@
             document.getElementById('cargando').style.display = 'block';
 
             try {
-                // Convertir archivo a Base64 para enviarlo al servidor
-                const base64 = await convertirFileABase64(file);
+                const base64Sol = await convertirBase64(fileSol);
+                const base64Est = await convertirBase64(fileEst);
 
                 const payload = {
                     accion: 'evaluarParcial',
                     nombreEstudiante: estudiante,
-                    rubrica: rubrica,
-                    fileName: `${estudiante}_${file.name}`,
-                    fileType: file.type,
-                    fileBase64: base64.split(',')[1] // Quitar encabezado data:*/*;base64,
+                    fileNameEstudiante: `${estudiante}_${fileEst.name}`,
+                    fileTypeEstudiante: fileEst.type,
+                    fileBase64Estudiante: base64Est.split(',')[1],
+                    fileTypeSolucionario: fileSol.type,
+                    fileBase64Solucionario: base64Sol.split(',')[1]
                 };
 
                 const response = await fetch(SCRIPT_URL, {
@@ -328,14 +155,14 @@
 
             } catch (error) {
                 console.error('Error:', error);
-                alert('Ocurrió un error al procesar el archivo.');
+                alert('Ocurrió un error al procesar los archivos.');
             } finally {
                 btn.disabled = false;
                 document.getElementById('cargando').style.display = 'none';
             }
         }
 
-        function convertirFileABase64(file) {
+        function convertirBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = () => resolve(reader.result);
@@ -349,7 +176,6 @@
             document.getElementById('nombreEstudianteResultado').textContent = estudiante;
             document.getElementById('resumenIA').textContent = eval.resumen;
 
-            // Llenar tabla de desglose
             const tbody = document.getElementById('tablaDesglose');
             tbody.innerHTML = '';
             if (eval.desglose && eval.desglose.length > 0) {
@@ -364,24 +190,15 @@
                 });
             }
 
-            // Llenar fortalezas
             const ulFort = document.getElementById('listaFortalezas');
             ulFort.innerHTML = '';
-            (eval.fortalezas || []).forEach(f => {
-                ulFort.innerHTML += `<li>• ${f}</li>`;
-            });
+            (eval.fortalezas || []).forEach(f => ulFort.innerHTML += `<li>• ${f}</li>`);
 
-            // Llenar aspectos a mejorar
             const ulMej = document.getElementById('listaMejoras');
             ulMej.innerHTML = '';
-            (eval.aspectosAMejorar || []).forEach(m => {
-                ulMej.innerHTML += `<li>• ${m}</li>`;
-            });
+            (eval.aspectosAMejorar || []).forEach(m => ulMej.innerHTML += `<li>• ${m}</li>`);
 
-            // Enlace a Google Drive
-            const linkDrive = document.getElementById('linkDrive');
-            linkDrive.href = urlDrive;
-
+            document.getElementById('linkDrive').href = urlDrive;
             document.getElementById('detalleEvaluacion').style.display = 'block';
         }
     </script>
