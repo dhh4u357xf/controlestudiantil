@@ -504,46 +504,81 @@
             }
         }
 
+        
         async function cargarNotasEstudiante() {
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({
-                        accion: 'obtenerNotasEstudiante',
-                        estudianteId: usuarioActual.estudianteId
-                    })
-                });
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+                accion: 'obtenerNotasEstudiante',
+                estudianteId: usuarioActual.estudianteId
+            })
+        });
 
-                const data = await response.json();
-                const contenedor = document.getElementById('listaNotas');
+        const data = await response.json();
+        const contenedor = document.getElementById('listaNotas');
 
-                if (data.ok && data.notas && data.notas.length > 0) {
-                    contenedor.innerHTML = '';
-                    let sumaNotas = 0;
+        if (data.ok && data.notas && data.notas.length > 0) {
+            contenedor.innerHTML = '';
 
-                    data.notas.forEach(n => {
-                        const valorNota = parseFloat(n.nota) || 0;
-                        sumaNotas += valorNota;
+            // Acumuladores por corte
+            let sumaPonderadaC1 = 0, porcentajeC1 = 0;
+            let sumaPonderadaC2 = 0, porcentajeC2 = 0;
+            let sumaPonderadaC3 = 0, porcentajeC3 = 0;
 
-                        contenedor.innerHTML += `
-                            <div class="nota-row">
-                                <span>${n.tipo || 'Evaluación'} (Corte ${n.corte || '1'})</span>
-                                <strong>${valorNota.toFixed(1)}</strong>
-                            </div>
-                        `;
-                    });
+            let htmlDetalle = '';
 
-                    const promedio = sumaNotas / data.notas.length;
-                    document.getElementById('promedioAcumulado').textContent = promedio.toFixed(1);
-                } else {
-                    contenedor.innerHTML = '<p class="empty-state">No hay calificaciones registradas por el momento.</p>';
-                    document.getElementById('promedioAcumulado').textContent = '0.0';
+            data.notas.forEach(n => {
+                const notaVal = parseFloat(n.nota) || 0;
+                const pctVal = parseFloat(n.porcentaje) || 0;
+                const corteVal = parseInt(n.corte) || 1;
+
+                // Sumar ponderación según el corte
+                if (corteVal === 1) {
+                    sumaPonderadaC1 += notaVal * (pctVal / 100);
+                    porcentajeC1 += pctVal;
+                } else if (corteVal === 2) {
+                    sumaPonderadaC2 += notaVal * (pctVal / 100);
+                    porcentajeC2 += pctVal;
+                } else if (corteVal === 3) {
+                    sumaPonderadaC3 += notaVal * (pctVal / 100);
+                    porcentajeC3 += pctVal;
                 }
-            } catch (error) {
-                console.error('Error al cargar notas:', error);
-            }
+
+                htmlDetalle += `
+                    <div class="nota-row">
+                        <span><strong>Corte ${corteVal}:</strong> ${n.tipo} (${pctVal}%)</span>
+                        <strong>${notaVal.toFixed(1)}</strong>
+                    </div>
+                `;
+            });
+
+            // Cálculos acumulados finales
+            const notaCorte1 = sumaPonderadaC1;
+            const notaCorte2 = sumaPonderadaC2;
+            const notaCorte3 = sumaPonderadaC3;
+
+            const notaDefinitiva = (notaCorte1 * 0.30) + (notaCorte2 * 0.30) + (notaCorte3 * 0.40);
+
+            contenedor.innerHTML = htmlDetalle + `
+                <div style="margin-top:15px; padding-top:10px; border-top:2px dashed #ddd; font-size:13px;">
+                    <div><strong>Acumulado Corte 1 (30%):</strong> ${notaCorte1.toFixed(2)} / 5.0 (Evaluado: ${porcentajeC1}%)</div>
+                    <div><strong>Acumulado Corte 2 (30%):</strong> ${notaCorte2.toFixed(2)} / 5.0 (Evaluado: ${porcentajeC2}%)</div>
+                    <div><strong>Acumulado Corte 3 (40%):</strong> ${notaCorte3.toFixed(2)} / 5.0 (Evaluado: ${porcentajeC3}%)</div>
+                </div>
+            `;
+
+            document.getElementById('promedioAcumulado').textContent = notaDefinitiva.toFixed(2);
+        } else {
+            contenedor.innerHTML = '<p class="empty-state">No hay calificaciones registradas por el momento.</p>';
+            document.getElementById('promedioAcumulado').textContent = '0.00';
         }
+    } catch (error) {
+        console.error('Error al cargar notas:', error);
+    }
+}
+
 
         function cerrarSesion() {
             sessionStorage.clear();
