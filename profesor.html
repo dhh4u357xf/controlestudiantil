@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -297,11 +297,11 @@
                 <h3>Registrar / Desglosar notas por actividad</h3>
 
                 <div class="grid-2">
-                    <select id="notaMateria">
+                    <select id="notaMateria" onchange="filtrarEstudiantesPorMateriaSeleccionada()">
                         <option value="">Materia</option>
                     </select>
                     <select id="notaEstudiante">
-                        <option value="">Estudiante</option>
+                        <option value="">-- Selecciona una materia primero --</option>
                     </select>
                 </div>
 
@@ -426,20 +426,61 @@
 
                 const data = await response.json();
                 const tabla = document.getElementById('tablaEstudiantes');
-                const selectNota = document.getElementById('notaEstudiante');
 
                 if (data.ok && data.estudiantes) {
                     listaEstudiantesGlobal = data.estudiantes;
                     tabla.innerHTML = '';
-                    selectNota.innerHTML = '<option value="">-- Selecciona un estudiante --</option>';
 
                     data.estudiantes.forEach(e => {
                         tabla.innerHTML += `<tr><td><strong>${e.nombre}</strong></td><td>${e.documento}</td><td>${e.programa}</td></tr>`;
-                        selectNota.innerHTML += `<option value="${e.id}">${e.nombre}</option>`;
                     });
                 }
             } catch (error) {
                 console.error('Error al cargar estudiantes:', error);
+            }
+        }
+
+        async function filtrarEstudiantesPorMateriaSeleccionada() {
+            const idAsignatura = document.getElementById('notaMateria').value;
+            const selectEst = document.getElementById('notaEstudiante');
+
+            if (!idAsignatura) {
+                selectEst.innerHTML = '<option value="">-- Selecciona una materia primero --</option>';
+                return;
+            }
+
+            selectEst.innerHTML = '<option value="">Cargando estudiantes matriculados...</option>';
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'obtenerReporteAsistencia',
+                        asignaturaId: idAsignatura
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.ok && data.reporte) {
+                    selectEst.innerHTML = '<option value="">-- Selecciona Estudiante --</option>';
+                    
+                    const estudiantesUnicos = {};
+                    data.reporte.forEach(r => {
+                        estudiantesUnicos[r.estudianteId] = r.estudianteNombre;
+                    });
+
+                    for (const [id, nombre] of Object.entries(estudiantesUnicos)) {
+                        selectEst.innerHTML += `<option value="${id}">${nombre}</option>`;
+                    }
+
+                    if (Object.keys(estudiantesUnicos).length === 0) {
+                        selectEst.innerHTML = '<option value="">No hay estudiantes inscritos en esta materia</option>';
+                    }
+                }
+            } catch (error) {
+                console.error('Error al filtrar estudiantes:', error);
             }
         }
 
@@ -457,66 +498,66 @@
         }
 
         async function cargarReporteAsistencia() {
-    const idAsignatura = document.getElementById('reporteMateria').value;
-    const idEstudiante = document.getElementById('reporteEstudiante').value;
-    const tabla = document.getElementById('tablaReporte');
-    const contadorBox = document.getElementById('contadorBox');
+            const idAsignatura = document.getElementById('reporteMateria').value;
+            const idEstudiante = document.getElementById('reporteEstudiante').value;
+            const tabla = document.getElementById('tablaReporte');
+            const contadorBox = document.getElementById('contadorBox');
 
-    if (!idAsignatura) {
-        tabla.innerHTML = '<tr><td colspan="3" class="empty-state">Selecciona una materia para consultar...</td></tr>';
-        contadorBox.style.display = 'none';
-        return;
-    }
-
-    tabla.innerHTML = '<tr><td colspan="3" class="empty-state">Cargando reporte...</td></tr>';
-
-    try {
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({
-                accion: 'obtenerReporteAsistencia',
-                asignaturaId: idAsignatura,
-                estudianteId: idEstudiante
-            })
-        });
-
-        const data = await response.json();
-
-        if (data.ok && data.reporte && data.reporte.length > 0) {
-            tabla.innerHTML = '';
-            
-            data.reporte.forEach(r => {
-                tabla.innerHTML += `
-                    <tr>
-                        <td><strong>${r.estudianteNombre}</strong></td>
-                        <td>${r.fecha}</td>
-                        <td>${r.hora || 'Registrada'}</td>
-                    </tr>
-                `;
-            });
-
-            // Mostrar conteo total
-            contadorBox.style.display = 'block';
-            const total = (data.totalAsistencias !== undefined) ? data.totalAsistencias : data.reporte.length;
-
-            if (idEstudiante) {
-                const selectElement = document.getElementById('reporteEstudiante');
-                const nombreEst = selectElement.options[selectElement.selectedIndex].text;
-                contadorBox.innerHTML = `Total de asistencias acumuladas de <strong>${nombreEst}</strong>: <span id="numAsistencias">${total}</span>`;
-            } else {
-                contadorBox.innerHTML = `Total de asistencias registradas en esta clase: <span id="numAsistencias">${total}</span>`;
+            if (!idAsignatura) {
+                tabla.innerHTML = '<tr><td colspan="3" class="empty-state">Selecciona una materia para consultar...</td></tr>';
+                contadorBox.style.display = 'none';
+                return;
             }
 
-        } else {
-            tabla.innerHTML = '<tr><td colspan="3" class="empty-state">No hay registros de asistencia con los filtros seleccionados.</td></tr>';
-            contadorBox.style.display = 'none';
+            tabla.innerHTML = '<tr><td colspan="3" class="empty-state">Cargando reporte...</td></tr>';
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'obtenerReporteAsistencia',
+                        asignaturaId: idAsignatura,
+                        estudianteId: idEstudiante
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.ok && data.reporte && data.reporte.length > 0) {
+                    tabla.innerHTML = '';
+                    
+                    data.reporte.forEach(r => {
+                        tabla.innerHTML += `
+                            <tr>
+                                <td><strong>${r.estudianteNombre}</strong></td>
+                                <td>${r.fecha}</td>
+                                <td>${r.hora || 'Registrada'}</td>
+                            </tr>
+                        `;
+                    });
+
+                    contadorBox.style.display = 'block';
+                    const total = (data.totalAsistencias !== undefined) ? data.totalAsistencias : data.reporte.length;
+
+                    if (idEstudiante) {
+                        const selectElement = document.getElementById('reporteEstudiante');
+                        const nombreEst = selectElement.options[selectElement.selectedIndex].text;
+                        contadorBox.innerHTML = `Total de asistencias acumuladas de <strong>${nombreEst}</strong>: <span id="numAsistencias">${total}</span>`;
+                    } else {
+                        contadorBox.innerHTML = `Total de asistencias registradas en esta clase: <span id="numAsistencias">${total}</span>`;
+                    }
+
+                } else {
+                    tabla.innerHTML = '<tr><td colspan="3" class="empty-state">No hay registros de asistencia con los filtros seleccionados.</td></tr>';
+                    contadorBox.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error al cargar reporte:', error);
+                tabla.innerHTML = '<tr><td colspan="3" class="empty-state">Error al conectar con el servidor.</td></tr>';
+            }
         }
-    } catch (error) {
-        console.error('Error al cargar reporte:', error);
-        tabla.innerHTML = '<tr><td colspan="3" class="empty-state">Error al conectar con el servidor.</td></tr>';
-    }
-}
+
         async function generarContrasena() {
             const idAsignatura = document.getElementById('materiaAsistencia').value;
             const btn = document.getElementById('btnGenClave');
