@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -161,7 +161,7 @@
 
         .asistencia-box input, .select-group select {
             width: 100%;
-            max-width: 300px;
+            max-width: 400px;
             padding: 12px;
             border: 1.5px solid #ddd;
             border-radius: 8px;
@@ -256,7 +256,7 @@
 
     <div class="content">
 
-        <!-- Sección: Mis Materias -->
+        <!-- SECCIÓN: Mis Materias -->
         <div id="materias" class="section active">
             <div class="card">
                 <h3>Materias inscritas</h3>
@@ -266,7 +266,7 @@
             </div>
         </div>
 
-        <!-- Sección: Asistencia -->
+        <!-- SECCIÓN: Asistencia -->
         <div id="asistencia" class="section">
             <div class="card">
                 <h3>Marcar asistencia</h3>
@@ -287,34 +287,43 @@
             </div>
         </div>
 
-        <!-- Sección: Notas -->
+        <!-- SECCIÓN: Notas Discriminadas por Materia -->
         <div id="notas" class="section">
             <div class="card">
-                <h3>Mis calificaciones</h3>
-                <div id="listaNotas">
-                    <p class="empty-state">Cargando calificaciones...</p>
+                <h3>Mis calificaciones por materia</h3>
+
+                <div class="select-group" style="margin-bottom: 15px;">
+                    <label style="font-size:13px; margin-bottom:5px; display:block; color:#333; font-weight:500;">Selecciona la asignatura a consultar</label>
+                    <select id="filtroMateriaNotas" onchange="mostrarNotasDeMateriaSeleccionada()">
+                        <option value="">Cargando materias...</option>
+                    </select>
                 </div>
+
+                <div id="listaNotas">
+                    <p class="empty-state">Selecciona una materia del menú para consultar sus notas.</p>
+                </div>
+
                 <div class="promedio">
-                    Promedio general acumulado<br>
-                    <span id="promedioAcumulado">0.0</span>
+                    Nota Definitiva de la Asignatura<br>
+                    <span id="promedioAcumulado">0.00</span>
                 </div>
             </div>
         </div>
 
-        <!-- Sección: Inscribirse -->
+        <!-- SECCIÓN: Inscribirse -->
         <div id="inscribir" class="section">
             <div class="card">
                 <h3>Inscribir nueva materia</h3>
                 
                 <div class="select-group">
-                    <label style="font-size:13px; margin-bottom:5px; display:block; color:#333;">Selecciona la asignatura</label>
+                    <label style="font-size:13px; margin-bottom:5px; display:block; color:#333; font-weight:500;">Selecciona la asignatura</label>
                     <select id="selectAsignatura">
                         <option value="">Cargando asignaturas...</option>
                     </select>
                 </div>
 
                 <div class="select-group">
-                    <label style="font-size:13px; margin-bottom:5px; display:block; color:#333;">Grupo</label>
+                    <label style="font-size:13px; margin-bottom:5px; display:block; color:#333; font-weight:500;">Grupo</label>
                     <select id="selectGrupo">
                         <option value="G1">G1</option>
                         <option value="G2">G2</option>
@@ -330,6 +339,7 @@
     <script>
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec';
         let usuarioActual = null;
+        let todasLasNotasEstudiante = [];
 
         document.addEventListener('DOMContentLoaded', function() {
             const sesionStr = sessionStorage.getItem('usuarioSesion');
@@ -374,26 +384,31 @@
                 const data = await response.json();
                 const contenedor = document.getElementById('listaMaterias');
                 const selectAsistencia = document.getElementById('selectMateriaAsistencia');
+                const selectFiltroNotas = document.getElementById('filtroMateriaNotas');
 
                 if (data.ok && data.materias && data.materias.length > 0) {
                     contenedor.innerHTML = '';
                     selectAsistencia.innerHTML = '<option value="">-- Selecciona una materia --</option>';
+                    selectFiltroNotas.innerHTML = '<option value="">-- Selecciona una materia --</option>';
 
                     data.materias.forEach(m => {
                         contenedor.innerHTML += `
                             <div class="materia-item">
                                 <div class="materia-info">
                                     <strong>${m.nombre}</strong>
-                                    <span>Grupo ${m.grupo || 'N/A'} · ${m.dia || ''} ${m.hora || ''}</span>
+                                    <span>Grupo ${m.grupo || 'G1'} · ${m.dia || ''} ${m.hora || ''}</span>
                                 </div>
                                 <span class="badge">Inscrito</span>
                             </div>
                         `;
 
-                        selectAsistencia.innerHTML += `<option value="${m.id}">${m.nombre} (${m.grupo || 'G1'})</option>`;
+                        const optionHTML = `<option value="${m.id}">${m.nombre} (${m.grupo || 'G1'})</option>`;
+                        selectAsistencia.innerHTML += optionHTML;
+                        selectFiltroNotas.innerHTML += optionHTML;
                     });
                 } else {
                     contenedor.innerHTML = '<p class="empty-state">No estás inscrito en ninguna asignatura todavía.</p>';
+                    selectFiltroNotas.innerHTML = '<option value="">No hay materias registradas</option>';
                 }
             } catch (error) {
                 console.error('Error al cargar materias:', error);
@@ -413,8 +428,16 @@
 
                 if (data.ok && data.asignaturas && data.asignaturas.length > 0) {
                     select.innerHTML = '<option value="">-- Elige una materia --</option>';
-                    data.asignaturas.forEach(a => {
-                        select.innerHTML += `<option value="${a.id}">${a.asignatura} - Semestre ${a.semestre} (${a.programa})</option>`;
+
+                    // Filtrar por programa del estudiante
+                    const asignaturasFiltradas = data.asignaturas.filter(a => 
+                        !usuarioActual.programa || a.programa.trim().toUpperCase() === usuarioActual.programa.trim().toUpperCase()
+                    );
+
+                    const materiasAMostrar = asignaturasFiltradas.length > 0 ? asignaturasFiltradas : data.asignaturas;
+
+                    materiasAMostrar.forEach(a => {
+                        select.innerHTML += `<option value="${a.id}">${a.asignatura} (Grupo ${a.grupo}) - Sem. ${a.semestre} [${a.dia} ${a.horaInicio}-${a.horaFinal}]</option>`;
                     });
                 } else {
                     select.innerHTML = '<option value="">No hay asignaturas disponibles</option>';
@@ -504,37 +527,58 @@
             }
         }
 
-        
         async function cargarNotasEstudiante() {
-    try {
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({
-                accion: 'obtenerNotasEstudiante',
-                estudianteId: usuarioActual.estudianteId
-            })
-        });
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'obtenerNotasEstudiante',
+                        estudianteId: usuarioActual.estudianteId
+                    })
+                });
 
-        const data = await response.json();
-        const contenedor = document.getElementById('listaNotas');
+                const data = await response.json();
 
-        if (data.ok && data.notas && data.notas.length > 0) {
-            contenedor.innerHTML = '';
+                if (data.ok && data.notas) {
+                    todasLasNotasEstudiante = data.notas;
+                    mostrarNotasDeMateriaSeleccionada();
+                }
+            } catch (error) {
+                console.error('Error al cargar notas:', error);
+            }
+        }
 
-            // Acumuladores por corte
+        function mostrarNotasDeMateriaSeleccionada() {
+            const idAsignaturaSel = document.getElementById('filtroMateriaNotas').value;
+            const contenedor = document.getElementById('listaNotas');
+            const displayPromedio = document.getElementById('promedioAcumulado');
+
+            if (!idAsignaturaSel) {
+                contenedor.innerHTML = '<p class="empty-state">Selecciona una asignatura del menú para ver tus notas.</p>';
+                displayPromedio.textContent = '0.00';
+                return;
+            }
+
+            const notasMateria = todasLasNotasEstudiante.filter(n => String(n.asignaturaId).trim() === String(idAsignaturaSel).trim());
+
+            if (notasMateria.length === 0) {
+                contenedor.innerHTML = '<p class="empty-state">No hay actividades registradas en esta materia por el momento.</p>';
+                displayPromedio.textContent = '0.00';
+                return;
+            }
+
             let sumaPonderadaC1 = 0, porcentajeC1 = 0;
             let sumaPonderadaC2 = 0, porcentajeC2 = 0;
             let sumaPonderadaC3 = 0, porcentajeC3 = 0;
 
             let htmlDetalle = '';
 
-            data.notas.forEach(n => {
+            notasMateria.forEach(n => {
                 const notaVal = parseFloat(n.nota) || 0;
                 const pctVal = parseFloat(n.porcentaje) || 0;
                 const corteVal = parseInt(n.corte) || 1;
 
-                // Sumar ponderación según el corte
                 if (corteVal === 1) {
                     sumaPonderadaC1 += notaVal * (pctVal / 100);
                     porcentajeC1 += pctVal;
@@ -554,31 +598,23 @@
                 `;
             });
 
-            // Cálculos acumulados finales
-            const notaCorte1 = sumaPonderadaC1;
-            const notaCorte2 = sumaPonderadaC2;
-            const notaCorte3 = sumaPonderadaC3;
+            const notaC1 = sumaPonderadaC1;
+            const notaC2 = sumaPonderadaC2;
+            const notaC3 = sumaPonderadaC3;
 
-            const notaDefinitiva = (notaCorte1 * 0.30) + (notaCorte2 * 0.30) + (notaCorte3 * 0.40);
+            // Fórmula: 30% Corte 1 + 30% Corte 2 + 40% Corte 3
+            const notaDefinitiva = (notaC1 * 0.30) + (notaC2 * 0.30) + (notaC3 * 0.40);
 
             contenedor.innerHTML = htmlDetalle + `
                 <div style="margin-top:15px; padding-top:10px; border-top:2px dashed #ddd; font-size:13px;">
-                    <div><strong>Acumulado Corte 1 (30%):</strong> ${notaCorte1.toFixed(2)} / 5.0 (Evaluado: ${porcentajeC1}%)</div>
-                    <div><strong>Acumulado Corte 2 (30%):</strong> ${notaCorte2.toFixed(2)} / 5.0 (Evaluado: ${porcentajeC2}%)</div>
-                    <div><strong>Acumulado Corte 3 (40%):</strong> ${notaCorte3.toFixed(2)} / 5.0 (Evaluado: ${porcentajeC3}%)</div>
+                    <div><strong>Corte 1 (30%):</strong> ${notaC1.toFixed(2)} / 5.0 <span style="color:#777;">(Evaluado: ${porcentajeC1}%)</span></div>
+                    <div><strong>Corte 2 (30%):</strong> ${notaC2.toFixed(2)} / 5.0 <span style="color:#777;">(Evaluado: ${porcentajeC2}%)</span></div>
+                    <div><strong>Corte 3 (40%):</strong> ${notaC3.toFixed(2)} / 5.0 <span style="color:#777;">(Evaluado: ${porcentajeC3}%)</span></div>
                 </div>
             `;
 
-            document.getElementById('promedioAcumulado').textContent = notaDefinitiva.toFixed(2);
-        } else {
-            contenedor.innerHTML = '<p class="empty-state">No hay calificaciones registradas por el momento.</p>';
-            document.getElementById('promedioAcumulado').textContent = '0.00';
+            displayPromedio.textContent = notaDefinitiva.toFixed(2);
         }
-    } catch (error) {
-        console.error('Error al cargar notas:', error);
-    }
-}
-
 
         function cerrarSesion() {
             sessionStorage.clear();
