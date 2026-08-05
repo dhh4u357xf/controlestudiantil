@@ -107,60 +107,71 @@
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby1l4VuqvSqGG6_t1J2fmJSlV8TjUZcE0EgAlV_1dYmxgWVWIa8Tb4OqmxhOVlh3f33/exec";
 
         async function procesarEvaluacion() {
-            const estudiante = document.getElementById('nombreEstudiante').value.trim();
-            const inputSolucion = document.getElementById('archivoSolucionario');
-            const inputEstudiante = document.getElementById('archivoEstudiante');
-            const btn = document.getElementById('btnEvaluar');
+    const estudiante = document.getElementById('nombreEstudiante').value.trim();
+    const inputSolucion = document.getElementById('archivoSolucionario');
+    const inputEstudiante = document.getElementById('archivoEstudiante');
+    const btn = document.getElementById('btnEvaluar');
 
-            if (!estudiante || !inputSolucion.files[0] || !inputEstudiante.files[0]) {
-                alert('Por favor ingresa el nombre y adjunta ambos archivos PDF.');
-                return;
-            }
+    if (!estudiante || !inputSolucion.files[0] || !inputEstudiante.files[0]) {
+        alert('Por favor ingresa el nombre y adjunta ambos archivos.');
+        return;
+    }
 
-            const fileSol = inputSolucion.files[0];
-            const fileEst = inputEstudiante.files[0];
+    const fileSol = inputSolucion.files[0];
+    const fileEst = inputEstudiante.files[0];
 
-            btn.disabled = true;
-            document.getElementById('contenidoInicial').style.display = 'none';
-            document.getElementById('detalleEvaluacion').style.display = 'none';
-            document.getElementById('cargando').style.display = 'block';
+    // Validar peso total combinado (Máximo ~4.5 MB sumados entre ambos)
+    const pesoTotalMB = (fileSol.size + fileEst.size) / (1024 * 1024);
+    if (pesoTotalMB > 4.5) {
+        alert(`Los archivos sumados pesan ${pesoTotalMB.toFixed(2)} MB. El límite máximo para enviar en una sola petición es de 4.5 MB. Por favor comprime o reduce la resolución de los PDF.`);
+        return;
+    }
 
-            try {
-                const base64Sol = await convertirBase64(fileSol);
-                const base64Est = await convertirBase64(fileEst);
+    btn.disabled = true;
+    document.getElementById('contenidoInicial').style.display = 'none';
+    document.getElementById('detalleEvaluacion').style.display = 'none';
+    document.getElementById('cargando').style.display = 'block';
 
-                const payload = {
-                    accion: 'evaluarParcial',
-                    nombreEstudiante: estudiante,
-                    fileNameEstudiante: `${estudiante}_${fileEst.name}`,
-                    fileTypeEstudiante: fileEst.type,
-                    fileBase64Estudiante: base64Est.split(',')[1],
-                    fileTypeSolucionario: fileSol.type,
-                    fileBase64Solucionario: base64Sol.split(',')[1]
-                };
+    try {
+        const base64Sol = await convertirBase64(fileSol);
+        const base64Est = await convertirBase64(fileEst);
 
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(payload)
-                });
+        const payload = {
+            accion: 'evaluarParcial',
+            nombreEstudiante: estudiante,
+            fileNameEstudiante: `${estudiante}_${fileEst.name}`,
+            fileTypeEstudiante: fileEst.type || "application/pdf",
+            fileBase64Estudiante: base64Est.split(',')[1],
+            fileTypeSolucionario: fileSol.type || "application/pdf",
+            fileBase64Solucionario: base64Sol.split(',')[1]
+        };
 
-                const data = await response.json();
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+        });
 
-                if (data.ok && data.evaluacion) {
-                    mostrarResultado(data.evaluacion, data.urlDrive, estudiante);
-                } else {
-                    alert('Error en la evaluación: ' + (data.mensaje || 'Respuesta no válida'));
-                }
-
-            } catch (error) {
-                console.error('Error detallado:', error);
-                alert('Error al procesar: ' + error.message);
-            } finally {
-                btn.disabled = false;
-                document.getElementById('cargando').style.display = 'none';
-            }
+        if (!response.ok) {
+            throw new Error(`Respuesta del servidor no HTTP 200: ${response.status}`);
         }
+
+        const data = await response.json();
+
+        if (data.ok && data.evaluacion) {
+            mostrarResultado(data.evaluacion, data.urlDrive, estudiante);
+        } else {
+            alert('Error devuelto por Apps Script: ' + (data.mensaje || 'Error desconocido'));
+        }
+
+    } catch (error) {
+        console.error('Error detallado:', error);
+        alert('Error al conectar con el servidor: ' + error.message + '\n\nRevisa que el archivo no supere el tamaño permitido y que la URL en SCRIPT_URL esté correcta.');
+    } finally {
+        btn.disabled = false;
+        document.getElementById('cargando').style.display = 'none';
+    }
+}
 
         function convertirBase64(file) {
             return new Promise((resolve, reject) => {
