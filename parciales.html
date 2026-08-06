@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Evaluador de Parciales | Unicaribe</title>
+    <!-- Librería PDF-LIB para dibujar recuadros y anotaciones sobre el PDF -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
         body { background: #f4f6f9; min-height: 100vh; color: #333; }
@@ -58,7 +60,6 @@
                 <option value="">-- Selecciona una asignatura primero --</option>
             </select>
 
-            <!-- NUEVO: Selector de Actividad -->
             <label for="selectActividad">Actividad a Calificar:</label>
             <select id="selectActividad">
                 <option value="Parcial 1">Parcial 1</option>
@@ -83,10 +84,10 @@
             <label for="archivoSolucionario">Solucionario Oficial (PDF con el parcial resuelto y %):</label>
             <input type="file" id="archivoSolucionario" accept="application/pdf">
 
-            <label for="archivoEstudiante">Parcial del Estudiante (PDF o Foto PNG/JPG):</label>
-            <input type="file" id="archivoEstudiante" accept="application/pdf, image/jpeg, image/png">
+            <label for="archivoEstudiante">Parcial del Estudiante (PDF):</label>
+            <input type="file" id="archivoEstudiante" accept="application/pdf">
 
-            <button class="btn" id="btnEvaluar" onclick="procesarEvaluacion()">🤖 Evaluar con IA</button>
+            <button class="btn" id="btnEvaluar" onclick="procesarEvaluacion()">🤖 Evaluar y Trazar Errores con IA</button>
         </div>
 
         <!-- PANEL DERECHO -->
@@ -94,11 +95,11 @@
             <h3>📊 Resultado de la Calificación</h3>
 
             <div id="contenidoInicial" style="text-align: center; color: #888; padding: 40px 0;">
-                <p>Carga el solucionario y el examen para generar la evaluación cualitativa y cuantitativa.</p>
+                <p>Carga el solucionario y el examen para generar la evaluación cualitativa y el marcado gráfico de errores.</p>
             </div>
 
             <div id="cargando" class="loading-spinner" style="display: none;">
-                <p>⏳ <strong>Guardando en Google Drive y analizando respuesta con IA...</strong></p>
+                <p>⏳ <strong>Analizando respuesta con IA y superponiendo correcciones en el PDF...</strong></p>
                 <p style="font-size: 12px; margin-top: 8px;">Por favor espera unos segundos.</p>
             </div>
 
@@ -109,7 +110,6 @@
                     <div style="font-size: 12px; color: #777;" id="nombreEstudianteResultado">Estudiante</div>
                 </div>
 
-                <!-- NUEVO: Casilla para Modificar la Nota Manualmente -->
                 <div class="override-box">
                     <label for="inputNotaModificada" style="margin-bottom: 4px; color: #b78103;">✏️ Modificar Nota Final Manualmente (0.0 - 5.0):</label>
                     <input type="number" id="inputNotaModificada" min="0" max="5" step="0.1" oninput="actualizarNotaPantalla(this.value)">
@@ -135,20 +135,16 @@
                 <h4 style="color: #c62828; font-size: 13px; margin-top: 10px;">⚠️ Aspectos a Mejorar:</h4>
                 <ul class="badge-list mejoras" id="listaMejoras"></ul>
 
-                <a id="linkDrive" href="#" target="_blank" class="drive-link">📁 Ver examen en Google Drive ↗</a>
+                <a id="linkDrive" href="#" target="_blank" class="drive-link">📁 Ver PDF Marcado con Errores en Google Drive ↗</a>
 
-                <!-- NUEVO: Botón para enviar reporte al correo -->
-                <button class="btn btn-send" id="btnEnviarCorreo" onclick="enviarReporteEstudiante()">📧 Enviar Reporte al Correo del Estudiante</button>
+                <button class="btn btn-send" id="btnEnviarCorreo" onclick="enviarReporteEstudiante()">📧 Enviar PDF Marcado al Correo del Estudiante</button>
             </div>
         </div>
 
     </div>
 
     <script>
-        // 1. URL DEL PROYECTO PRINCIPAL (Asignaturas, estudiantes y matrículas)
         const URL_CONTROL_ESTUDIANTIL = "https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec";
-
-        // 2. URL DEL EVALUADOR CON IA (Gemini API y Google Drive)
         const URL_EVALUADOR_IA = "https://script.google.com/macros/s/AKfycby1l4VuqvSqGG6_t1J2fmJSlV8TjUZcE0EgAlV_1dYmxgWVWIa8Tb4OqmxhOVlh3f33/exec";
 
         let evaluacionActual = null;
@@ -158,7 +154,6 @@
             cargarAsignaturas();
         });
 
-        // Carga asignaturas usando JSON directo
         async function cargarAsignaturas() {
             const selectMat = document.getElementById('selectMateria');
             try {
@@ -183,7 +178,6 @@
             }
         }
 
-        // Carga estudiantes filtrados por asignatura
         async function cargarEstudiantesPorMateria() {
             const idAsignatura = document.getElementById('selectMateria').value;
             const selectEst = document.getElementById('selectEstudiante');
@@ -221,12 +215,10 @@
             }
         }
 
-        // Extractor seguro de Base64
         function extractBase64(dataUrl) {
             return dataUrl.replace(/^data:.*,/, '');
         }
 
-        // Envía los PDFs al backend del Evaluador con IA (Gemini + Drive)
         async function procesarEvaluacion() {
             const selectEst = document.getElementById('selectEstudiante');
             const estudianteNombre = selectEst.options[selectEst.selectedIndex]?.getAttribute('data-nombre');
@@ -236,7 +228,7 @@
             const btn = document.getElementById('btnEvaluar');
 
             if (!selectEst.value || !estudianteNombre || !inputSolucion.files[0] || !inputEstudiante.files[0]) {
-                alert('Por favor selecciona la asignatura, el estudiante, la actividad y adjunta ambos archivos.');
+                alert('Por favor selecciona la asignatura, el estudiante, la actividad y adjunta ambos archivos PDF.');
                 return;
             }
 
@@ -252,18 +244,15 @@
                 const base64SolFull = await convertirBase64(fileSol);
                 const base64EstFull = await convertirBase64(fileEst);
 
-                const base64SolClean = extractBase64(base64SolFull);
-                const base64EstClean = extractBase64(base64EstFull);
-
                 const payloadData = {
                     accion: 'evaluarParcial',
                     nombreEstudiante: estudianteNombre,
                     actividadEvaluada: actividad,
                     fileNameEstudiante: `${estudianteNombre}_${fileEst.name}`,
                     fileTypeEstudiante: fileEst.type || "application/pdf",
-                    fileBase64Estudiante: base64EstClean,
+                    fileBase64Estudiante: extractBase64(base64EstFull),
                     fileTypeSolucionario: fileSol.type || "application/pdf",
-                    fileBase64Solucionario: base64SolClean
+                    fileBase64Solucionario: extractBase64(base64SolFull)
                 };
 
                 const formData = new URLSearchParams();
@@ -278,8 +267,26 @@
 
                 if (data.ok && data.evaluacion) {
                     evaluacionActual = data.evaluacion;
-                    urlDriveActual = data.urlDrive;
-                    mostrarResultado(data.evaluacion, data.urlDrive, estudianteNombre);
+
+                    // 1. Trazar marcas y anotaciones rojas sobre el PDF del alumno con pdf-lib
+                    const pdfArrayBuffer = await fileEst.arrayBuffer();
+                    const pdfBase64Anotado = await estamparErroresEnPDF(pdfArrayBuffer, data.evaluacion.anotacionesGraficas || []);
+
+                    // 2. Guardar el PDF resultante en Google Drive
+                    const payloadSave = {
+                        accion: 'guardarPdfAnotado',
+                        fileName: `CORREGIDO_${estudianteNombre}_${fileEst.name}`,
+                        fileBase64Anotado: pdfBase64Anotado
+                    };
+
+                    const formDataSave = new URLSearchParams();
+                    formDataSave.append('payload', JSON.stringify(payloadSave));
+
+                    const resSave = await fetch(URL_EVALUADOR_IA, { method: 'POST', body: formDataSave });
+                    const dataSave = await resSave.json();
+
+                    urlDriveActual = dataSave.urlDrive || data.urlDrive || "#";
+                    mostrarResultado(data.evaluacion, urlDriveActual, estudianteNombre);
                 } else {
                     alert('Error reportado por el servidor: ' + (data.mensaje || 'Respuesta no válida'));
                 }
@@ -290,6 +297,55 @@
             } finally {
                 btn.disabled = false;
                 document.getElementById('cargando').style.display = 'none';
+            }
+        }
+
+        // Función que superpone los recuadros rojos y notas explicativas sobre el PDF del alumno
+        async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
+            try {
+                const { PDFDocument, rgb } = PDFLib;
+                const pdfDoc = await PDFDocument.load(pdfBytesBuffer);
+                const pages = pdfDoc.getPages();
+
+                anotaciones.forEach(anot => {
+                    const idxPagina = (anot.pagina || 1) - 1;
+                    if (idxPagina >= 0 && idxPagina < pages.length) {
+                        const page = pages[idxPagina];
+                        const { width, height } = page.getSize();
+
+                        const [yMin, xMin, yMax, xMax] = anot.box_2d || [100, 100, 200, 900];
+
+                        const rectX = (xMin / 1000) * width;
+                        const rectWidth = ((xMax - xMin) / 1000) * width;
+                        const rectHeight = ((yMax - yMin) / 1000) * height;
+                        const rectY = height - ((yMax / 1000) * height); 
+
+                        page.drawRectangle({
+                            x: rectX,
+                            y: rectY,
+                            width: Math.max(rectWidth, 20),
+                            height: Math.max(rectHeight, 20),
+                            borderColor: rgb(0.9, 0.1, 0.1),
+                            borderWidth: 2,
+                        });
+
+                        if (anot.comentario) {
+                            page.drawText(anot.comentario.substring(0, 80), {
+                                x: Math.min(rectX, width - 250),
+                                y: Math.min(rectY + rectHeight + 4, height - 15),
+                                size: 10,
+                                color: rgb(0.8, 0, 0),
+                            });
+                        }
+                    }
+                });
+
+                const pdfModifiedBytes = await pdfDoc.saveAsBase64();
+                return pdfModifiedBytes;
+            } catch (e) {
+                console.error("Error al estampar PDF:", e);
+                // Retorna el base64 original si no es un PDF editable
+                return extractBase64(await convertirBase64(document.getElementById('archivoEstudiante').files[0]));
             }
         }
 
@@ -340,7 +396,7 @@
             }
         }
 
-async function enviarReporteEstudiante() {
+        async function enviarReporteEstudiante() {
             const selectMat = document.getElementById('selectMateria');
             const selectEst = document.getElementById('selectEstudiante');
             const asignaturaId = selectMat.value;
@@ -388,43 +444,7 @@ async function enviarReporteEstudiante() {
                 alert('Error al intentar enviar el correo: ' + error.message);
             } finally {
                 btn.disabled = false;
-                btn.textContent = '📧 Enviar Reporte al Correo del Estudiante';
-            }
-        }
-
-            btn.disabled = true;
-            btn.textContent = '⏳ Enviando correo...';
-
-            try {
-                const payloadData = {
-                    accion: 'enviarReporteCorreo',
-                    estudianteId: estudianteId,
-                    nombreEstudiante: estudianteNombre,
-                    actividad: actividad,
-                    notaFinal: notaFinal,
-                    resumen: evaluacionActual.resumen,
-                    fortalezas: evaluacionActual.fortalezas,
-                    aspectosAMejorar: evaluacionActual.aspectosAMejorar,
-                    urlDrive: urlDriveActual
-                };
-
-                const formData = new URLSearchParams();
-                formData.append('payload', JSON.stringify(payloadData));
-
-                const response = await fetch(URL_EVALUADOR_IA, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-                alert(data.mensaje);
-
-            } catch (error) {
-                console.error('Error al enviar correo:', error);
-                alert('Error al intentar enviar el correo: ' + error.message);
-            } finally {
-                btn.disabled = false;
-                btn.textContent = '📧 Enviar Reporte al Correo del Estudiante';
+                btn.textContent = '📧 Enviar PDF Marcado al Correo del Estudiante';
             }
         }
     </script>
