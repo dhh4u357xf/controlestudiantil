@@ -15,9 +15,11 @@
         .card { background: white; border-radius: 12px; padding: 22px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
         .card h3 { font-size: 17px; color: #4A1C6B; margin-bottom: 16px; }
         label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #444; }
-        input[type="text"], input[type="file"] { width: 100%; padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 14px; outline: none; }
+        input[type="text"], input[type="number"], input[type="file"], select { width: 100%; padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 14px; outline: none; }
         .btn { background: #4A1C6B; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; transition: background 0.2s; }
         .btn:hover { background: #3a1555; }
+        .btn-send { background: #2E8B57; margin-top: 15px; }
+        .btn-send:hover { background: #246b45; }
         .btn:disabled { background: #a38db5; cursor: not-allowed; }
         .score-box { background: #f8f5fc; border: 2px solid #4A1C6B; border-radius: 10px; padding: 15px; text-align: center; margin-bottom: 18px; }
         .score-number { font-size: 42px; font-weight: 800; color: #4A1C6B; }
@@ -31,6 +33,7 @@
         .mejoras li { background: #ffebee; color: #c62828; }
         .drive-link { display: inline-block; margin-top: 10px; color: #4A1C6B; font-weight: 600; font-size: 13px; text-decoration: none; }
         .loading-spinner { text-align: center; padding: 30px 0; color: #666; font-size: 14px; }
+        .override-box { background: #fff8e1; border: 1px solid #ffe082; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -41,7 +44,7 @@
 
     <div class="container">
 
-<!-- PANEL IZQUIERDO: FORMULARIO DE CARGA -->
+        <!-- PANEL IZQUIERDO: FORMULARIO DE CARGA -->
         <div class="card">
             <h3>📝 Cargar Documentos</h3>
 
@@ -53,6 +56,28 @@
             <label for="selectEstudiante">Estudiante:</label>
             <select id="selectEstudiante">
                 <option value="">-- Selecciona una asignatura primero --</option>
+            </select>
+
+            <!-- NUEVO: Selector de Actividad -->
+            <label for="selectActividad">Actividad a Calificar:</label>
+            <select id="selectActividad">
+                <option value="Parcial 1">Parcial 1</option>
+                <option value="Parcial 2">Parcial 2</option>
+                <option value="Parcial 3">Parcial 3</option>
+                <option value="Taller 1">Taller 1</option>
+                <option value="Taller 2">Taller 2</option>
+                <option value="Taller 3">Taller 3</option>
+                <option value="Taller 4">Taller 4</option>
+                <option value="Quiz 1">Quiz 1</option>
+                <option value="Quiz 2">Quiz 2</option>
+                <option value="Quiz 3">Quiz 3</option>
+                <option value="Exposición 1">Exposición 1</option>
+                <option value="Exposición 2">Exposición 2</option>
+                <option value="Exposición 3">Exposición 3</option>
+                <option value="Exposición 4">Exposición 4</option>
+                <option value="Avance 1 Proyecto de Aplicación">Avance 1 Proyecto de Aplicación</option>
+                <option value="Avance 2 Proyecto de Aplicación">Avance 2 Proyecto de Aplicación</option>
+                <option value="Proyecto de Aplicación Final">Proyecto de Aplicación Final</option>
             </select>
 
             <label for="archivoSolucionario">Solucionario Oficial (PDF con el parcial resuelto y %):</label>
@@ -79,9 +104,15 @@
 
             <div id="detalleEvaluacion" style="display: none;">
                 <div class="score-box">
-                    <div style="font-size: 12px; color: #666; text-transform: uppercase;">Nota Sugerida (Max 5.0)</div>
+                    <div style="font-size: 12px; color: #666; text-transform: uppercase;">Nota Sugerida IA / Final</div>
                     <div class="score-number" id="notaIA">0.0</div>
                     <div style="font-size: 12px; color: #777;" id="nombreEstudianteResultado">Estudiante</div>
+                </div>
+
+                <!-- NUEVO: Casilla para Modificar la Nota Manualmente -->
+                <div class="override-box">
+                    <label for="inputNotaModificada" style="margin-bottom: 4px; color: #b78103;">✏️ Modificar Nota Final Manualmente (0.0 - 5.0):</label>
+                    <input type="number" id="inputNotaModificada" min="0" max="5" step="0.1" oninput="actualizarNotaPantalla(this.value)">
                 </div>
 
                 <div class="summary-text" id="resumenIA">Resumen de evaluación...</div>
@@ -105,23 +136,29 @@
                 <ul class="badge-list mejoras" id="listaMejoras"></ul>
 
                 <a id="linkDrive" href="#" target="_blank" class="drive-link">📁 Ver examen en Google Drive ↗</a>
+
+                <!-- NUEVO: Botón para enviar reporte al correo -->
+                <button class="btn btn-send" id="btnEnviarCorreo" onclick="enviarReporteEstudiante()">📧 Enviar Reporte al Correo del Estudiante</button>
             </div>
         </div>
 
     </div>
 
-<script>
+    <script>
         // 1. URL DEL PROYECTO PRINCIPAL (Asignaturas, estudiantes y matrículas)
         const URL_CONTROL_ESTUDIANTIL = "https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec";
 
         // 2. URL DEL EVALUADOR CON IA (Gemini API y Google Drive)
         const URL_EVALUADOR_IA = "https://script.google.com/macros/s/AKfycby1l4VuqvSqGG6_t1J2fmJSlV8TjUZcE0EgAlV_1dYmxgWVWIa8Tb4OqmxhOVlh3f33/exec";
 
+        let evaluacionActual = null;
+        let urlDriveActual = "";
+
         document.addEventListener('DOMContentLoaded', function() {
             cargarAsignaturas();
         });
 
-        // Carga asignaturas usando JSON directo (mismo método de profesor.html)
+        // Carga asignaturas usando JSON directo
         async function cargarAsignaturas() {
             const selectMat = document.getElementById('selectMateria');
             try {
@@ -193,12 +230,13 @@
         async function procesarEvaluacion() {
             const selectEst = document.getElementById('selectEstudiante');
             const estudianteNombre = selectEst.options[selectEst.selectedIndex]?.getAttribute('data-nombre');
+            const actividad = document.getElementById('selectActividad').value;
             const inputSolucion = document.getElementById('archivoSolucionario');
             const inputEstudiante = document.getElementById('archivoEstudiante');
             const btn = document.getElementById('btnEvaluar');
 
             if (!selectEst.value || !estudianteNombre || !inputSolucion.files[0] || !inputEstudiante.files[0]) {
-                alert('Por favor selecciona la asignatura, el estudiante y adjunta ambos archivos.');
+                alert('Por favor selecciona la asignatura, el estudiante, la actividad y adjunta ambos archivos.');
                 return;
             }
 
@@ -220,6 +258,7 @@
                 const payloadData = {
                     accion: 'evaluarParcial',
                     nombreEstudiante: estudianteNombre,
+                    actividadEvaluada: actividad,
                     fileNameEstudiante: `${estudianteNombre}_${fileEst.name}`,
                     fileTypeEstudiante: fileEst.type || "application/pdf",
                     fileBase64Estudiante: base64EstClean,
@@ -238,6 +277,8 @@
                 const data = await response.json();
 
                 if (data.ok && data.evaluacion) {
+                    evaluacionActual = data.evaluacion;
+                    urlDriveActual = data.urlDrive;
                     mostrarResultado(data.evaluacion, data.urlDrive, estudianteNombre);
                 } else {
                     alert('Error reportado por el servidor: ' + (data.mensaje || 'Respuesta no válida'));
@@ -263,6 +304,7 @@
 
         function mostrarResultado(eval, urlDrive, estudiante) {
             document.getElementById('notaIA').textContent = parseFloat(eval.nota).toFixed(1);
+            document.getElementById('inputNotaModificada').value = parseFloat(eval.nota).toFixed(1);
             document.getElementById('nombreEstudianteResultado').textContent = estudiante;
             document.getElementById('resumenIA').textContent = eval.resumen;
 
@@ -290,6 +332,61 @@
 
             document.getElementById('linkDrive').href = urlDrive;
             document.getElementById('detalleEvaluacion').style.display = 'block';
+        }
+
+        function actualizarNotaPantalla(val) {
+            if (val !== "") {
+                document.getElementById('notaIA').textContent = parseFloat(val).toFixed(1);
+            }
+        }
+
+        async function enviarReporteEstudiante() {
+            const selectEst = document.getElementById('selectEstudiante');
+            const estudianteId = selectEst.value;
+            const estudianteNombre = selectEst.options[selectEst.selectedIndex]?.getAttribute('data-nombre');
+            const actividad = document.getElementById('selectActividad').value;
+            const notaFinal = document.getElementById('inputNotaModificada').value;
+            const btn = document.getElementById('btnEnviarCorreo');
+
+            if (!evaluacionActual || !estudianteId) {
+                alert('No hay una evaluación activa para enviar.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '⏳ Enviando correo...';
+
+            try {
+                const payloadData = {
+                    accion: 'enviarReporteCorreo',
+                    estudianteId: estudianteId,
+                    nombreEstudiante: estudianteNombre,
+                    actividad: actividad,
+                    notaFinal: notaFinal,
+                    resumen: evaluacionActual.resumen,
+                    fortalezas: evaluacionActual.fortalezas,
+                    aspectosAMejorar: evaluacionActual.aspectosAMejorar,
+                    urlDrive: urlDriveActual
+                };
+
+                const formData = new URLSearchParams();
+                formData.append('payload', JSON.stringify(payloadData));
+
+                const response = await fetch(URL_EVALUADOR_IA, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                alert(data.mensaje);
+
+            } catch (error) {
+                console.error('Error al enviar correo:', error);
+                alert('Error al intentar enviar el correo: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '📧 Enviar Reporte al Correo del Estudiante';
+            }
         }
     </script>
 </body>
