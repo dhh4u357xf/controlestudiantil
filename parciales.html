@@ -111,24 +111,26 @@
     </div>
 
 <script>
-        // 1. URL DEL PROYECTO PRINCIPAL (Donde están las asignaturas, estudiantes y matrículas)
+        // 1. URL DEL PROYECTO PRINCIPAL (Asignaturas, estudiantes y matrículas)
         const URL_CONTROL_ESTUDIANTIL = "https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec";
 
-        // 2. URL DEL EVALUADOR CON IA (Donde está Gemini API y Google Drive)
+        // 2. URL DEL EVALUADOR CON IA (Gemini API y Google Drive)
         const URL_EVALUADOR_IA = "https://script.google.com/macros/s/AKfycby1l4VuqvSqGG6_t1J2fmJSlV8TjUZcE0EgAlV_1dYmxgWVWIa8Tb4OqmxhOVlh3f33/exec";
 
         document.addEventListener('DOMContentLoaded', function() {
             cargarAsignaturas();
         });
 
-        // Carga asignaturas desde el backend principal
+        // Carga asignaturas usando URLSearchParams para evitar bloqueos CORS
         async function cargarAsignaturas() {
             const selectMat = document.getElementById('selectMateria');
             try {
+                const formData = new URLSearchParams();
+                formData.append('payload', JSON.stringify({ accion: 'obtenerAsignaturas' }));
+
                 const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ accion: 'obtenerAsignaturas' })
+                    body: formData
                 });
 
                 const data = await response.json();
@@ -146,7 +148,7 @@
             }
         }
 
-        // Carga estudiantes filtrados por asignatura desde el backend principal
+        // Carga estudiantes filtrados por asignatura
         async function cargarEstudiantesPorMateria() {
             const idAsignatura = document.getElementById('selectMateria').value;
             const selectEst = document.getElementById('selectEstudiante');
@@ -159,13 +161,15 @@
             selectEst.innerHTML = '<option value="">Cargando estudiantes matriculados...</option>';
 
             try {
+                const formData = new URLSearchParams();
+                formData.append('payload', JSON.stringify({
+                    accion: 'obtenerEstudiantesPorAsignatura',
+                    asignaturaId: idAsignatura
+                }));
+
                 const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({
-                        accion: 'obtenerEstudiantesPorAsignatura',
-                        asignaturaId: idAsignatura
-                    })
+                    body: formData
                 });
 
                 const data = await response.json();
@@ -209,14 +213,15 @@
                 const base64Sol = await convertirBase64(fileSol);
                 const base64Est = await convertirBase64(fileEst);
 
+                // CORRECCIÓN AQUÍ: Se asegura la asignación de base64Est a fileBase64Estudiante
                 const payloadData = {
                     accion: 'evaluarParcial',
                     nombreEstudiante: estudianteNombre,
                     fileNameEstudiante: `${estudianteNombre}_${fileEst.name}`,
                     fileTypeEstudiante: fileEst.type || "application/pdf",
-                    fileBase64Estudiante: base64Sol.split(',')[1] || base64Est,
+                    fileBase64Estudiante: base64Est.includes(',') ? base64Est.split(',')[1] : base64Est,
                     fileTypeSolucionario: fileSol.type || "application/pdf",
-                    fileBase64Solucionario: base64Sol.split(',')[1] || base64Sol
+                    fileBase64Solucionario: base64Sol.includes(',') ? base64Sol.split(',')[1] : base64Sol
                 };
 
                 const formData = new URLSearchParams();
