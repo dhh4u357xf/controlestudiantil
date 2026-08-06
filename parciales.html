@@ -121,7 +121,7 @@
             cargarAsignaturas();
         });
 
-        // Carga asignaturas usando URLSearchParams para evitar bloqueos CORS
+        // Carga asignaturas usando URLSearchParams
         async function cargarAsignaturas() {
             const selectMat = document.getElementById('selectMateria');
             try {
@@ -188,6 +188,11 @@
             }
         }
 
+        // Extractor seguro de Base64
+        function extractBase64(dataUrl) {
+            return dataUrl.replace(/^data:.*,/, '');
+        }
+
         // Envía los PDFs al backend del Evaluador con IA (Gemini + Drive)
         async function procesarEvaluacion() {
             const selectEst = document.getElementById('selectEstudiante');
@@ -210,18 +215,20 @@
             document.getElementById('cargando').style.display = 'block';
 
             try {
-                const base64Sol = await convertirBase64(fileSol);
-                const base64Est = await convertirBase64(fileEst);
+                const base64SolFull = await convertirBase64(fileSol);
+                const base64EstFull = await convertirBase64(fileEst);
 
-                // CORRECCIÓN AQUÍ: Se asegura la asignación de base64Est a fileBase64Estudiante
+                const base64SolClean = extractBase64(base64SolFull);
+                const base64EstClean = extractBase64(base64EstFull);
+
                 const payloadData = {
                     accion: 'evaluarParcial',
                     nombreEstudiante: estudianteNombre,
                     fileNameEstudiante: `${estudianteNombre}_${fileEst.name}`,
                     fileTypeEstudiante: fileEst.type || "application/pdf",
-                    fileBase64Estudiante: base64Est.includes(',') ? base64Est.split(',')[1] : base64Est,
+                    fileBase64Estudiante: base64EstClean,
                     fileTypeSolucionario: fileSol.type || "application/pdf",
-                    fileBase64Solucionario: base64Sol.includes(',') ? base64Sol.split(',')[1] : base64Sol
+                    fileBase64Solucionario: base64SolClean
                 };
 
                 const formData = new URLSearchParams();
