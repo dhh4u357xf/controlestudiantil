@@ -396,7 +396,7 @@
             }
         }
 
-        async function enviarReporteEstudiante() {
+          async function enviarReporteEstudiante() {
             const selectMat = document.getElementById('selectMateria');
             const selectEst = document.getElementById('selectEstudiante');
             const asignaturaId = selectMat.value;
@@ -423,6 +423,7 @@
                     actividad: actividad,
                     notaFinal: notaFinal,
                     resumen: evaluacionActual.resumen,
+                    desglose: evaluacionActual.desglose || [], // <--- NUEVO: Envia la tabla completa de ejercicios
                     fortalezas: evaluacionActual.fortalezas,
                     aspectosAMejorar: evaluacionActual.aspectosAMejorar,
                     urlDrive: urlDriveActual
