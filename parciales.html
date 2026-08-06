@@ -340,8 +340,10 @@
             }
         }
 
-        async function enviarReporteEstudiante() {
+async function enviarReporteEstudiante() {
+            const selectMat = document.getElementById('selectMateria');
             const selectEst = document.getElementById('selectEstudiante');
+            const asignaturaId = selectMat.value;
             const estudianteId = selectEst.value;
             const estudianteNombre = selectEst.options[selectEst.selectedIndex]?.getAttribute('data-nombre');
             const actividad = document.getElementById('selectActividad').value;
@@ -352,6 +354,43 @@
                 alert('No hay una evaluación activa para enviar.');
                 return;
             }
+
+            btn.disabled = true;
+            btn.textContent = '⏳ Enviando correo...';
+
+            try {
+                const payloadData = {
+                    accion: 'enviarReporteCorreo',
+                    asignaturaId: asignaturaId,
+                    estudianteId: estudianteId,
+                    nombreEstudiante: estudianteNombre,
+                    actividad: actividad,
+                    notaFinal: notaFinal,
+                    resumen: evaluacionActual.resumen,
+                    fortalezas: evaluacionActual.fortalezas,
+                    aspectosAMejorar: evaluacionActual.aspectosAMejorar,
+                    urlDrive: urlDriveActual
+                };
+
+                const formData = new URLSearchParams();
+                formData.append('payload', JSON.stringify(payloadData));
+
+                const response = await fetch(URL_EVALUADOR_IA, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                alert(data.mensaje);
+
+            } catch (error) {
+                console.error('Error al enviar correo:', error);
+                alert('Error al intentar enviar el correo: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '📧 Enviar Reporte al Correo del Estudiante';
+            }
+        }
 
             btn.disabled = true;
             btn.textContent = '⏳ Enviando correo...';
