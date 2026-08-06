@@ -388,16 +388,12 @@
             document.getElementById('detalleEvaluacion').style.display = 'block';
         }
 
-        function actualizarNotaPantalla(val) {
-            if (val !== "") {
-                document.getElementById('notaIA').textContent = parseFloat(val).toFixed(1);
-            }
-        }
-
         async function enviarReporteEstudiante() {
             const selectMat = document.getElementById('selectMateria');
             const selectEst = document.getElementById('selectEstudiante');
             const asignaturaId = selectMat.value;
+            // Extrae el texto visible de la asignatura (ej: "ESTADÍSTICA DESCRIPTIVA (Grupo G1)")
+            const nombreAsignatura = selectMat.options[selectMat.selectedIndex]?.text || ""; 
             const estudianteId = selectEst.value;
             const estudianteNombre = selectEst.options[selectEst.selectedIndex]?.getAttribute('data-nombre');
             const actividad = document.getElementById('selectActividad').value;
@@ -413,10 +409,10 @@
             btn.textContent = '⏳ Enviando correo...';
 
             try {
-                // SE GARANTIZA LA SERIALIZACIÓN DEL DESGLOSE COMO TEXTO JSON
                 const payloadData = {
                     accion: 'enviarReporteCorreo',
                     asignaturaId: asignaturaId,
+                    nombreAsignatura: nombreAsignatura, // <--- NUEVO: Nombre de la asignatura
                     estudianteId: estudianteId,
                     nombreEstudiante: estudianteNombre,
                     actividad: actividad,
