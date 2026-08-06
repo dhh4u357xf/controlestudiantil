@@ -297,6 +297,12 @@
         <div id="estudiantes" class="section">
             <div class="card">
                 <h3>Lista de estudiantes registrados</h3>
+                
+                <!-- Filtro por asignatura -->
+                <select id="filtroEstudianteMateria" onchange="filtrarListaEstudiantes()">
+                    <option value="">-- Todos los estudiantes registrados --</option>
+                </select>
+
                 <table>
                     <thead>
                         <tr>
@@ -422,12 +428,18 @@
                 const selects = [
                     document.getElementById('materiaAsistencia'),
                     document.getElementById('notaMateria'),
-                    document.getElementById('reporteMateria')
+                    document.getElementById('reporteMateria'),
+                    document.getElementById('filtroEstudianteMateria')
                 ];
 
                 if (data.ok && data.asignaturas) {
                     selects.forEach(sel => {
-                        sel.innerHTML = '<option value="">-- Selecciona asignatura --</option>';
+                        if (sel.id === 'filtroEstudianteMateria') {
+                            sel.innerHTML = '<option value="">-- Todos los estudiantes registrados --</option>';
+                        } else {
+                            sel.innerHTML = '<option value="">-- Selecciona asignatura --</option>';
+                        }
+                        
                         data.asignaturas.forEach(a => {
                             sel.innerHTML += `<option value="${a.id}">${a.asignatura} (Grupo ${a.grupo || 'G1'})</option>`;
                         });
@@ -447,18 +459,60 @@
                 });
 
                 const data = await response.json();
-                const tabla = document.getElementById('tablaEstudiantes');
 
                 if (data.ok && data.estudiantes) {
                     listaEstudiantesGlobal = data.estudiantes;
-                    tabla.innerHTML = '';
-
-                    data.estudiantes.forEach(e => {
-                        tabla.innerHTML += `<tr><td><strong>${e.nombre}</strong></td><td>${e.documento}</td><td>${e.programa}</td></tr>`;
-                    });
+                    renderizarTablaEstudiantes(listaEstudiantesGlobal);
                 }
             } catch (error) {
                 console.error('Error al cargar estudiantes:', error);
+            }
+        }
+
+        function renderizarTablaEstudiantes(lista) {
+            const tabla = document.getElementById('tablaEstudiantes');
+            if (!lista || lista.length === 0) {
+                tabla.innerHTML = '<tr><td colspan="3" class="empty-state">No se encontraron estudiantes para este filtro.</td></tr>';
+                return;
+            }
+
+            tabla.innerHTML = '';
+            lista.forEach(e => {
+                tabla.innerHTML += `<tr><td><strong>${e.nombre}</strong></td><td>${e.documento}</td><td>${e.programa}</td></tr>`;
+            });
+        }
+
+        async function filtrarListaEstudiantes() {
+            const idAsignatura = document.getElementById('filtroEstudianteMateria').value;
+            const tabla = document.getElementById('tablaEstudiantes');
+
+            if (!idAsignatura) {
+                renderizarTablaEstudiantes(listaEstudiantesGlobal);
+                return;
+            }
+
+            tabla.innerHTML = '<tr><td colspan="3" class="empty-state">Filtrando estudiantes...</td></tr>';
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'obtenerEstudiantesPorAsignatura',
+                        asignaturaId: idAsignatura
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.ok && data.estudiantes) {
+                    renderizarTablaEstudiantes(data.estudiantes);
+                } else {
+                    renderizarTablaEstudiantes([]);
+                }
+            } catch (error) {
+                console.error('Error al filtrar estudiantes:', error);
+                tabla.innerHTML = '<tr><td colspan="3" class="empty-state">Error al conectar con el servidor.</td></tr>';
             }
         }
 
