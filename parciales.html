@@ -87,7 +87,7 @@
             <label for="archivoEstudiante">Parcial del Estudiante (PDF):</label>
             <input type="file" id="archivoEstudiante" accept="application/pdf">
 
-            <button class="btn" id="btnEvaluar" onclick="procesarEvaluacion()">🤖 Evaluar y Trazar Errores con IA</button>
+            <button class="btn" id="btnEvaluar" onclick="procesarEvaluacion()">🤖 Evaluar y Trazar Errores </button>
         </div>
 
         <!-- PANEL DERECHO -->
@@ -99,13 +99,13 @@
             </div>
 
             <div id="cargando" class="loading-spinner" style="display: none;">
-                <p>⏳ <strong>Analizando respuesta con IA y superponiendo correcciones en el PDF...</strong></p>
+                <p>⏳ <strong>Analizando respuesta y superponiendo correcciones en el PDF...</strong></p>
                 <p style="font-size: 12px; margin-top: 8px;">Por favor espera unos segundos.</p>
             </div>
 
             <div id="detalleEvaluacion" style="display: none;">
                 <div class="score-box">
-                    <div style="font-size: 12px; color: #666; text-transform: uppercase;">Nota Sugerida IA / Final</div>
+                    <div style="font-size: 12px; color: #666; text-transform: uppercase;">Nota Sugerida  / Final</div>
                     <div class="score-number" id="notaIA">0.0</div>
                     <div style="font-size: 12px; color: #777;" id="nombreEstudianteResultado">Estudiante</div>
                 </div>
@@ -440,7 +440,7 @@
                 alert('Error al intentar enviar el correo: ' + error.message);
             } finally {
                 btn.disabled = false;
-                btn.textContent = '📧 Enviar PDF Marcado al Correo del Estudiante';
+                btn.textContent = '📧 Enviar Reporte al Correo del Estudiante';
             }
         }
     </script>
