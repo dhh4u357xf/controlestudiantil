@@ -121,16 +121,14 @@
             cargarAsignaturas();
         });
 
-        // Carga asignaturas usando URLSearchParams
+        // Carga asignaturas usando JSON directo (mismo método de profesor.html)
         async function cargarAsignaturas() {
             const selectMat = document.getElementById('selectMateria');
             try {
-                const formData = new URLSearchParams();
-                formData.append('payload', JSON.stringify({ accion: 'obtenerAsignaturas' }));
-
                 const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
                     method: 'POST',
-                    body: formData
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ accion: 'obtenerAsignaturas' })
                 });
 
                 const data = await response.json();
@@ -161,15 +159,13 @@
             selectEst.innerHTML = '<option value="">Cargando estudiantes matriculados...</option>';
 
             try {
-                const formData = new URLSearchParams();
-                formData.append('payload', JSON.stringify({
-                    accion: 'obtenerEstudiantesPorAsignatura',
-                    asignaturaId: idAsignatura
-                }));
-
                 const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
                     method: 'POST',
-                    body: formData
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'obtenerEstudiantesPorAsignatura',
+                        asignaturaId: idAsignatura
+                    })
                 });
 
                 const data = await response.json();
