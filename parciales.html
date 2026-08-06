@@ -300,7 +300,6 @@
             }
         }
 
-        // Función que superpone los recuadros rojos y notas explicativas sobre el PDF del alumno
         async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
             try {
                 const { PDFDocument, rgb } = PDFLib;
@@ -344,7 +343,6 @@
                 return pdfModifiedBytes;
             } catch (e) {
                 console.error("Error al estampar PDF:", e);
-                // Retorna el base64 original si no es un PDF editable
                 return extractBase64(await convertirBase64(document.getElementById('archivoEstudiante').files[0]));
             }
         }
@@ -396,7 +394,7 @@
             }
         }
 
-          async function enviarReporteEstudiante() {
+        async function enviarReporteEstudiante() {
             const selectMat = document.getElementById('selectMateria');
             const selectEst = document.getElementById('selectEstudiante');
             const asignaturaId = selectMat.value;
@@ -415,6 +413,7 @@
             btn.textContent = '⏳ Enviando correo...';
 
             try {
+                // SE GARANTIZA LA SERIALIZACIÓN DEL DESGLOSE COMO TEXTO JSON
                 const payloadData = {
                     accion: 'enviarReporteCorreo',
                     asignaturaId: asignaturaId,
@@ -423,9 +422,9 @@
                     actividad: actividad,
                     notaFinal: notaFinal,
                     resumen: evaluacionActual.resumen,
-                    desglose: evaluacionActual.desglose || [], // <--- NUEVO: Envia la tabla completa de ejercicios
-                    fortalezas: evaluacionActual.fortalezas,
-                    aspectosAMejorar: evaluacionActual.aspectosAMejorar,
+                    desglose: JSON.stringify(evaluacionActual.desglose || []),
+                    fortalezas: JSON.stringify(evaluacionActual.fortalezas || []),
+                    aspectosAMejorar: JSON.stringify(evaluacionActual.aspectosAMejorar || []),
                     urlDrive: urlDriveActual
                 };
 
