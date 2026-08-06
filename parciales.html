@@ -41,12 +41,19 @@
 
     <div class="container">
 
-        <!-- PANEL IZQUIERDO -->
+<!-- PANEL IZQUIERDO: FORMULARIO DE CARGA -->
         <div class="card">
             <h3>📝 Cargar Documentos</h3>
 
-            <label for="nombreEstudiante">Nombre del Estudiante:</label>
-            <input type="text" id="nombreEstudiante" placeholder="Ej: Daniel Fontalvo">
+            <label for="selectMateria">Asignatura:</label>
+            <select id="selectMateria" onchange="cargarEstudiantesPorMateria()">
+                <option value="">-- Cargando asignaturas... --</option>
+            </select>
+
+            <label for="selectEstudiante">Estudiante:</label>
+            <select id="selectEstudiante">
+                <option value="">-- Selecciona una asignatura primero --</option>
+            </select>
 
             <label for="archivoSolucionario">Solucionario Oficial (PDF con el parcial resuelto y %):</label>
             <input type="file" id="archivoSolucionario" accept="application/pdf">
