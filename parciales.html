@@ -219,6 +219,15 @@
             return dataUrl.replace(/^data:.*,/, '');
         }
 
+        function convertirBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+
         async function procesarEvaluacion() {
             const selectEst = document.getElementById('selectEstudiante');
             const estudianteNombre = selectEst.options[selectEst.selectedIndex]?.getAttribute('data-nombre');
@@ -241,6 +250,7 @@
             document.getElementById('cargando').style.display = 'block';
 
             try {
+                console.log("1. Leyendo y convirtiendo archivos...");
                 const base64SolFull = await convertirBase64(fileSol);
                 const base64EstFull = await convertirBase64(fileEst);
 
@@ -255,6 +265,7 @@
                     fileBase64Solucionario: extractBase64(base64SolFull)
                 };
 
+                console.log("2. Enviando a la API de Evaluación...");
                 const formData = new URLSearchParams();
                 formData.append('payload', JSON.stringify(payloadData));
 
@@ -264,15 +275,16 @@
                 });
 
                 const data = await response.json();
+                console.log("3. Respuesta recibida del servidor:", data);
 
                 if (data.ok && data.evaluacion) {
                     evaluacionActual = data.evaluacion;
 
-                    // 1. Trazar marcas y anotaciones rojas sobre el PDF del alumno con pdf-lib
+                    console.log("4. Estampando marcas gráficas en el PDF con PDF-LIB...");
                     const pdfArrayBuffer = await fileEst.arrayBuffer();
                     const pdfBase64Anotado = await estamparErroresEnPDF(pdfArrayBuffer, data.evaluacion.anotacionesGraficas || []);
 
-                    // 2. Guardar el PDF resultante en Google Drive
+                    console.log("5. Guardando versión marcada en Google Drive...");
                     const payloadSave = {
                         accion: 'guardarPdfAnotado',
                         fileName: `CORREGIDO_${estudianteNombre}_${fileEst.name}`,
@@ -292,7 +304,7 @@
                 }
 
             } catch (error) {
-                console.error('Error detallado:', error);
+                console.error('Error detallado en procesarEvaluacion:', error);
                 alert('Error al procesar: ' + error.message);
             } finally {
                 btn.disabled = false;
@@ -300,38 +312,48 @@
             }
         }
 
-async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
+        async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
             try {
+                if (typeof PDFLib === 'undefined') {
+                    throw new Error("PDFLib no está cargado en el documento HTML. Verifica la etiqueta <script src='...pdf-lib.min.js'>");
+                }
+
                 const { PDFDocument, rgb } = PDFLib;
                 const pdfDoc = await PDFDocument.load(pdfBytesBuffer);
                 const pages = pdfDoc.getPages();
 
+                if (!pages || pages.length === 0) {
+                    throw new Error("El PDF no contiene páginas legibles.");
+                }
+
                 let marcasAProcesar = anotaciones;
 
-                // SI LA IA NO DEVUELVE MARCAS O VIENE VACÍO, GENERA MARCAS DE RESPALDO GARANTIZADAS
+                // SI LA IA NO DEVUELVE MARCAS O EL ARREGLO VIENE VACÍO, GUARDA ESTAMPAS DE RESPALDO
                 if (!marcasAProcesar || !Array.isArray(marcasAProcesar) || marcasAProcesar.length === 0) {
-                    console.warn("IA no devolvió marcas explícitas. Generando estampas de revisión en el PDF...");
+                    console.warn("No se recibieron marcas de la IA. Generando marcas de respaldo obligatorias...");
                     marcasAProcesar = [
                         { 
                             pagina: 1, 
                             box_2d: [150, 100, 270, 900], 
                             tipo: "ERROR", 
-                            comentario: "Revisión Formato / Portada: Verificar la correcta aplicación de la plantilla oficial y los datos del proyecto." 
+                            comentario: "Revisión Formato APA 7 / Portada: Verificar alineación, tipo de letra y estructura general." 
                         },
                         { 
                             pagina: Math.min(2, pages.length), 
                             box_2d: [180, 100, 300, 900], 
                             tipo: "ERROR", 
-                            comentario: "Revisión Metodológica: Comprobar el desarrollo explícito de las variables, formulas y representaciones gráficas solicitadas en la guía." 
+                            comentario: "Revisión Metodológica: Comprobar el desarrollo explícito de fórmulas y gráficos solicitados en la guía." 
                         },
                         { 
                             pagina: 1, 
                             box_2d: [320, 100, 420, 900], 
                             tipo: "EXITO", 
-                            comentario: "¡Visto Bueno!: Entrega formal recibida e ingresada en el sistema de evaluación." 
+                            comentario: "¡Visto Bueno!: Entrega formal recibida e ingresada correctamente en el evaluador." 
                         }
                     ];
                 }
+
+                console.log(`Aplicando ${marcasAProcesar.length} anotaciones gráficas...`);
 
                 marcasAProcesar.forEach((anot, idx) => {
                     let idxPagina = (parseInt(anot.pagina) || 1) - 1;
@@ -348,18 +370,18 @@ async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
 
                     const [yMin, xMin, yMax, xMax] = box;
 
+                    // CONVERSIÓN DE COORDENADAS 0-1000 A PUNTOS PDF (Origen: Esquina inferior izquierda)
                     const rectX = Math.max((xMin / 1000) * width, 10);
                     const rectWidth = Math.min(Math.max(((xMax - xMin) / 1000) * width, 50), width - rectX - 10);
                     const rectHeight = Math.min(Math.max(((yMax - yMin) / 1000) * height, 30), height - 20);
                     const rectY = Math.max(height - ((yMax / 1000) * height), 10);
 
-                    // CONFIGURACIÓN DE COLORES SEGÚN TIPO (ERROR = ROJO, EXITO = VERDE)
                     const esExito = String(anot.tipo || "").toUpperCase() === "EXITO";
                     const colorBorde = esExito ? rgb(0.1, 0.65, 0.2) : rgb(0.85, 0.1, 0.1);
                     const colorFondo = esExito ? rgb(0.93, 0.98, 0.94) : rgb(0.99, 0.95, 0.95);
                     const colorTexto = esExito ? rgb(0.05, 0.45, 0.1) : rgb(0.7, 0, 0);
 
-                    // 1. Dibuja el recuadro principal
+                    // 1. Dibuja el recuadro sobre el error/acierto
                     page.drawRectangle({
                         x: rectX,
                         y: rectY,
@@ -369,7 +391,7 @@ async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
                         borderWidth: 2,
                     });
 
-                    // 2. Dibuja la caja explicativa con su texto envuelto
+                    // 2. Dibuja la caja explicativa de texto
                     if (anot.comentario) {
                         const fontSize = 8.0;
                         const lineHeight = 10.0;
@@ -430,20 +452,15 @@ async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
                 });
 
                 const pdfModifiedBytes = await pdfDoc.saveAsBase64();
+                console.log("PDF estampado correctamente.");
                 return pdfModifiedBytes;
-            } catch (e) {
-                console.error("Error al estampar PDF con pdf-lib:", e);
-                return extractBase64(await convertirBase64(document.getElementById('archivoEstudiante').files[0]));
-            }
-        }
 
-        function convertirBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = error => reject(error);
-                reader.readAsDataURL(file);
-            });
+            } catch (e) {
+                console.error("CRÍTICO - Error en estamparErroresEnPDF:", e);
+                alert("Atención: Ocurrió un fallo técnico al dibujar sobre el PDF: " + e.message);
+                // Si falla, eleva el error para no subir un archivo limpio sin darse cuenta
+                throw e; 
+            }
         }
 
         function mostrarResultado(eval, urlDrive, estudiante) {
@@ -485,7 +502,6 @@ async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
                     `;
                 });
 
-                // Fila de Total de Porcentajes al final de la tabla
                 tbody.innerHTML += `
                     <tr style="background-color: #f8f5fc; font-weight: bold; border-top: 2px solid #4A1C6B;">
                         <td><strong>TOTAL PORCENTAJES ACUMULADOS</strong></td>
@@ -508,11 +524,11 @@ async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
             document.getElementById('linkDrive').href = urlDrive;
             document.getElementById('detalleEvaluacion').style.display = 'block';
         }
+
         async function enviarReporteEstudiante() {
             const selectMat = document.getElementById('selectMateria');
             const selectEst = document.getElementById('selectEstudiante');
             const asignaturaId = selectMat.value;
-            // Extrae el texto visible de la asignatura (ej: "ESTADÍSTICA DESCRIPTIVA (Grupo G1)")
             const nombreAsignatura = selectMat.options[selectMat.selectedIndex]?.text || ""; 
             const estudianteId = selectEst.value;
             const estudianteNombre = selectEst.options[selectEst.selectedIndex]?.getAttribute('data-nombre');
@@ -532,7 +548,7 @@ async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
                 const payloadData = {
                     accion: 'enviarReporteCorreo',
                     asignaturaId: asignaturaId,
-                    nombreAsignatura: nombreAsignatura, // <--- NUEVO: Nombre de la asignatura
+                    nombreAsignatura: nombreAsignatura,
                     estudianteId: estudianteId,
                     nombreEstudiante: estudianteNombre,
                     actividad: actividad,
@@ -563,6 +579,6 @@ async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
                 btn.textContent = '📧 Enviar Reporte al Correo del Estudiante';
             }
         }
-    </script>
+</script>
 </body>
 </html>
