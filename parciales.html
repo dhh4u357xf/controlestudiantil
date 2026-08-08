@@ -357,10 +357,22 @@
         }
 
         function mostrarResultado(eval, urlDrive, estudiante) {
-            document.getElementById('notaIA').textContent = parseFloat(eval.nota).toFixed(1);
-            document.getElementById('inputNotaModificada').value = parseFloat(eval.nota).toFixed(1);
+            // Normaliza la nota para manejar cadenas, comas decimales o valores nulos
+            let notaLimpia = 0.0;
+            if (eval && eval.nota !== undefined && eval.nota !== null) {
+                let notaStr = String(eval.nota).replace(',', '.').trim();
+                let parsed = parseFloat(notaStr);
+                if (!isNaN(parsed)) {
+                    notaLimpia = parsed;
+                }
+            }
+
+            const notaFormateada = notaLimpia.toFixed(1);
+
+            document.getElementById('notaIA').textContent = notaFormateada;
+            document.getElementById('inputNotaModificada').value = notaFormateada;
             document.getElementById('nombreEstudianteResultado').textContent = estudiante;
-            document.getElementById('resumenIA').textContent = eval.resumen;
+            document.getElementById('resumenIA').textContent = eval.resumen || "Sin resumen disponible.";
 
             const tbody = document.getElementById('tablaDesglose');
             tbody.innerHTML = '';
@@ -368,12 +380,14 @@
                 eval.desglose.forEach(item => {
                     tbody.innerHTML += `
                         <tr>
-                            <td><strong>${item.ejercicio}</strong></td>
-                            <td>${item.puntajeObtenido} / ${item.puntajeMaximo}</td>
-                            <td>${item.comentario}</td>
+                            <td><strong>${item.ejercicio || item.criterio || 'Criterio'}</strong></td>
+                            <td>${item.puntajeObtenido !== undefined ? item.puntajeObtenido : 0} / ${item.puntajeMaximo !== undefined ? item.puntajeMaximo : 0}</td>
+                            <td>${item.comentario || ''}</td>
                         </tr>
                     `;
                 });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#888;">No se generaron detalles para esta actividad.</td></tr>';
             }
 
             const ulFort = document.getElementById('listaFortalezas');
