@@ -300,6 +300,7 @@
             }
         }
 
+// Función optimizada para estampar marcas y textos multilínea legibles sobre el PDF
         async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
             try {
                 const { PDFDocument, rgb } = PDFLib;
@@ -314,26 +315,78 @@
 
                         const [yMin, xMin, yMax, xMax] = anot.box_2d || [100, 100, 200, 900];
 
+                        // Conversión de coordenadas normalizadas (0-1000) a puntos de PDF
                         const rectX = (xMin / 1000) * width;
-                        const rectWidth = ((xMax - xMin) / 1000) * width;
-                        const rectHeight = ((yMax - yMin) / 1000) * height;
-                        const rectY = height - ((yMax / 1000) * height); 
+                        const rectWidth = Math.max(((xMax - xMin) / 1000) * width, 30);
+                        const rectHeight = Math.max(((yMax - yMin) / 1000) * height, 25);
+                        const rectY = height - ((yMax / 1000) * height);
 
+                        // 1. Dibuja el recuadro rojo alrededor del error
                         page.drawRectangle({
                             x: rectX,
                             y: rectY,
-                            width: Math.max(rectWidth, 20),
-                            height: Math.max(rectHeight, 20),
-                            borderColor: rgb(0.9, 0.1, 0.1),
+                            width: rectWidth,
+                            height: rectHeight,
+                            borderColor: rgb(0.85, 0.1, 0.1),
                             borderWidth: 2,
                         });
 
+                        // 2. Procesa y escribe el comentario completo con salto de línea si existe
                         if (anot.comentario) {
-                            page.drawText(anot.comentario.substring(0, 80), {
-                                x: Math.min(rectX, width - 250),
-                                y: Math.min(rectY + rectHeight + 4, height - 15),
-                                size: 10,
-                                color: rgb(0.8, 0, 0),
+                            const fontSize = 8.5;
+                            const lineHeight = 10.5;
+                            const maxTextWidth = Math.min(Math.max(rectWidth, 220), width - rectX - 15);
+                            
+                            // Función para envolver el texto según el ancho disponible
+                            const wrapText = (text, maxW) => {
+                                const words = text.split(' ');
+                                const lines = [];
+                                let currentLine = '';
+
+                                words.forEach(word => {
+                                    // Estimación aproximada de ancho por carácter en puntos
+                                    const testLine = currentLine ? `${currentLine} ${word}` : word;
+                                    if (testLine.length * (fontSize * 0.52) > maxW && currentLine) {
+                                        lines.push(currentLine);
+                                        currentLine = word;
+                                    } else {
+                                        currentLine = testLine;
+                                    }
+                                });
+                                if (currentLine) lines.push(currentLine);
+                                return lines;
+                            };
+
+                            const textLines = wrapText(anot.comentario, maxTextWidth);
+                            const boxPadding = 4;
+                            const bgBoxWidth = Math.max(...textLines.map(l => l.length * (fontSize * 0.52))) + (boxPadding * 2);
+                            const bgBoxHeight = (textLines.length * lineHeight) + (boxPadding * 2);
+
+                            // Posicionamiento de la caja de texto (prioriza colocarla arriba del recuadro)
+                            let textYBase = rectY + rectHeight + 4;
+                            if (textYBase + bgBoxHeight > height - 10) {
+                                textYBase = Math.max(rectY - bgBoxHeight - 4, 10);
+                            }
+
+                            // Dibuja un fondo blanco con borde rojo suave detrás del texto para garantizar legibilidad
+                            page.drawRectangle({
+                                x: rectX,
+                                y: textYBase,
+                                width: Math.min(bgBoxWidth, width - rectX - 10),
+                                height: bgBoxHeight,
+                                color: rgb(0.99, 0.95, 0.95), // Fondo ligeramente rosado/blanco
+                                borderColor: rgb(0.85, 0.1, 0.1),
+                                borderWidth: 0.8,
+                            });
+
+                            // Dibuja cada línea de texto completa
+                            textLines.forEach((line, i) => {
+                                page.drawText(line, {
+                                    x: rectX + boxPadding,
+                                    y: textYBase + bgBoxHeight - boxPadding - ((i + 1) * lineHeight) + 2,
+                                    size: fontSize,
+                                    color: rgb(0.75, 0, 0),
+                                });
                             });
                         }
                     }
