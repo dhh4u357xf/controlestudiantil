@@ -144,6 +144,45 @@
     </div>
 
     <script>
+
+        // VERIFICACIÓN DE SEGURIDAD OBLIGATORIA (Bloqueo de acceso directo)
+        (async function verificarAccesoSeguroEvaluador() {
+            const URL_CONTROL = "https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec";
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const tokenUrl = urlParams.get('auth');
+            const tokenSession = sessionStorage.getItem("evaluador_token_asistencia");
+            const tokenAProbar = tokenUrl || tokenSession;
+
+            if (!tokenAProbar) {
+                alert("⛔ ACCESO DENEGADO: Debes ingresar al Evaluador desde el panel docente con el código de asistencia vigente.");
+                window.location.href = "docente.html";
+                return;
+            }
+
+            try {
+                const response = await fetch(URL_CONTROL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'validarCodigoAsistenciaVigente',
+                        codigo: tokenAProbar
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!data.ok || !data.valido) {
+                    alert("⛔ SESIÓN EXPIRADA: El código de asistencia ingresado ya no es válido o cambió.");
+                    sessionStorage.removeItem("evaluador_token_asistencia");
+                    window.location.href = "docente.html";
+                } else {
+                    sessionStorage.setItem("evaluador_token_asistencia", tokenAProbar);
+                }
+            } catch (e) {
+                console.error("Error en la verificación de acceso:", e);
+            }
+        })();
         const URL_CONTROL_ESTUDIANTIL = "https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec";
         const URL_EVALUADOR_IA = "https://script.google.com/macros/s/AKfycby1l4VuqvSqGG6_t1J2fmJSlV8TjUZcE0EgAlV_1dYmxgWVWIa8Tb4OqmxhOVlh3f33/exec";
 
