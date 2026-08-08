@@ -398,6 +398,8 @@
     </div>
 
     <script>
+
+        
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec';
         let timerInterval = null;
         let listaEstudiantesGlobal = [];
@@ -804,7 +806,10 @@ function renderizarTablaEstudiantes(lista) {
             window.location.href = 'index.html';
         }
 
-        async function accederEvaluadorConCodigo() {
+       // Asegúrate de que esta URL sea exactamente la Web App desplegada de tu Control Estudiantil
+const URL_CONTROL_ESTUDIANTIL = "https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec";
+
+async function accederEvaluadorConCodigo() {
     const codigoIngresado = prompt("Para ingresar al Evaluador, digita el ÚLTIMO CÓDIGO DE ASISTENCIA aleatorio generado:");
 
     if (!codigoIngresado || codigoIngresado.trim() === "") {
@@ -812,29 +817,35 @@ function renderizarTablaEstudiantes(lista) {
         return;
     }
 
-    const codigoLimpio = codigoIngresado.trim();
+    const codigoLimpio = codigoIngresado.trim().toUpperCase();
 
     try {
+        // Estructura segura de envío en URLSearchParams para evitar bloqueos CORS con Google Apps Script
+        const payloadData = {
+            accion: 'validarCodigoAsistenciaVigente',
+            codigo: codigoLimpio
+        };
+
         const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({
-                accion: 'validarCodigoAsistenciaVigente',
-                codigo: codigoLimpio
-            })
+            body: JSON.stringify(payloadData)
         });
 
         const data = await response.json();
 
         if (data.ok && data.valido) {
+            // Guarda el token en la sesión local del navegador
             sessionStorage.setItem("evaluador_token_asistencia", codigoLimpio);
+            
+            // Redirige al evaluador llevando el parámetro de autorización
             window.location.href = `parciales.html?auth=${encodeURIComponent(codigoLimpio)}`;
         } else {
-            alert("❌ CÓDIGO INVÁLIDO O EXPIRADO: " + (data.mensaje || "El código no coincide con la última asistencia generada."));
+            alert("❌ ACCESO DENEGADO: " + (data.mensaje || "El código ingresado no coincide con la contraseña activa."));
         }
     } catch (error) {
-        console.error("Error al validar código de acceso:", error);
-        alert("Error de conexión al verificar el código de asistencia.");
+        console.error("Error al verificar el código:", error);
+        alert("Error de conexión al verificar el código de asistencia. Revisa que la URL de la Web App esté publicada como 'Cualquier persona' (Anyone).");
     }
 }
     </script>
