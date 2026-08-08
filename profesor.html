@@ -238,6 +238,10 @@
                 <span>Panel de administración</span>
             </div>
             <button class="btn-logout" onclick="cerrarSesion()">Salir</button>
+            <!-- Botón para ir al Evaluador -->
+<button type="button" class="btn btn-primary" onclick="accederEvaluadorConCodigo()">
+    🤖 Acceder al Evaluador 
+</button>
         </div>
     </div>
 
@@ -799,6 +803,40 @@ function renderizarTablaEstudiantes(lista) {
             sessionStorage.clear();
             window.location.href = 'index.html';
         }
+
+        async function accederEvaluadorConCodigo() {
+    const codigoIngresado = prompt("Para ingresar al Evaluador, digita el ÚLTIMO CÓDIGO DE ASISTENCIA aleatorio generado:");
+
+    if (!codigoIngresado || codigoIngresado.trim() === "") {
+        alert("Acceso cancelado. Debe ingresar un código válido.");
+        return;
+    }
+
+    const codigoLimpio = codigoIngresado.trim();
+
+    try {
+        const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+                accion: 'validarCodigoAsistenciaVigente',
+                codigo: codigoLimpio
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.ok && data.valido) {
+            sessionStorage.setItem("evaluador_token_asistencia", codigoLimpio);
+            window.location.href = `parciales.html?auth=${encodeURIComponent(codigoLimpio)}`;
+        } else {
+            alert("❌ CÓDIGO INVÁLIDO O EXPIRADO: " + (data.mensaje || "El código no coincide con la última asistencia generada."));
+        }
+    } catch (error) {
+        console.error("Error al validar código de acceso:", error);
+        alert("Error de conexión al verificar el código de asistencia.");
+    }
+}
     </script>
 </body>
 </html>
