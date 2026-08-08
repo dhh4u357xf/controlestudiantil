@@ -306,12 +306,12 @@ async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
                 const pdfDoc = await PDFDocument.load(pdfBytesBuffer);
                 const pages = pdfDoc.getPages();
 
-                // Si la IA no envió marcas gráficas, crea marcas de respaldo en las primeras páginas
+                // Marcas de respaldo en caso de recibir arreglo vacío
                 let marcasAProcesar = anotaciones;
                 if (!marcasAProcesar || !Array.isArray(marcasAProcesar) || marcasAProcesar.length === 0) {
                     marcasAProcesar = [
-                        { pagina: 1, box_2d: [150, 100, 300, 900], comentario: "Revisar observaciones generales: Formato APA 7 y clasificación de variables." },
-                        { pagina: Math.min(2, pages.length), box_2d: [200, 100, 350, 900], comentario: "Verificar desarrollo de formulas matemáticas y representaciones gráficas solicitadas en la guía." }
+                        { pagina: 1, box_2d: [150, 100, 280, 900], tipo: "ERROR", comentario: "Revisión general: Corregir clasificación de variables y formato de ecuaciones APA 7." },
+                        { pagina: 1, box_2d: [320, 100, 420, 900], tipo: "EXITO", comentario: "¡Visto Bueno!: Aplicación adecuada de la estructura formal de portada institucional." }
                     ];
                 }
 
@@ -325,7 +325,7 @@ async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
 
                     let box = anot.box_2d;
                     if (!box || !Array.isArray(box) || box.length < 4) {
-                        box = [150 + (idx * 120), 80, 280 + (idx * 120), 920]; 
+                        box = [150 + (idx * 110), 80, 260 + (idx * 110), 920]; 
                     }
 
                     const [yMin, xMin, yMax, xMax] = box;
@@ -335,17 +335,23 @@ async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
                     const rectHeight = Math.min(Math.max(((yMax - yMin) / 1000) * height, 30), height - 20);
                     const rectY = Math.max(height - ((yMax / 1000) * height), 10);
 
-                    // 1. Dibuja el recuadro rojo
+                    // CONFIGURACIÓN DE COLORES SEGÚN TIPO (ERROR = ROJO, EXITO = VERDE)
+                    const esExito = String(anot.tipo || "").toUpperCase() === "EXITO";
+                    const colorBorde = esExito ? rgb(0.1, 0.65, 0.2) : rgb(0.85, 0.1, 0.1);
+                    const colorFondo = esExito ? rgb(0.93, 0.98, 0.94) : rgb(0.99, 0.95, 0.95);
+                    const colorTexto = esExito ? rgb(0.05, 0.45, 0.1) : rgb(0.7, 0, 0);
+
+                    // 1. Dibuja el recuadro principal
                     page.drawRectangle({
                         x: rectX,
                         y: rectY,
                         width: rectWidth,
                         height: rectHeight,
-                        borderColor: rgb(0.85, 0.1, 0.1),
+                        borderColor: colorBorde,
                         borderWidth: 2,
                     });
 
-                    // 2. Dibuja la caja de texto explicativa multilínea
+                    // 2. Dibuja la caja explicativa con su texto envuelto
                     if (anot.comentario) {
                         const fontSize = 8.0;
                         const lineHeight = 10.0;
@@ -389,8 +395,8 @@ async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
                             y: textYBase,
                             width: bgBoxWidth,
                             height: bgBoxHeight,
-                            color: rgb(0.99, 0.95, 0.95),
-                            borderColor: rgb(0.85, 0.1, 0.1),
+                            color: colorFondo,
+                            borderColor: colorBorde,
                             borderWidth: 0.8,
                         });
 
@@ -399,7 +405,7 @@ async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
                                 x: startX + boxPadding,
                                 y: textYBase + bgBoxHeight - boxPadding - ((i + 1) * lineHeight) + 2,
                                 size: fontSize,
-                                color: rgb(0.7, 0, 0),
+                                color: colorTexto,
                             });
                         });
                     }
@@ -423,7 +429,6 @@ async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
         }
 
         function mostrarResultado(eval, urlDrive, estudiante) {
-            // Normaliza la nota para manejar cadenas, comas decimales o valores nulos
             let notaLimpia = 0.0;
             if (eval && eval.nota !== undefined && eval.nota !== null) {
                 let notaStr = String(eval.nota).replace(',', '.').trim();
@@ -442,16 +447,34 @@ async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
 
             const tbody = document.getElementById('tablaDesglose');
             tbody.innerHTML = '';
+            
+            let sumaObtenida = 0;
+            let sumaMaxima = 0;
+
             if (eval.desglose && eval.desglose.length > 0) {
                 eval.desglose.forEach(item => {
+                    let ob = parseFloat(item.puntajeObtenido) || 0;
+                    let mx = parseFloat(item.puntajeMaximo) || 0;
+                    sumaObtenida += ob;
+                    sumaMaxima += mx;
+
                     tbody.innerHTML += `
                         <tr>
-                            <td><strong>${item.ejercicio || item.criterio || 'Criterio'}</strong></td>
-                            <td>${item.puntajeObtenido !== undefined ? item.puntajeObtenido : 0} / ${item.puntajeMaximo !== undefined ? item.puntajeMaximo : 0}</td>
+                            <td><strong>${item.ejercicio || 'Criterio'}</strong></td>
+                            <td style="text-align: center; white-space: nowrap;">${ob}% / ${mx}%</td>
                             <td>${item.comentario || ''}</td>
                         </tr>
                     `;
                 });
+
+                // Fila de Total de Porcentajes al final de la tabla
+                tbody.innerHTML += `
+                    <tr style="background-color: #f8f5fc; font-weight: bold; border-top: 2px solid #4A1C6B;">
+                        <td><strong>TOTAL PORCENTAJES ACUMULADOS</strong></td>
+                        <td style="text-align: center; color: #4A1C6B; font-size: 14px;">${sumaObtenida.toFixed(2)}% / ${sumaMaxima.toFixed(2)}%</td>
+                        <td style="color: #666; font-size: 12px;">Equivalente a una nota final de <strong>${notaFormateada} / 5.0</strong></td>
+                    </tr>
+                `;
             } else {
                 tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#888;">No se generaron detalles para esta actividad.</td></tr>';
             }
@@ -467,7 +490,6 @@ async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
             document.getElementById('linkDrive').href = urlDrive;
             document.getElementById('detalleEvaluacion').style.display = 'block';
         }
-
         async function enviarReporteEstudiante() {
             const selectMat = document.getElementById('selectMateria');
             const selectEst = document.getElementById('selectEstudiante');
