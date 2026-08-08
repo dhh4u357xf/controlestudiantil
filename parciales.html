@@ -145,47 +145,7 @@
 
     <script>
 
-        const URL_CONTROL_ESTUDIANTIL = "https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec";
-
-async function accederEvaluadorConCodigo() {
-    const codigoIngresado = prompt("Para ingresar al Evaluador, digita el ÚLTIMO CÓDIGO DE ASISTENCIA aleatorio generado:");
-
-    if (!codigoIngresado || codigoIngresado.trim() === "") {
-        alert("Acceso cancelado. Debe ingresar un código válido.");
-        return;
-    }
-
-    const codigoLimpio = codigoIngresado.trim().toUpperCase();
-
-    try {
-        // Objeto de datos
-        const payloadData = {
-            accion: 'validarCodigoAsistenciaVigente',
-            codigo: codigoLimpio
-        };
-
-        // Formato URLSearchParams (previene bloqueo CORS en Apps Script)
-        const formData = new URLSearchParams();
-        formData.append('payload', JSON.stringify(payloadData));
-
-        const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
-            method: 'POST',
-            body: formData
-        });
-
-        const data = await response.json();
-
-        if (data.ok && data.valido) {
-            sessionStorage.setItem("evaluador_token_asistencia", codigoLimpio);
-            window.location.href = `parciales.html?auth=${encodeURIComponent(codigoLimpio)}`;
-        } else {
-            alert("❌ ACCESO DENEGADO: " + (data.mensaje || "El código ingresado no coincide con la contraseña activa."));
-        }
-    } catch (error) {
-        console.error("Error al verificar el código:", error);
-        alert("Error de conexión al verificar el código de asistencia: " + error.message);
-    }
-}
+      
         const URL_CONTROL_ESTUDIANTIL = "https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec";
         const URL_EVALUADOR_IA = "https://script.google.com/macros/s/AKfycby1l4VuqvSqGG6_t1J2fmJSlV8TjUZcE0EgAlV_1dYmxgWVWIa8Tb4OqmxhOVlh3f33/exec";
 
