@@ -300,7 +300,7 @@
             }
         }
 
-// Función optimizada para estampar marcas y textos multilínea legibles sobre el PDF
+// Función para estampar marcas y textos explicativos extensos/detallados en el PDF
         async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
             try {
                 const { PDFDocument, rgb } = PDFLib;
@@ -321,7 +321,7 @@
                         const rectHeight = Math.max(((yMax - yMin) / 1000) * height, 25);
                         const rectY = height - ((yMax / 1000) * height);
 
-                        // 1. Dibuja el recuadro rojo alrededor del error
+                        // 1. Dibuja el recuadro rojo alrededor del error o hallazgo
                         page.drawRectangle({
                             x: rectX,
                             y: rectY,
@@ -331,22 +331,23 @@
                             borderWidth: 2,
                         });
 
-                        // 2. Procesa y escribe el comentario completo con salto de línea si existe
+                        // 2. Procesa y escribe el comentario detallado multilínea
                         if (anot.comentario) {
-                            const fontSize = 8.5;
-                            const lineHeight = 10.5;
-                            const maxTextWidth = Math.min(Math.max(rectWidth, 220), width - rectX - 15);
+                            const fontSize = 8.0;
+                            const lineHeight = 10.0;
+                            // Ancho de la caja explicativa (máximo 280pt o ajustado al margen)
+                            const maxTextWidth = Math.min(280, width - rectX - 20);
                             
-                            // Función para envolver el texto según el ancho disponible
+                            // Algoritmo de envoltorio automático de texto (Word-Wrap)
                             const wrapText = (text, maxW) => {
                                 const words = text.split(' ');
                                 const lines = [];
                                 let currentLine = '';
 
                                 words.forEach(word => {
-                                    // Estimación aproximada de ancho por carácter en puntos
                                     const testLine = currentLine ? `${currentLine} ${word}` : word;
-                                    if (testLine.length * (fontSize * 0.52) > maxW && currentLine) {
+                                    // Estimación de ancho promedio por carácter
+                                    if (testLine.length * (fontSize * 0.50) > maxW && currentLine) {
                                         lines.push(currentLine);
                                         currentLine = word;
                                     } else {
@@ -358,34 +359,38 @@
                             };
 
                             const textLines = wrapText(anot.comentario, maxTextWidth);
-                            const boxPadding = 4;
-                            const bgBoxWidth = Math.max(...textLines.map(l => l.length * (fontSize * 0.52))) + (boxPadding * 2);
+                            const boxPadding = 5;
+                            const bgBoxWidth = Math.min(
+                                Math.max(...textLines.map(l => l.length * (fontSize * 0.50))) + (boxPadding * 2),
+                                maxTextWidth + (boxPadding * 2)
+                            );
                             const bgBoxHeight = (textLines.length * lineHeight) + (boxPadding * 2);
 
-                            // Posicionamiento de la caja de texto (prioriza colocarla arriba del recuadro)
-                            let textYBase = rectY + rectHeight + 4;
+                            // Posicionamiento inteligente (arriba o abajo del recuadro si se sale de la página)
+                            let textYBase = rectY + rectHeight + 3;
                             if (textYBase + bgBoxHeight > height - 10) {
-                                textYBase = Math.max(rectY - bgBoxHeight - 4, 10);
+                                textYBase = Math.max(rectY - bgBoxHeight - 3, 10);
                             }
 
-                            // Dibuja un fondo blanco con borde rojo suave detrás del texto para garantizar legibilidad
+                            // Dibuja la caja de fondo blanco/rosado suave con borde rojo
                             page.drawRectangle({
-                                x: rectX,
+                                x: Math.min(rectX, width - bgBoxWidth - 10),
                                 y: textYBase,
-                                width: Math.min(bgBoxWidth, width - rectX - 10),
+                                width: bgBoxWidth,
                                 height: bgBoxHeight,
-                                color: rgb(0.99, 0.95, 0.95), // Fondo ligeramente rosado/blanco
+                                color: rgb(0.99, 0.95, 0.95), // Fondo opaco para no tapar con texto original
                                 borderColor: rgb(0.85, 0.1, 0.1),
                                 borderWidth: 0.8,
                             });
 
-                            // Dibuja cada línea de texto completa
+                            // Escribe cada renglón del comentario detallado
+                            const startX = Math.min(rectX, width - bgBoxWidth - 10) + boxPadding;
                             textLines.forEach((line, i) => {
                                 page.drawText(line, {
-                                    x: rectX + boxPadding,
+                                    x: startX,
                                     y: textYBase + bgBoxHeight - boxPadding - ((i + 1) * lineHeight) + 2,
                                     size: fontSize,
-                                    color: rgb(0.75, 0, 0),
+                                    color: rgb(0.7, 0, 0),
                                 });
                             });
                         }
