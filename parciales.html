@@ -145,44 +145,48 @@
 
     <script>
 
-        // VERIFICACIÓN DE SEGURIDAD OBLIGATORIA (Bloqueo de acceso directo)
-        (async function verificarAccesoSeguroEvaluador() {
-            const URL_CONTROL = "https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec";
+        // Asegúrate de que esta URL sea exactamente la Web App desplegada de tu Control Estudiantil
+const URL_CONTROL_ESTUDIANTIL = "https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec";
+
+async function accederEvaluadorConCodigo() {
+    const codigoIngresado = prompt("Para ingresar al Evaluador, digita el ÚLTIMO CÓDIGO DE ASISTENCIA aleatorio generado:");
+
+    if (!codigoIngresado || codigoIngresado.trim() === "") {
+        alert("Acceso cancelado. Debe ingresar un código válido.");
+        return;
+    }
+
+    const codigoLimpio = codigoIngresado.trim().toUpperCase();
+
+    try {
+        // Estructura segura de envío en URLSearchParams para evitar bloqueos CORS con Google Apps Script
+        const payloadData = {
+            accion: 'validarCodigoAsistenciaVigente',
+            codigo: codigoLimpio
+        };
+
+        const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payloadData)
+        });
+
+        const data = await response.json();
+
+        if (data.ok && data.valido) {
+            // Guarda el token en la sesión local del navegador
+            sessionStorage.setItem("evaluador_token_asistencia", codigoLimpio);
             
-            const urlParams = new URLSearchParams(window.location.search);
-            const tokenUrl = urlParams.get('auth');
-            const tokenSession = sessionStorage.getItem("evaluador_token_asistencia");
-            const tokenAProbar = tokenUrl || tokenSession;
-
-            if (!tokenAProbar) {
-                alert("⛔ ACCESO DENEGADO: Debes ingresar al Evaluador desde el panel docente con el código de asistencia vigente.");
-                window.location.href = "docente.html";
-                return;
-            }
-
-            try {
-                const response = await fetch(URL_CONTROL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({
-                        accion: 'validarCodigoAsistenciaVigente',
-                        codigo: tokenAProbar
-                    })
-                });
-
-                const data = await response.json();
-
-                if (!data.ok || !data.valido) {
-                    alert("⛔ SESIÓN EXPIRADA: El código de asistencia ingresado ya no es válido o cambió.");
-                    sessionStorage.removeItem("evaluador_token_asistencia");
-                    window.location.href = "docente.html";
-                } else {
-                    sessionStorage.setItem("evaluador_token_asistencia", tokenAProbar);
-                }
-            } catch (e) {
-                console.error("Error en la verificación de acceso:", e);
-            }
-        })();
+            // Redirige al evaluador llevando el parámetro de autorización
+            window.location.href = `parciales.html?auth=${encodeURIComponent(codigoLimpio)}`;
+        } else {
+            alert("❌ ACCESO DENEGADO: " + (data.mensaje || "El código ingresado no coincide con la contraseña activa."));
+        }
+    } catch (error) {
+        console.error("Error al verificar el código:", error);
+        alert("Error de conexión al verificar el código de asistencia. Revisa que la URL de la Web App esté publicada como 'Cualquier persona' (Anyone).");
+    }
+}
         const URL_CONTROL_ESTUDIANTIL = "https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec";
         const URL_EVALUADOR_IA = "https://script.google.com/macros/s/AKfycby1l4VuqvSqGG6_t1J2fmJSlV8TjUZcE0EgAlV_1dYmxgWVWIa8Tb4OqmxhOVlh3f33/exec";
 
