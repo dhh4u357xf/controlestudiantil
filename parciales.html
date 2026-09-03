@@ -193,24 +193,22 @@
             const urlParams = new URLSearchParams(window.location.search);
             const tokenUrl = urlParams.get('auth');
             const tokenSession = sessionStorage.getItem("evaluador_token_asistencia");
-            const tokenAProbar = tokenUrl || tokenSession;
+            const tokenAProbar = (tokenUrl || tokenSession || "").trim().toUpperCase();
 
             if (!tokenAProbar) {
                 alert("⛔ ACCESO DENEGADO: Debes ingresar al Evaluador desde el panel docente con el código de asistencia vigente.");
-                window.location.href = "docente.html";
+                window.location.href = "profesor.html";
                 return;
             }
 
             try {
-                const formData = new URLSearchParams();
-                formData.append('payload', JSON.stringify({
-                    accion: 'validarCodigoAsistenciaVigente',
-                    codigo: tokenAProbar
-                }));
-
                 const response = await fetch(URL_CONTROL, {
                     method: 'POST',
-                    body: formData
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'validarCodigoAsistenciaVigente',
+                        codigo: tokenAProbar
+                    })
                 });
 
                 const data = await response.json();
@@ -218,7 +216,7 @@
                 if (!data.ok || !data.valido) {
                     alert("⛔ SESIÓN EXPIRADA: El código de asistencia ingresado ya no es válido o cambió.");
                     sessionStorage.removeItem("evaluador_token_asistencia");
-                    window.location.href = "docente.html";
+                    window.location.href = "profesor.html";
                 } else {
                     sessionStorage.setItem("evaluador_token_asistencia", tokenAProbar);
                 }
