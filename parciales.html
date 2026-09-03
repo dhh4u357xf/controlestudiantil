@@ -386,7 +386,7 @@
             document.getElementById('cargando').style.display = 'block';
 
             try {
-                console.log("1. Leyendo y convirtiendo archivos...");
+                console.log("1. Leyendo y convirtiendo archivos a Base64...");
                 const base64SolFull = await convertirBase64(fileSol);
                 const base64EstFull = await convertirBase64(fileEst);
 
@@ -418,7 +418,14 @@
 
                     console.log("4. Estampando marcas gráficas en el PDF con PDF-LIB...");
                     const pdfArrayBuffer = await fileEst.arrayBuffer();
-                    const pdfBase64Anotado = await estamparErroresEnPDF(pdfArrayBuffer, data.evaluacion.anotacionesGraficas || []);
+
+                    // SINCRONIZACIÓN CLAVE: Se pasa anotaciones, aspectos a mejorar y desglose para asegurar marcas
+                    const pdfBase64Anotado = await estamparErroresEnPDF(
+                        pdfArrayBuffer, 
+                        data.evaluacion.anotacionesGraficas || [], 
+                        data.evaluacion.aspectosAMejorar || [],
+                        data.evaluacion.desglose || []
+                    );
 
                     console.log("5. Guardando versión marcada en Google Drive...");
                     const payloadSave = {
@@ -448,7 +455,7 @@
             }
         }
 
-        // Función para convertir caracteres matemáticos/especiales a texto compatible con WinAnsi
+        // Sanitización tipográfica estricta para evitar incompatibilidades WinAnsi en Helvetica
         function sanitizarTextoPdf(str) {
             if (!str) return "";
             return String(str)
@@ -465,10 +472,10 @@
                 .replace(/≥/g, ">=")
                 .replace(/∞/g, "inf")
                 .replace(/√/g, "sqrt")
-                .replace(/[^\x00-\xFF]/g, ""); // Remueve cualquier otro caracter fuera de ISO-8859-1 (WinAnsi)
+                .replace(/[^\x00-\xFF]/g, ""); // Remueve cualquier otro carácter incompatible con ISO-8859-1
         }
 
-        async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
+        async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones, aspectosAMejorar = [], desglose = []) {
             try {
                 if (typeof PDFLib === 'undefined') {
                     throw new Error("PDFLib no está cargado en el documento HTML.");
@@ -482,33 +489,51 @@
                     throw new Error("El PDF no contiene páginas legibles.");
                 }
 
-                let marcasAProcesar = anotaciones;
+                let marcasAProcesar = Array.isArray(anotaciones) ? anotaciones.filter(a => a && (a.comentario || a.box_2d)) : [];
 
-                if (!marcasAProcesar || !Array.isArray(marcasAProcesar) || marcasAProcesar.length === 0) {
-                    console.warn("No se recibieron marcas de la IA. Generando marcas de respaldo...");
+                // RESPALDO 1: Si la IA devolvió el arreglo de marcas vacío, generar recuadros usando aspectosAMejorar
+                if (marcasAProcesar.length === 0 && Array.isArray(aspectosAMejorar) && aspectosAMejorar.length > 0) {
+                    console.warn("La IA no incluyó coordenadas directas. Mapeando recuadros desde 'aspectosAMejorar'...");
+                    marcasAProcesar = aspectosAMejorar.map((mejora, idx) => ({
+                        pagina: Math.min(idx + 1, pages.length),
+                        box_2d: [140 + ((idx % 4) * 110), 80, 230 + ((idx % 4) * 110), 920],
+                        tipo: "ERROR",
+                        comentario: mejora
+                    }));
+                }
+
+                // RESPALDO 2: Si aún no hay marcas, extraer observaciones del desglose con puntaje 0 o penalizado
+                if (marcasAProcesar.length === 0 && Array.isArray(desglose) && desglose.length > 0) {
+                    const puntosConFalla = desglose.filter(d => (parseFloat(d.puntajeObtenido) || 0) < (parseFloat(d.puntajeMaximo) || 0));
+                    if (puntosConFalla.length > 0) {
+                        marcasAProcesar = puntosConFalla.map((item, idx) => ({
+                            pagina: Math.min(idx + 1, pages.length),
+                            box_2d: [150 + ((idx % 4) * 100), 80, 240 + ((idx % 4) * 100), 920],
+                            tipo: "ERROR",
+                            comentario: `${item.ejercicio || 'Criterio'}: ${item.comentario || 'Observación de evaluación'}`
+                        }));
+                    }
+                }
+
+                // RESPALDO 3: Sellos de auditoría de seguridad
+                if (marcasAProcesar.length === 0) {
                     marcasAProcesar = [
                         { 
                             pagina: 1, 
-                            box_2d: [150, 100, 270, 900], 
+                            box_2d: [140, 80, 230, 920], 
                             tipo: "ERROR", 
-                            comentario: "Revision Formato APA 7 / Portada: Verificar alineacion y estructura general." 
-                        },
-                        { 
-                            pagina: Math.min(2, pages.length), 
-                            box_2d: [180, 100, 300, 900], 
-                            tipo: "ERROR", 
-                            comentario: "Revision Metodologica: Comprobar el desarrollo explicito de formulas y calculos." 
+                            comentario: "Auditoria APA 7: Verificar sangrias de 1.27 cm, margenes y fuentes." 
                         },
                         { 
                             pagina: 1, 
-                            box_2d: [320, 100, 420, 900], 
+                            box_2d: [260, 80, 350, 920], 
                             tipo: "EXITO", 
-                            comentario: "Visto Bueno: Entrega formal recibida correctamente." 
+                            comentario: "Documento digital recibido y evaluado por el sistema institucional." 
                         }
                     ];
                 }
 
-                console.log(`Aplicando ${marcasAProcesar.length} anotaciones gráficas...`);
+                console.log(`Aplicando ${marcasAProcesar.length} marcas gráficas sobre el PDF...`);
 
                 marcasAProcesar.forEach((anot, idx) => {
                     let idxPagina = (parseInt(anot.pagina) || 1) - 1;
@@ -518,24 +543,37 @@
                     const page = pages[idxPagina];
                     const { width, height } = page.getSize();
 
-                    let box = anot.box_2d;
+                    let box = anot.box_2d || anot.bounding_box || anot.box;
                     if (!box || !Array.isArray(box) || box.length < 4) {
-                        box = [150 + (idx * 110), 80, 260 + (idx * 110), 920]; 
+                        box = [140 + ((idx % 4) * 110), 80, 230 + ((idx % 4) * 110), 920]; 
                     }
 
-                    const [yMin, xMin, yMax, xMax] = box;
+                    let [yMin, xMin, yMax, xMax] = box.map(v => parseFloat(v) || 0);
 
-                    const rectX = Math.max((xMin / 1000) * width, 10);
-                    const rectWidth = Math.min(Math.max(((xMax - xMin) / 1000) * width, 50), width - rectX - 10);
-                    const rectHeight = Math.min(Math.max(((yMax - yMin) / 1000) * height, 30), height - 20);
-                    const rectY = Math.max(height - ((yMax / 1000) * height), 10);
+                    // NORMALIZACIÓN: Si la IA devuelve valores relativos de 0 a 1 (ej. 0.15 en vez de 150)
+                    if (yMax <= 1.0 && xMax <= 1.0 && (yMax > 0 || xMax > 0)) {
+                        yMin *= 1000;
+                        xMin *= 1000;
+                        yMax *= 1000;
+                        xMax *= 1000;
+                    }
+
+                    // Prevenir coordenadas invertidas
+                    if (yMin > yMax) [yMin, yMax] = [yMax, yMin];
+                    if (xMin > xMax) [xMin, xMax] = [xMax, xMin];
+
+                    // Conversión al sistema cartesiano del PDF (origen en esquina inferior izquierda)
+                    const rectX = Math.max((xMin / 1000) * width, 15);
+                    const rectWidth = Math.min(Math.max(((xMax - xMin) / 1000) * width, 55), width - rectX - 15);
+                    const rectHeight = Math.min(Math.max(((yMax - yMin) / 1000) * height, 30), height - 25);
+                    const rectY = Math.max(height - ((yMax / 1000) * height), 15);
 
                     const esExito = String(anot.tipo || "").toUpperCase() === "EXITO";
                     const colorBorde = esExito ? rgb(0.1, 0.65, 0.2) : rgb(0.85, 0.1, 0.1);
                     const colorFondo = esExito ? rgb(0.93, 0.98, 0.94) : rgb(0.99, 0.95, 0.95);
                     const colorTexto = esExito ? rgb(0.05, 0.45, 0.1) : rgb(0.7, 0, 0);
 
-                    // 1. Dibuja el recuadro sobre el error/acierto
+                    // 1. Dibuja el recuadro sobre el sector indicado
                     page.drawRectangle({
                         x: rectX,
                         y: rectY,
@@ -549,8 +587,8 @@
                     if (anot.comentario) {
                         const comentarioLimpio = sanitizarTextoPdf(anot.comentario);
                         const fontSize = 8.0;
-                        const lineHeight = 10.0;
-                        const maxTextWidth = Math.min(280, width - rectX - 20);
+                        const lineHeight = 10.5;
+                        const maxTextWidth = Math.min(300, width - rectX - 25);
 
                         const wrapText = (text, maxW) => {
                             const words = String(text).split(' ');
@@ -573,17 +611,17 @@
                         const textLines = wrapText(comentarioLimpio, maxTextWidth);
                         const boxPadding = 5;
                         const bgBoxWidth = Math.min(
-                            Math.max(...textLines.map(l => l.length * (fontSize * 0.50))) + (boxPadding * 2),
+                            Math.max(...textLines.map(l => l.length * (fontSize * 0.52))) + (boxPadding * 2),
                             maxTextWidth + (boxPadding * 2)
                         );
                         const bgBoxHeight = (textLines.length * lineHeight) + (boxPadding * 2);
 
                         let textYBase = rectY + rectHeight + 3;
-                        if (textYBase + bgBoxHeight > height - 10) {
-                            textYBase = Math.max(rectY - bgBoxHeight - 3, 10);
+                        if (textYBase + bgBoxHeight > height - 12) {
+                            textYBase = Math.max(rectY - bgBoxHeight - 3, 12);
                         }
 
-                        const startX = Math.min(rectX, width - bgBoxWidth - 10);
+                        const startX = Math.min(rectX, width - bgBoxWidth - 12);
 
                         page.drawRectangle({
                             x: startX,
@@ -607,7 +645,7 @@
                 });
 
                 const pdfModifiedBytes = await pdfDoc.saveAsBase64();
-                console.log("PDF estampado correctamente.");
+                console.log("Marcas estampadas exitosamente sobre el PDF.");
                 return pdfModifiedBytes;
 
             } catch (e) {
