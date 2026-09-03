@@ -13,7 +13,7 @@
         }
 
         body {
-            background: #f4f6f9;
+            background: #f4f6f9;f
             min-height: 100vh;
         }
 
@@ -772,16 +772,42 @@
             }
         }
 
-        function actualizarFiltrosReporte() {
+async function actualizarFiltrosReporte() {
+            const idAsignatura = document.getElementById('reporteMateria').value;
             const selectEst = document.getElementById('reporteEstudiante');
             selectEst.innerHTML = '<option value="">-- Todos los Estudiantes --</option>';
-            
-            if (listaEstudiantesGlobal && listaEstudiantesGlobal.length > 0) {
-                listaEstudiantesGlobal.forEach(e => {
-                    selectEst.innerHTML += `<option value="${e.id}">${e.nombre}</option>`;
-                });
+
+            if (!idAsignatura) {
+                cargarReporteAsistencia();
+                return;
             }
 
+            selectEst.innerHTML = '<option value="">Cargando estudiantes matriculados...</option>';
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'obtenerEstudiantesPorAsignatura',
+                        asignaturaId: idAsignatura
+                    })
+                });
+
+                const data = await response.json();
+                selectEst.innerHTML = '<option value="">-- Todos los Estudiantes --</option>';
+
+                if (data.ok && data.estudiantes && data.estudiantes.length > 0) {
+                    data.estudiantes.forEach(e => {
+                        selectEst.innerHTML += `<option value="${e.id}">${e.nombre}</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Error al filtrar estudiantes en reporte:', error);
+                selectEst.innerHTML = '<option value="">-- Todos los Estudiantes --</option>';
+            }
+
+            // Actualiza la tabla de asistencias con la materia elegida
             cargarReporteAsistencia();
         }
 
