@@ -448,10 +448,30 @@
             }
         }
 
+        // Función para convertir caracteres matemáticos/especiales a texto compatible con WinAnsi
+        function sanitizarTextoPdf(str) {
+            if (!str) return "";
+            return String(str)
+                .replace(/∪/g, " U ")
+                .replace(/∩/g, " n ")
+                .replace(/∈/g, " en ")
+                .replace(/∉/g, " no en ")
+                .replace(/⊂/g, " sub ")
+                .replace(/⊆/g, " sub-igual ")
+                .replace(/∅/g, " vacio ")
+                .replace(/±/g, "+/-")
+                .replace(/≠/g, "!=")
+                .replace(/≤/g, "<=")
+                .replace(/≥/g, ">=")
+                .replace(/∞/g, "inf")
+                .replace(/√/g, "sqrt")
+                .replace(/[^\x00-\xFF]/g, ""); // Remueve cualquier otro caracter fuera de ISO-8859-1 (WinAnsi)
+        }
+
         async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones) {
             try {
                 if (typeof PDFLib === 'undefined') {
-                    throw new Error("PDFLib no está cargado en el documento HTML. Verifica la etiqueta <script src='...pdf-lib.min.js'>");
+                    throw new Error("PDFLib no está cargado en el documento HTML.");
                 }
 
                 const { PDFDocument, rgb } = PDFLib;
@@ -465,28 +485,137 @@
                 let marcasAProcesar = anotaciones;
 
                 if (!marcasAProcesar || !Array.isArray(marcasAProcesar) || marcasAProcesar.length === 0) {
-                    console.warn("No se recibieron marcas de la IA. Generando marcas de respaldo obligatorias...");
+                    console.warn("No se recibieron marcas de la IA. Generando marcas de respaldo...");
                     marcasAProcesar = [
                         { 
                             pagina: 1, 
                             box_2d: [150, 100, 270, 900], 
                             tipo: "ERROR", 
-                            comentario: "Revisión Formato APA 7 / Portada: Verificar alineación, tipo de letra y estructura general." 
+                            comentario: "Revision Formato APA 7 / Portada: Verificar alineacion y estructura general." 
                         },
                         { 
                             pagina: Math.min(2, pages.length), 
                             box_2d: [180, 100, 300, 900], 
                             tipo: "ERROR", 
-                            comentario: "Revisión Metodológica: Comprobar el desarrollo explícito de fórmulas y gráficos solicitados en la guía." 
+                            comentario: "Revision Metodologica: Comprobar el desarrollo explicito de formulas y calculos." 
                         },
                         { 
                             pagina: 1, 
                             box_2d: [320, 100, 420, 900], 
                             tipo: "EXITO", 
-                            comentario: "¡Visto Bueno!: Entrega formal recibida e ingresada correctamente en el evaluador." 
+                            comentario: "Visto Bueno: Entrega formal recibida correctamente." 
                         }
                     ];
                 }
+
+                console.log(`Aplicando ${marcasAProcesar.length} anotaciones gráficas...`);
+
+                marcasAProcesar.forEach((anot, idx) => {
+                    let idxPagina = (parseInt(anot.pagina) || 1) - 1;
+                    if (idxPagina < 0) idxPagina = 0;
+                    if (idxPagina >= pages.length) idxPagina = pages.length - 1;
+
+                    const page = pages[idxPagina];
+                    const { width, height } = page.getSize();
+
+                    let box = anot.box_2d;
+                    if (!box || !Array.isArray(box) || box.length < 4) {
+                        box = [150 + (idx * 110), 80, 260 + (idx * 110), 920]; 
+                    }
+
+                    const [yMin, xMin, yMax, xMax] = box;
+
+                    const rectX = Math.max((xMin / 1000) * width, 10);
+                    const rectWidth = Math.min(Math.max(((xMax - xMin) / 1000) * width, 50), width - rectX - 10);
+                    const rectHeight = Math.min(Math.max(((yMax - yMin) / 1000) * height, 30), height - 20);
+                    const rectY = Math.max(height - ((yMax / 1000) * height), 10);
+
+                    const esExito = String(anot.tipo || "").toUpperCase() === "EXITO";
+                    const colorBorde = esExito ? rgb(0.1, 0.65, 0.2) : rgb(0.85, 0.1, 0.1);
+                    const colorFondo = esExito ? rgb(0.93, 0.98, 0.94) : rgb(0.99, 0.95, 0.95);
+                    const colorTexto = esExito ? rgb(0.05, 0.45, 0.1) : rgb(0.7, 0, 0);
+
+                    // 1. Dibuja el recuadro sobre el error/acierto
+                    page.drawRectangle({
+                        x: rectX,
+                        y: rectY,
+                        width: rectWidth,
+                        height: rectHeight,
+                        borderColor: colorBorde,
+                        borderWidth: 2,
+                    });
+
+                    // 2. Dibuja la caja explicativa de texto sanitizado
+                    if (anot.comentario) {
+                        const comentarioLimpio = sanitizarTextoPdf(anot.comentario);
+                        const fontSize = 8.0;
+                        const lineHeight = 10.0;
+                        const maxTextWidth = Math.min(280, width - rectX - 20);
+
+                        const wrapText = (text, maxW) => {
+                            const words = String(text).split(' ');
+                            const lines = [];
+                            let currentLine = '';
+
+                            words.forEach(word => {
+                                const testLine = currentLine ? `${currentLine} ${word}` : word;
+                                if (testLine.length * (fontSize * 0.50) > maxW && currentLine) {
+                                    lines.push(currentLine);
+                                    currentLine = word;
+                                } else {
+                                    currentLine = testLine;
+                                }
+                            });
+                            if (currentLine) lines.push(currentLine);
+                            return lines;
+                        };
+
+                        const textLines = wrapText(comentarioLimpio, maxTextWidth);
+                        const boxPadding = 5;
+                        const bgBoxWidth = Math.min(
+                            Math.max(...textLines.map(l => l.length * (fontSize * 0.50))) + (boxPadding * 2),
+                            maxTextWidth + (boxPadding * 2)
+                        );
+                        const bgBoxHeight = (textLines.length * lineHeight) + (boxPadding * 2);
+
+                        let textYBase = rectY + rectHeight + 3;
+                        if (textYBase + bgBoxHeight > height - 10) {
+                            textYBase = Math.max(rectY - bgBoxHeight - 3, 10);
+                        }
+
+                        const startX = Math.min(rectX, width - bgBoxWidth - 10);
+
+                        page.drawRectangle({
+                            x: startX,
+                            y: textYBase,
+                            width: bgBoxWidth,
+                            height: bgBoxHeight,
+                            color: colorFondo,
+                            borderColor: colorBorde,
+                            borderWidth: 0.8,
+                        });
+
+                        textLines.forEach((line, i) => {
+                            page.drawText(line, {
+                                x: startX + boxPadding,
+                                y: textYBase + bgBoxHeight - boxPadding - ((i + 1) * lineHeight) + 2,
+                                size: fontSize,
+                                color: colorTexto,
+                            });
+                        });
+                    }
+                });
+
+                const pdfModifiedBytes = await pdfDoc.saveAsBase64();
+                console.log("PDF estampado correctamente.");
+                return pdfModifiedBytes;
+
+            } catch (e) {
+                console.error("CRÍTICO - Error en estamparErroresEnPDF:", e);
+                alert("Atención: Ocurrió un fallo técnico al dibujar sobre el PDF: " + e.message);
+                throw e; 
+            }
+        }
 
                 console.log(`Aplicando ${marcasAProcesar.length} anotaciones gráficas...`);
 
