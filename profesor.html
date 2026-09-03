@@ -222,6 +222,54 @@
             padding: 15px 0;
         }
 
+        /* Botones de acción puntuales en tabla */
+        .btn-action-edit {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 5px 9px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 4px;
+        }
+        .btn-action-edit:hover { background: #004d99; }
+
+        .btn-action-del {
+            background: #c62828;
+            color: white;
+            border: none;
+            padding: 5px 9px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-action-del:hover { background: #991f1f; }
+
+        /* Modal Emergente de Edición */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 480px;
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+        }
+        .modal-content h3 {
+            color: #4A1C6B;
+            margin-bottom: 14px;
+            font-size: 16px;
+        }
+
         @media (max-width: 600px) {
             .grid-2, .grid-3 {
                 grid-template-columns: 1fr;
@@ -361,12 +409,12 @@
             </div>
         </div>
 
-        <!-- SECCIÓN NUEVA: Historial de Notas por Estudiante y Asignatura -->
+        <!-- SECCIÓN: Historial de Notas por Estudiante y Asignatura -->
         <div id="historialNotas" class="section">
             <div class="card">
                 <h3>📊 Consulta de Calificaciones por Asignatura y Estudiante</h3>
                 <p style="font-size:13px; color:#666; margin-bottom:12px;">
-                    Filtra y revisa las notas asentadas de cada alumno discriminadas por corte y porcentaje.
+                    Filtra y revisa las notas asentadas de cada alumno discriminadas por corte y porcentaje. Puedes editar parámetros o eliminar registros.
                 </p>
 
                 <div class="grid-2">
@@ -411,10 +459,11 @@
                                 <th style="text-align:center;">%</th>
                                 <th style="text-align:center;">Ponderado</th>
                                 <th style="text-align:center;">Fecha</th>
+                                <th style="text-align:center;">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tablaHistorialNotas">
-                            <tr><td colspan="7" class="empty-state">Selecciona una asignatura para consultar...</td></tr>
+                            <tr><td colspan="8" class="empty-state">Selecciona una asignatura para consultar...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -457,10 +506,50 @@
 
     </div>
 
+    <!-- MODAL EMERGENTE DE EDICIÓN DE NOTA PUNTUAL -->
+    <div id="modalEditarNota" class="modal-overlay">
+        <div class="modal-content">
+            <h3>✏️ Editar Calificación y Parámetros</h3>
+            
+            <p style="font-size:12px; color:#555; margin-bottom:12px;" id="modalInfoEstudiante">
+                Estudiante: <strong>-</strong>
+            </p>
+
+            <input type="hidden" id="modalEditIdNota">
+
+            <div class="grid-2">
+                <div>
+                    <label style="font-size:12px; font-weight:600; color:#444;">Corte:</label>
+                    <select id="modalEditCorte">
+                        <option value="1">Corte 1</option>
+                        <option value="2">Corte 2</option>
+                        <option value="3">Corte 3</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:12px; font-weight:600; color:#444;">Porcentaje (%):</label>
+                    <input type="number" id="modalEditPorcentaje" min="1" max="100">
+                </div>
+            </div>
+
+            <label style="font-size:12px; font-weight:600; color:#444;">Actividad / Tipo:</label>
+            <input type="text" id="modalEditTipo" placeholder="Ej: Parcial, Taller 1, Quiz 2...">
+
+            <label style="font-size:12px; font-weight:600; color:#444;">Nota Definitiva (0.0 - 5.0):</label>
+            <input type="number" id="modalEditNota" min="0" max="5" step="0.1">
+
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
+                <button type="button" class="btn" style="background:#888; padding:8px 16px;" onclick="cerrarModalEdicion()">Cancelar</button>
+                <button type="button" class="btn btn-green" id="btnGuardarModalEdit" style="padding:8px 16px;" onclick="guardarEdicionNota()">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec';
         let timerInterval = null;
         let listaEstudiantesGlobal = [];
+        let notasHistorialCargadas = []; // Almacén local de notas para edición puntual
 
         document.addEventListener('DOMContentLoaded', function() {
             const sesionStr = sessionStorage.getItem('usuarioSesion');
@@ -495,7 +584,7 @@
                     document.getElementById('notaMateria'),
                     document.getElementById('reporteMateria'),
                     document.getElementById('filtroEstudianteMateria'),
-                    document.getElementById('filtroHistorialMateria') // Selector del historial
+                    document.getElementById('filtroHistorialMateria')
                 ];
 
                 if (data.ok && data.asignaturas) {
@@ -862,7 +951,7 @@
         }
 
         // ======================================================
-        // FUNCIONES DE CONSULTA E HISTORIAL DE NOTAS (NUEVAS)
+        // GESTIÓN DEL HISTORIAL DE NOTAS (CONSULTA, EDICIÓN Y ELIMINACIÓN)
         // ======================================================
         async function cargarEstudiantesFiltroHistorial() {
             const asigId = document.getElementById('filtroHistorialMateria').value;
@@ -871,7 +960,7 @@
             if (!asigId) {
                 selEst.innerHTML = '<option value="TODOS">-- Todos los estudiantes --</option>';
                 document.getElementById('tablaHistorialNotas').innerHTML = 
-                    '<tr><td colspan="7" class="empty-state">Selecciona una asignatura para consultar...</td></tr>';
+                    '<tr><td colspan="8" class="empty-state">Selecciona una asignatura para consultar...</td></tr>';
                 document.getElementById('resumenEstadisticasNotas').style.display = 'none';
                 return;
             }
@@ -907,7 +996,7 @@
 
             if (!asigId) return;
 
-            tbody.innerHTML = '<tr><td colspan="7" class="empty-state">⏳ Consultando notas en base de datos...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="empty-state">⏳ Consultando notas en base de datos...</td></tr>';
 
             try {
                 const res = await fetch(SCRIPT_URL, {
@@ -923,6 +1012,7 @@
                 const data = await res.json();
 
                 if (data.ok && data.notas && data.notas.length > 0) {
+                    notasHistorialCargadas = data.notas;
                     tbody.innerHTML = '';
                     let sumaNotas = 0;
                     let sumaPonderada = 0;
@@ -953,6 +1043,10 @@
                                     ${porcVal > 0 ? aportePond.toFixed(2) : '-'}
                                 </td>
                                 <td style="text-align:center; font-size:11px; color:#666;">${n.fecha}</td>
+                                <td style="text-align:center; white-space:nowrap;">
+                                    <button class="btn-action-edit" title="Editar calificación y parámetros" onclick="abrirModalEdicion('${n.idNota}')">✏️</button>
+                                    <button class="btn-action-del" title="Eliminar nota" onclick="confirmarEliminarNota('${n.idNota}', '${n.estudianteNombre}', '${n.tipo}')">🗑️</button>
+                                </td>
                             </tr>
                         `;
                     });
@@ -963,13 +1057,110 @@
                     cajaResumen.style.display = 'grid';
 
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No se encontraron calificaciones registradas para este filtro.</td></tr>';
+                    notasHistorialCargadas = [];
+                    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No se encontraron calificaciones registradas para este filtro.</td></tr>';
                     cajaResumen.style.display = 'none';
                 }
             } catch (e) {
                 console.error("Error al consultar notas:", e);
-                tbody.innerHTML = '<tr><td colspan="7" class="empty-state" style="color:#c62828;">Error de conexión al obtener las notas.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="empty-state" style="color:#c62828;">Error de conexión al obtener las notas.</td></tr>';
                 cajaResumen.style.display = 'none';
+            }
+        }
+
+        // Abrir modal de edición con los datos precargados
+        function abrirModalEdicion(idNota) {
+            const registro = notasHistorialCargadas.find(n => String(n.idNota) === String(idNota));
+            if (!registro) {
+                alert("No se encontró el registro seleccionado.");
+                return;
+            }
+
+            document.getElementById('modalEditIdNota').value = registro.idNota;
+            document.getElementById('modalInfoEstudiante').innerHTML = `Estudiante: <strong>${registro.estudianteNombre}</strong> (${registro.estudianteDocumento})`;
+            document.getElementById('modalEditCorte').value = String(registro.corte || 1);
+            document.getElementById('modalEditPorcentaje').value = registro.porcentaje || 0;
+            document.getElementById('modalEditTipo').value = registro.tipo || "";
+            document.getElementById('modalEditNota').value = parseFloat(registro.nota).toFixed(1);
+
+            document.getElementById('modalEditarNota').style.display = 'flex';
+        }
+
+        function cerrarModalEdicion() {
+            document.getElementById('modalEditarNota').style.display = 'none';
+        }
+
+        // Guardar la edición de una nota específica
+        async function guardarEdicionNota() {
+            const idNota = document.getElementById('modalEditIdNota').value;
+            const corte = document.getElementById('modalEditCorte').value;
+            const porcentaje = document.getElementById('modalEditPorcentaje').value;
+            const tipo = document.getElementById('modalEditTipo').value.trim();
+            const nota = document.getElementById('modalEditNota').value;
+            const btn = document.getElementById('btnGuardarModalEdit');
+
+            if (!idNota || !tipo || porcentaje === "" || nota === "") {
+                alert("Por favor completa todos los campos para actualizar la nota.");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = "Guardando...";
+
+            try {
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'editarNota',
+                        idNota: idNota,
+                        corte: corte,
+                        porcentaje: porcentaje,
+                        tipo: tipo,
+                        nota: parseFloat(nota)
+                    })
+                });
+
+                const data = await res.json();
+                alert(data.mensaje);
+
+                if (data.ok) {
+                    cerrarModalEdicion();
+                    consultarNotasFiltradas(); // Refresca automáticamente la tabla y promedios
+                }
+            } catch (e) {
+                console.error("Error al editar nota:", e);
+                alert("Error de conexión al actualizar la calificación.");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Guardar Cambios";
+            }
+        }
+
+        // Eliminar puntualmente una nota
+        async function confirmarEliminarNota(idNota, estudianteNombre, tipoActividad) {
+            const confirmar = confirm(`¿Estás seguro de ELIMINAR permanentemente esta nota?\n\n• Estudiante: ${estudianteNombre}\n• Actividad: ${tipoActividad}\n\nEsta acción no se puede deshacer.`);
+            if (!confirmar) return;
+
+            try {
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'eliminarNota',
+                        idNota: idNota
+                    })
+                });
+
+                const data = await res.json();
+                alert(data.mensaje);
+
+                if (data.ok) {
+                    consultarNotasFiltradas(); // Refresca la tabla y promedios
+                }
+            } catch (e) {
+                console.error("Error al eliminar nota:", e);
+                alert("Error de conexión al intentar eliminar la nota.");
             }
         }
 
