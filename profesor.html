@@ -39,7 +39,7 @@
         .header .user-container {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 15px;
         }
 
         .header .user-info {
@@ -51,31 +51,14 @@
             display: block;
         }
 
-        .btn-evaluator-nav {
-            background: #F4A300;
-            color: #4A1C6B;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .btn-evaluator-nav:hover {
-            background: #d89000;
-        }
-
         .btn-logout {
             background: rgba(255,255,255,0.15);
             border: 1px solid rgba(255,255,255,0.3);
             color: white;
-            padding: 7px 12px;
+            padding: 6px 12px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 12px;
-            font-weight: 600;
         }
 
         .btn-logout:hover {
@@ -91,11 +74,11 @@
 
         .tab {
             flex: 1;
-            min-width: 120px;
+            min-width: 110px;
             padding: 14px 8px;
             text-align: center;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 500;
             color: #555;
             cursor: pointer;
             border-bottom: 3px solid transparent;
@@ -110,7 +93,7 @@
 
         .content {
             padding: 20px;
-            max-width: 1050px;
+            max-width: 1000px;
             margin: 0 auto;
         }
 
@@ -239,7 +222,7 @@
             padding: 15px 0;
         }
 
-        @media (max-width: 650px) {
+        @media (max-width: 600px) {
             .grid-2, .grid-3 {
                 grid-template-columns: 1fr;
             }
@@ -247,7 +230,6 @@
     </style>
 </head>
 <body>
-
     <div class="header">
         <div class="logo">uni<span>caribe</span></div>
         <div class="user-container">
@@ -255,8 +237,10 @@
                 <strong>Profesor Principal</strong>
                 <span>Panel de administración</span>
             </div>
-            <button type="button" class="btn-evaluator-nav" onclick="accederEvaluadorConCodigo()">🤖 Evaluador de Parciales</button>
-            <button type="button" class="btn-logout" onclick="cerrarSesion()">Salir</button>
+            <button type="button" class="btn" style="background:#6c2d91; padding:7px 14px; font-size:13px;" onclick="accederEvaluadorConCodigo()">
+                🤖 Acceder al Evaluador 
+            </button>
+            <button class="btn-logout" onclick="cerrarSesion()">Salir</button>
         </div>
     </div>
 
@@ -265,12 +249,13 @@
         <div class="tab" onclick="mostrarSeccion('solicitudes', this)">Solicitudes</div>
         <div class="tab" onclick="mostrarSeccion('estudiantes', this)">Estudiantes</div>
         <div class="tab" onclick="mostrarSeccion('notas', this)">Registrar Notas</div>
-        <div class="tab" onclick="mostrarSeccion('consultaNotas', this)">🔍 Historial de Notas</div>
-        <div class="tab" onclick="mostrarSeccion('reportes', this)">Reporte Asistencia</div>
+        <div class="tab" onclick="mostrarSeccion('historialNotas', this)">Historial de Notas</div>
+        <div class="tab" onclick="mostrarSeccion('reportes', this)">Reportes</div>
     </div>
 
     <div class="content">
 
+        <!-- SECCIÓN: Generar contraseña de asistencia -->
         <div id="asistencia" class="section active">
             <div class="card">
                 <h3>Generar contraseña de asistencia</h3>
@@ -292,6 +277,7 @@
             </div>
         </div>
 
+        <!-- SECCIÓN: Solicitudes de Inscripción -->
         <div id="solicitudes" class="section">
             <div class="card">
                 <h3>Solicitudes de Inscripción Pendientes</h3>
@@ -311,10 +297,12 @@
             </div>
         </div>
 
+        <!-- SECCIÓN: Estudiantes -->
         <div id="estudiantes" class="section">
             <div class="card">
                 <h3>Lista de estudiantes registrados</h3>
                 
+                <!-- Filtro por asignatura -->
                 <select id="filtroEstudianteMateria" onchange="filtrarListaEstudiantes()">
                     <option value="">-- Todos los estudiantes registrados --</option>
                 </select>
@@ -335,6 +323,7 @@
             </div>
         </div>
 
+        <!-- SECCIÓN: Registrar Notas -->
         <div id="notas" class="section">
             <div class="card">
                 <h3>Registrar / Desglosar notas por actividad</h3>
@@ -372,63 +361,67 @@
             </div>
         </div>
 
-        <div id="consultaNotas" class="section">
+        <!-- SECCIÓN NUEVA: Historial de Notas por Estudiante y Asignatura -->
+        <div id="historialNotas" class="section">
             <div class="card">
-                <h3>📊 Consulta y Filtro de Calificaciones por Asignatura</h3>
-                
+                <h3>📊 Consulta de Calificaciones por Asignatura y Estudiante</h3>
+                <p style="font-size:13px; color:#666; margin-bottom:12px;">
+                    Filtra y revisa las notas asentadas de cada alumno discriminadas por corte y porcentaje.
+                </p>
+
                 <div class="grid-2">
                     <div>
-                        <label style="display:block; font-size:12px; font-weight:600; color:#444; margin-bottom:4px;">1. Asignatura:</label>
-                        <select id="filtroNotasMateria" onchange="cargarEstudiantesFiltroNotas()">
-                            <option value="">-- Selecciona una asignatura --</option>
+                        <label style="display:block; font-size:12px; font-weight:600; color:#555; margin-bottom:4px;">Asignatura:</label>
+                        <select id="filtroHistorialMateria" onchange="cargarEstudiantesFiltroHistorial()">
+                            <option value="">-- Selecciona asignatura --</option>
                         </select>
                     </div>
                     <div>
-                        <label style="display:block; font-size:12px; font-weight:600; color:#444; margin-bottom:4px;">2. Filtrar por Estudiante:</label>
-                        <select id="filtroNotasEstudiante" onchange="consultarNotasFiltradas()">
+                        <label style="display:block; font-size:12px; font-weight:600; color:#555; margin-bottom:4px;">Estudiante:</label>
+                        <select id="filtroHistorialEstudiante" onchange="consultarNotasFiltradas()">
                             <option value="TODOS">-- Todos los estudiantes --</option>
                         </select>
                     </div>
                 </div>
 
-                <div id="resumenEstadisticasNotas" style="display: none; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                <!-- Tarjetas de Estadísticas -->
+                <div id="resumenEstadisticasNotas" style="display:none; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 18px;">
                     <div style="background: #f8f5fc; border-left: 4px solid #4A1C6B; padding: 12px; border-radius: 8px;">
-                        <span style="font-size: 11px; color: #666; text-transform: uppercase;">Calificaciones Registradas</span>
-                        <div id="cardTotalNotas" style="font-size: 22px; font-weight: bold; color: #4A1C6B;">0</div>
+                        <span style="font-size: 11px; color: #666; text-transform: uppercase;">Total Registros</span>
+                        <div id="cardTotalNotas" style="font-size: 20px; font-weight: bold; color: #4A1C6B;">0</div>
                     </div>
                     <div style="background: #e8f5e9; border-left: 4px solid #2e7d32; padding: 12px; border-radius: 8px;">
                         <span style="font-size: 11px; color: #2e7d32; text-transform: uppercase;">Promedio Simple</span>
-                        <div id="cardPromedioSimple" style="font-size: 22px; font-weight: bold; color: #2e7d32;">0.0</div>
+                        <div id="cardPromedioSimple" style="font-size: 20px; font-weight: bold; color: #2e7d32;">0.0</div>
                     </div>
                     <div style="background: #fff8e1; border-left: 4px solid #b78103; padding: 12px; border-radius: 8px;">
-                        <span style="font-size: 11px; color: #b78103; text-transform: uppercase;">Aporte Ponderado</span>
-                        <div id="cardAcumuladoPond" style="font-size: 22px; font-weight: bold; color: #b78103;">0.0 / 5.0</div>
+                        <span style="font-size: 11px; color: #b78103; text-transform: uppercase;">Acumulado Ponderado</span>
+                        <div id="cardAcumuladoPond" style="font-size: 20px; font-weight: bold; color: #b78103;">0.0 / 5.0</div>
                     </div>
                 </div>
 
-                <div style="overflow-x: auto;">
+                <div style="overflow-x:auto;">
                     <table>
                         <thead>
                             <tr>
                                 <th>Estudiante</th>
-                                <th style="text-align: center;">Corte</th>
-                                <th>Tipo / Actividad</th>
-                                <th style="text-align: center;">Nota</th>
-                                <th style="text-align: center;">%</th>
-                                <th style="text-align: center;">Ponderación</th>
-                                <th style="text-align: center;">Fecha</th>
+                                <th style="text-align:center;">Corte</th>
+                                <th>Actividad / Tipo</th>
+                                <th style="text-align:center;">Nota</th>
+                                <th style="text-align:center;">%</th>
+                                <th style="text-align:center;">Ponderado</th>
+                                <th style="text-align:center;">Fecha</th>
                             </tr>
                         </thead>
-                        <tbody id="tablaCuerpoHistorialNotas">
-                            <tr>
-                                <td colspan="7" class="empty-state">Selecciona una asignatura para cargar las notas.</td>
-                            </tr>
+                        <tbody id="tablaHistorialNotas">
+                            <tr><td colspan="7" class="empty-state">Selecciona una asignatura para consultar...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
+        <!-- SECCIÓN: Reportes -->
         <div id="reportes" class="section">
             <div class="card">
                 <h3>Reporte de asistencia detallado</h3>
@@ -471,4 +464,557 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             const sesionStr = sessionStorage.getItem('usuarioSesion');
-            if (!sesionStr ||
+            if (!sesionStr || JSON.parse(sesionStr).rol !== 'profesor') {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            cargarAsignaturas();
+            cargarEstudiantes();
+            cargarSolicitudesInscripcion();
+        });
+
+        function mostrarSeccion(id, element) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            element.classList.add('active');
+        }
+
+        async function cargarAsignaturas() {
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ accion: 'obtenerAsignaturas' })
+                });
+
+                const data = await response.json();
+                const selects = [
+                    document.getElementById('materiaAsistencia'),
+                    document.getElementById('notaMateria'),
+                    document.getElementById('reporteMateria'),
+                    document.getElementById('filtroEstudianteMateria'),
+                    document.getElementById('filtroHistorialMateria') // Selector del historial
+                ];
+
+                if (data.ok && data.asignaturas) {
+                    selects.forEach(sel => {
+                        if (!sel) return;
+                        if (sel.id === 'filtroEstudianteMateria') {
+                            sel.innerHTML = '<option value="">-- Todos los estudiantes registrados --</option>';
+                        } else {
+                            sel.innerHTML = '<option value="">-- Selecciona asignatura --</option>';
+                        }
+                        
+                        data.asignaturas.forEach(a => {
+                            sel.innerHTML += `<option value="${a.id}">${a.asignatura} (Grupo ${a.grupo || 'G1'})</option>`;
+                        });
+                    });
+                }
+            } catch (error) {
+                console.error('Error al cargar asignaturas:', error);
+            }
+        }
+
+        async function cargarEstudiantes() {
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ accion: 'obtenerEstudiantes' })
+                });
+
+                const data = await response.json();
+
+                if (data.ok && data.estudiantes) {
+                    listaEstudiantesGlobal = data.estudiantes;
+                    renderizarTablaEstudiantes(listaEstudiantesGlobal);
+                }
+            } catch (error) {
+                console.error('Error al cargar estudiantes:', error);
+            }
+        }
+
+        function renderizarTablaEstudiantes(lista) {
+            const tabla = document.getElementById('tablaEstudiantes');
+            if (!lista || lista.length === 0) {
+                tabla.innerHTML = '<tr><td colspan="4" class="empty-state">No se encontraron estudiantes para este filtro.</td></tr>';
+                return;
+            }
+
+            tabla.innerHTML = '';
+            lista.forEach((e, index) => {
+                const programaTexto = e.programa || e.carrera || 'Sin registrar';
+                
+                tabla.innerHTML += `
+                    <tr>
+                        <td style="text-align: center; font-weight: 600; color: #666;">${index + 1}</td>
+                        <td><strong>${e.nombre}</strong></td>
+                        <td>${e.documento}</td>
+                        <td>${programaTexto}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function filtrarListaEstudiantes() {
+            const idAsignatura = document.getElementById('filtroEstudianteMateria').value;
+            const tabla = document.getElementById('tablaEstudiantes');
+
+            if (!idAsignatura) {
+                renderizarTablaEstudiantes(listaEstudiantesGlobal);
+                return;
+            }
+
+            tabla.innerHTML = '<tr><td colspan="4" class="empty-state">Filtrando estudiantes...</td></tr>';
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'obtenerEstudiantesPorAsignatura',
+                        asignaturaId: idAsignatura
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.ok && data.estudiantes) {
+                    renderizarTablaEstudiantes(data.estudiantes);
+                } else {
+                    renderizarTablaEstudiantes([]);
+                }
+            } catch (error) {
+                console.error('Error al filtrar estudiantes:', error);
+                tabla.innerHTML = '<tr><td colspan="4" class="empty-state">Error al conectar con el servidor.</td></tr>';
+            }
+        }
+
+        async function cargarSolicitudesInscripcion() {
+            const tabla = document.getElementById('tablaSolicitudes');
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ accion: 'obtenerInscripcionesPendientes' })
+                });
+
+                const data = await response.json();
+
+                if (data.ok && data.solicitudes && data.solicitudes.length > 0) {
+                    tabla.innerHTML = '';
+                    data.solicitudes.forEach(s => {
+                        tabla.innerHTML += `
+                            <tr>
+                                <td><strong>${s.estudianteNombre}</strong></td>
+                                <td>${s.asignaturaNombre}</td>
+                                <td>${s.grupo}</td>
+                                <td>
+                                    <button class="btn btn-green" style="padding:5px 10px; font-size:12px; margin-right:5px;" onclick="responderSolicitud(${s.filaInscripcion}, true)">Aceptar</button>
+                                    <button class="btn" style="padding:5px 10px; font-size:12px; background:#d32f2f;" onclick="responderSolicitud(${s.filaInscripcion}, false)">Rechazar</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    tabla.innerHTML = '<tr><td colspan="4" class="empty-state">No hay solicitudes pendientes por revisar.</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error al cargar solicitudes:', error);
+            }
+        }
+
+        async function responderSolicitud(fila, aprobar) {
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'gestionarInscripcion',
+                        filaInscripcion: fila,
+                        aprobar: aprobar
+                    })
+                });
+
+                const data = await response.json();
+                alert(data.mensaje);
+                cargarSolicitudesInscripcion();
+            } catch (error) {
+                console.error('Error al responder solicitud:', error);
+            }
+        }
+
+        async function filtrarEstudiantesPorMateriaSeleccionada() {
+            const idAsignatura = document.getElementById('notaMateria').value;
+            const selectEst = document.getElementById('notaEstudiante');
+
+            if (!idAsignatura) {
+                selectEst.innerHTML = '<option value="">-- Selecciona una materia primero --</option>';
+                return;
+            }
+
+            selectEst.innerHTML = '<option value="">Cargando estudiantes matriculados...</option>';
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'obtenerEstudiantesPorAsignatura',
+                        asignaturaId: idAsignatura
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.ok && data.estudiantes && data.estudiantes.length > 0) {
+                    selectEst.innerHTML = '<option value="">-- Selecciona Estudiante --</option>';
+                    data.estudiantes.forEach(e => {
+                        selectEst.innerHTML += `<option value="${e.id}">${e.nombre} (${e.documento})</option>`;
+                    });
+                } else {
+                    selectEst.innerHTML = '<option value="">No hay estudiantes inscritos en esta materia</option>';
+                }
+            } catch (error) {
+                console.error('Error al filtrar estudiantes:', error);
+                selectEst.innerHTML = '<option value="">Error al cargar la lista</option>';
+            }
+        }
+
+        function actualizarFiltrosReporte() {
+            const selectEst = document.getElementById('reporteEstudiante');
+            selectEst.innerHTML = '<option value="">-- Todos los Estudiantes --</option>';
+            
+            if (listaEstudiantesGlobal && listaEstudiantesGlobal.length > 0) {
+                listaEstudiantesGlobal.forEach(e => {
+                    selectEst.innerHTML += `<option value="${e.id}">${e.nombre}</option>`;
+                });
+            }
+
+            cargarReporteAsistencia();
+        }
+
+        async function cargarReporteAsistencia() {
+            const idAsignatura = document.getElementById('reporteMateria').value;
+            const idEstudiante = document.getElementById('reporteEstudiante').value;
+            const tabla = document.getElementById('tablaReporte');
+            const contadorBox = document.getElementById('contadorBox');
+
+            if (!idAsignatura) {
+                tabla.innerHTML = '<tr><td colspan="3" class="empty-state">Selecciona una materia para consultar...</td></tr>';
+                contadorBox.style.display = 'none';
+                return;
+            }
+
+            tabla.innerHTML = '<tr><td colspan="3" class="empty-state">Cargando reporte...</td></tr>';
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'obtenerReporteAsistencia',
+                        asignaturaId: idAsignatura,
+                        estudianteId: idEstudiante
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.ok && data.reporte && data.reporte.length > 0) {
+                    tabla.innerHTML = '';
+                    
+                    data.reporte.forEach(r => {
+                        tabla.innerHTML += `
+                            <tr>
+                                <td><strong>${r.estudianteNombre}</strong></td>
+                                <td>${r.fecha}</td>
+                                <td>${r.hora || 'Registrada'}</td>
+                            </tr>
+                        `;
+                    });
+
+                    contadorBox.style.display = 'block';
+                    const total = (data.totalAsistencias !== undefined) ? data.totalAsistencias : data.reporte.length;
+
+                    if (idEstudiante) {
+                        const selectElement = document.getElementById('reporteEstudiante');
+                        const nombreEst = selectElement.options[selectElement.selectedIndex].text;
+                        contadorBox.innerHTML = `Total de asistencias acumuladas de <strong>${nombreEst}</strong>: <span id="numAsistencias">${total}</span>`;
+                    } else {
+                        contadorBox.innerHTML = `Total de asistencias registradas en esta clase: <span id="numAsistencias">${total}</span>`;
+                    }
+
+                } else {
+                    tabla.innerHTML = '<tr><td colspan="3" class="empty-state">No hay registros de asistencia con los filtros seleccionados.</td></tr>';
+                    contadorBox.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error al cargar reporte:', error);
+                tabla.innerHTML = '<tr><td colspan="3" class="empty-state">Error al conectar con el servidor.</td></tr>';
+            }
+        }
+
+        async function generarContrasena() {
+            const idAsignatura = document.getElementById('materiaAsistencia').value;
+            const btn = document.getElementById('btnGenClave');
+
+            if (!idAsignatura) {
+                alert('Selecciona una materia primero.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Generando...';
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'generarContrasenaAsistencia',
+                        idAsignatura: idAsignatura
+                    })
+                });
+
+                const data = await response.json();
+                if (data.ok) {
+                    document.getElementById('passwordBox').style.display = 'block';
+                    document.getElementById('passwordDisplay').textContent = data.contrasena;
+                    iniciarCuentaRegresiva(10 * 60);
+                } else {
+                    alert(data.mensaje || 'Error al generar la contraseña.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión con el servidor.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Generar contraseña aleatoria';
+            }
+        }
+
+        function iniciarCuentaRegresiva(segundos) {
+            if (timerInterval) clearInterval(timerInterval);
+            let tiempoRestante = segundos;
+            const display = document.getElementById('expiraEn');
+
+            timerInterval = setInterval(() => {
+                const min = Math.floor(tiempoRestante / 60);
+                const seg = tiempoRestante % 60;
+                display.textContent = `Expira en ${min}:${seg < 10 ? '0' : ''}${seg}`;
+                if (tiempoRestante <= 0) {
+                    clearInterval(timerInterval);
+                    display.textContent = 'La contraseña ha expirado';
+                }
+                tiempoRestante--;
+            }, 1000);
+        }
+
+        async function guardarNota() {
+            const estudianteId = document.getElementById('notaEstudiante').value;
+            const asignaturaId = document.getElementById('notaMateria').value;
+            const corte = document.getElementById('notaCorte').value;
+            const tipo = document.getElementById('notaTipo').value;
+            const porcentaje = document.getElementById('notaPorcentaje').value;
+            const nota = document.getElementById('notaValor').value;
+            const btn = document.getElementById('btnGuardarNota');
+
+            if (!estudianteId || !asignaturaId || !corte || !tipo || !porcentaje || !nota) {
+                alert('Por favor completa todos los campos para registrar la nota.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Guardando...';
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'guardarNota',
+                        estudianteId: estudianteId,
+                        asignaturaId: asignaturaId,
+                        corte: corte,
+                        tipo: `${tipo} (${porcentaje}% del corte)`,
+                        porcentaje: porcentaje,
+                        nota: parseFloat(nota)
+                    })
+                });
+
+                const data = await response.json();
+                alert(data.mensaje);
+
+                if (data.ok) {
+                    document.getElementById('notaValor').value = '';
+                    document.getElementById('notaPorcentaje').value = '';
+                }
+            } catch (error) {
+                console.error('Error al guardar nota:', error);
+                alert('Error al intentar guardar la nota.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Guardar nota de la actividad';
+            }
+        }
+
+        // ======================================================
+        // FUNCIONES DE CONSULTA E HISTORIAL DE NOTAS (NUEVAS)
+        // ======================================================
+        async function cargarEstudiantesFiltroHistorial() {
+            const asigId = document.getElementById('filtroHistorialMateria').value;
+            const selEst = document.getElementById('filtroHistorialEstudiante');
+            
+            if (!asigId) {
+                selEst.innerHTML = '<option value="TODOS">-- Todos los estudiantes --</option>';
+                document.getElementById('tablaHistorialNotas').innerHTML = 
+                    '<tr><td colspan="7" class="empty-state">Selecciona una asignatura para consultar...</td></tr>';
+                document.getElementById('resumenEstadisticasNotas').style.display = 'none';
+                return;
+            }
+
+            selEst.innerHTML = '<option value="">Cargando estudiantes...</option>';
+
+            try {
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ accion: 'obtenerEstudiantesPorAsignatura', asignaturaId: asigId })
+                });
+                const data = await res.json();
+
+                selEst.innerHTML = '<option value="TODOS">-- Todos los estudiantes --</option>';
+                if (data.ok && data.estudiantes && data.estudiantes.length > 0) {
+                    data.estudiantes.forEach(e => {
+                        selEst.innerHTML += `<option value="${e.id}">${e.nombre} (${e.documento})</option>`;
+                    });
+                }
+                consultarNotasFiltradas();
+            } catch (e) {
+                console.error("Error al cargar lista de estudiantes:", e);
+                selEst.innerHTML = '<option value="TODOS">-- Todos los estudiantes --</option>';
+            }
+        }
+
+        async function consultarNotasFiltradas() {
+            const asigId = document.getElementById('filtroHistorialMateria').value;
+            const estId = document.getElementById('filtroHistorialEstudiante').value;
+            const tbody = document.getElementById('tablaHistorialNotas');
+            const cajaResumen = document.getElementById('resumenEstadisticasNotas');
+
+            if (!asigId) return;
+
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-state">⏳ Consultando notas en base de datos...</td></tr>';
+
+            try {
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        accion: 'obtenerNotasPorMateria',
+                        asignaturaId: asigId,
+                        estudianteId: estId
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.ok && data.notas && data.notas.length > 0) {
+                    tbody.innerHTML = '';
+                    let sumaNotas = 0;
+                    let sumaPonderada = 0;
+
+                    data.notas.forEach(n => {
+                        const notaVal = parseFloat(n.nota) || 0;
+                        const porcVal = parseFloat(n.porcentaje) || 0;
+                        const aportePond = (notaVal * (porcVal / 100));
+
+                        sumaNotas += notaVal;
+                        sumaPonderada += aportePond;
+
+                        const colorNota = notaVal >= 3.0 ? '#2e7d32' : '#c62828';
+
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>
+                                    <strong>${n.estudianteNombre}</strong><br>
+                                    <span style="font-size:11px; color:#777;">Doc: ${n.estudianteDocumento}</span>
+                                </td>
+                                <td style="text-align:center; font-weight:600;">Corte ${n.corte}</td>
+                                <td>${n.tipo}</td>
+                                <td style="text-align:center; font-weight:bold; font-size:14px; color:${colorNota};">
+                                    ${notaVal.toFixed(1)}
+                                </td>
+                                <td style="text-align:center;">${porcVal > 0 ? porcVal + '%' : '-'}</td>
+                                <td style="text-align:center; font-weight:600; color:#555;">
+                                    ${porcVal > 0 ? aportePond.toFixed(2) : '-'}
+                                </td>
+                                <td style="text-align:center; font-size:11px; color:#666;">${n.fecha}</td>
+                            </tr>
+                        `;
+                    });
+
+                    document.getElementById('cardTotalNotas').textContent = data.notas.length;
+                    document.getElementById('cardPromedioSimple').textContent = (sumaNotas / data.notas.length).toFixed(2);
+                    document.getElementById('cardAcumuladoPond').textContent = sumaPonderada.toFixed(2) + " / 5.0";
+                    cajaResumen.style.display = 'grid';
+
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No se encontraron calificaciones registradas para este filtro.</td></tr>';
+                    cajaResumen.style.display = 'none';
+                }
+            } catch (e) {
+                console.error("Error al consultar notas:", e);
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-state" style="color:#c62828;">Error de conexión al obtener las notas.</td></tr>';
+                cajaResumen.style.display = 'none';
+            }
+        }
+
+        function cerrarSesion() {
+            sessionStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        const URL_CONTROL_ESTUDIANTIL = "https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec";
+
+        async function accederEvaluadorConCodigo() {
+            const codigoIngresado = prompt("INGRESE CÓDIGO DE ACCESO");
+
+            if (!codigoIngresado || codigoIngresado.trim() === "") {
+                alert("Acceso cancelado. Debe ingresar un código válido.");
+                return;
+            }
+
+            const codigoLimpio = codigoIngresado.trim().toUpperCase();
+
+            try {
+                const payloadData = {
+                    accion: 'validarCodigoAsistenciaVigente',
+                    codigo: codigoLimpio
+                };
+
+                const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payloadData)
+                });
+
+                const data = await response.json();
+
+                if (data.ok && data.valido) {
+                    sessionStorage.setItem("evaluador_token_asistencia", codigoLimpio);
+                    window.location.href = `parciales.html?auth=${encodeURIComponent(codigoLimpio)}`;
+                } else {
+                    alert("❌ ACCESO DENEGADO: " + (data.mensaje || "El código ingresado no coincide con la contraseña activa."));
+                }
+            } catch (error) {
+                console.error("Error al verificar el código:", error);
+                alert("Error de conexión al verificar el código de asistencia.");
+            }
+        }
+    </script>
+</body>
+</html>
