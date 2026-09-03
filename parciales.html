@@ -36,6 +36,9 @@
         .drive-link { display: inline-block; margin-top: 10px; color: #4A1C6B; font-weight: 600; font-size: 13px; text-decoration: none; }
         .loading-spinner { text-align: center; padding: 30px 0; color: #666; font-size: 14px; }
         .override-box { background: #fff8e1; border: 1px solid #ffe082; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+        .modalidad-radio { display: flex; gap: 15px; margin-bottom: 14px; }
+        .modalidad-radio label { font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        .modalidad-radio input[type="radio"] { margin-bottom: 0; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -55,10 +58,49 @@
                 <option value="">-- Cargando asignaturas... --</option>
             </select>
 
-            <label for="selectEstudiante">Estudiante:</label>
-            <select id="selectEstudiante">
-                <option value="">-- Selecciona una asignatura primero --</option>
-            </select>
+            <!-- SELECTOR DE MODALIDAD (INDIVIDUAL / GRUPAL) -->
+            <label>Modalidad de la Actividad:</label>
+            <div class="modalidad-radio">
+                <label>
+                    <input type="radio" name="modalidadEntrega" value="individual" checked onchange="cambiarModalidad()">
+                    Individual (1 Estudiante)
+                </label>
+                <label>
+                    <input type="radio" name="modalidadEntrega" value="grupal" onchange="cambiarModalidad()">
+                    Grupal (Hasta 5 Integrantes)
+                </label>
+            </div>
+
+            <!-- CONTENEDOR DE INTEGRANTES -->
+            <div id="contenedorIntegrantes">
+                <label id="labelEstudiante1" for="selectEstudiante1">Estudiante:</label>
+                <select id="selectEstudiante1">
+                    <option value="">-- Selecciona una asignatura primero --</option>
+                </select>
+
+                <!-- Integrantes 2 a 5 para trabajos grupales -->
+                <div id="grupoIntegrantesAdicionales" style="display: none;">
+                    <label for="selectEstudiante2">Integrante 2:</label>
+                    <select id="selectEstudiante2">
+                        <option value="">-- Opcional (Selecciona Integrante 2) --</option>
+                    </select>
+
+                    <label for="selectEstudiante3">Integrante 3:</label>
+                    <select id="selectEstudiante3">
+                        <option value="">-- Opcional (Selecciona Integrante 3) --</option>
+                    </select>
+
+                    <label for="selectEstudiante4">Integrante 4:</label>
+                    <select id="selectEstudiante4">
+                        <option value="">-- Opcional (Selecciona Integrante 4) --</option>
+                    </select>
+
+                    <label for="selectEstudiante5">Integrante 5:</label>
+                    <select id="selectEstudiante5">
+                        <option value="">-- Opcional (Selecciona Integrante 5) --</option>
+                    </select>
+                </div>
+            </div>
 
             <label for="selectActividad">Actividad a Calificar:</label>
             <select id="selectActividad">
@@ -105,7 +147,7 @@
 
             <div id="detalleEvaluacion" style="display: none;">
                 <div class="score-box">
-                    <div style="font-size: 12px; color: #666; text-transform: uppercase;">Nota Sugerida  / Final</div>
+                    <div style="font-size: 12px; color: #666; text-transform: uppercase;">Nota Sugerida / Final</div>
                     <div class="score-number" id="notaIA">0.0</div>
                     <div style="font-size: 12px; color: #777;" id="nombreEstudianteResultado">Estudiante</div>
                 </div>
@@ -144,8 +186,6 @@
     </div>
 
     <script>
-
-      <script>
         // VERIFICACIÓN DE SEGURIDAD OBLIGATORIA (Bloqueo de acceso directo)
         (async function verificarAccesoSeguroEvaluador() {
             const URL_CONTROL = "https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec";
@@ -162,13 +202,15 @@
             }
 
             try {
+                const formData = new URLSearchParams();
+                formData.append('payload', JSON.stringify({
+                    accion: 'validarCodigoAsistenciaVigente',
+                    codigo: tokenAProbar
+                }));
+
                 const response = await fetch(URL_CONTROL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({
-                        accion: 'validarCodigoAsistenciaVigente',
-                        codigo: tokenAProbar
-                    })
+                    body: formData
                 });
 
                 const data = await response.json();
@@ -185,8 +227,6 @@
             }
         })();
 
-        // A continuación continúan tus variables y funciones normales...
-        const URL_CONTROL_ESTUDIANTIL = "https://script.google.com/macros/s/...";
         const URL_CONTROL_ESTUDIANTIL = "https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec";
         const URL_EVALUADOR_IA = "https://script.google.com/macros/s/AKfycby1l4VuqvSqGG6_t1J2fmJSlV8TjUZcE0EgAlV_1dYmxgWVWIa8Tb4OqmxhOVlh3f33/exec";
 
@@ -196,6 +236,23 @@
         document.addEventListener('DOMContentLoaded', function() {
             cargarAsignaturas();
         });
+
+        function cambiarModalidad() {
+            const esGrupal = document.querySelector('input[name="modalidadEntrega"]:checked').value === "grupal";
+            const grupoAdicionales = document.getElementById('grupoIntegrantesAdicionales');
+            const label1 = document.getElementById('labelEstudiante1');
+
+            if (esGrupal) {
+                grupoAdicionales.style.display = 'block';
+                label1.textContent = 'Integrante 1 (Principal):';
+            } else {
+                grupoAdicionales.style.display = 'none';
+                label1.textContent = 'Estudiante:';
+                for (let i = 2; i <= 5; i++) {
+                    document.getElementById(`selectEstudiante${i}`).value = "";
+                }
+            }
+        }
 
         async function cargarAsignaturas() {
             const selectMat = document.getElementById('selectMateria');
@@ -223,14 +280,22 @@
 
         async function cargarEstudiantesPorMateria() {
             const idAsignatura = document.getElementById('selectMateria').value;
-            const selectEst = document.getElementById('selectEstudiante');
+            const selects = [
+                document.getElementById('selectEstudiante1'),
+                document.getElementById('selectEstudiante2'),
+                document.getElementById('selectEstudiante3'),
+                document.getElementById('selectEstudiante4'),
+                document.getElementById('selectEstudiante5')
+            ];
 
             if (!idAsignatura) {
-                selectEst.innerHTML = '<option value="">-- Selecciona una asignatura primero --</option>';
+                selects.forEach((s, idx) => {
+                    s.innerHTML = `<option value="">-- Selecciona una asignatura primero --</option>`;
+                });
                 return;
             }
 
-            selectEst.innerHTML = '<option value="">Cargando estudiantes matriculados...</option>';
+            selects[0].innerHTML = '<option value="">Cargando estudiantes matriculados...</option>';
 
             try {
                 const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
@@ -245,17 +310,39 @@
                 const data = await response.json();
 
                 if (data.ok && data.estudiantes && data.estudiantes.length > 0) {
-                    selectEst.innerHTML = '<option value="">-- Selecciona Estudiante --</option>';
-                    data.estudiantes.forEach(e => {
-                        selectEst.innerHTML += `<option value="${e.id}" data-nombre="${e.nombre}">${e.nombre} (${e.documento})</option>`;
+                    selects.forEach((sel, idx) => {
+                        const esOpcional = idx > 0 ? " (Opcional)" : "";
+                        sel.innerHTML = `<option value="">-- Selecciona Integrante ${idx + 1}${esOpcional} --</option>`;
+                        data.estudiantes.forEach(e => {
+                            sel.innerHTML += `<option value="${e.id}" data-nombre="${e.nombre}">${e.nombre} (${e.documento})</option>`;
+                        });
                     });
                 } else {
-                    selectEst.innerHTML = '<option value="">No hay estudiantes inscritos en esta materia</option>';
+                    selects.forEach(s => s.innerHTML = '<option value="">No hay estudiantes inscritos en esta materia</option>');
                 }
             } catch (error) {
                 console.error('Error al cargar estudiantes:', error);
-                selectEst.innerHTML = '<option value="">Error al cargar la lista</option>';
+                selects.forEach(s => s.innerHTML = '<option value="">Error al cargar la lista</option>');
             }
+        }
+
+        function obtenerIntegrantesSeleccionados() {
+            const integrantes = [];
+            const idsVistos = new Set();
+
+            for (let i = 1; i <= 5; i++) {
+                const sel = document.getElementById(`selectEstudiante${i}`);
+                const id = sel.value;
+                if (id && !idsVistos.has(id)) {
+                    idsVistos.add(id);
+                    const opt = sel.options[sel.selectedIndex];
+                    integrantes.push({
+                        id: id,
+                        nombre: opt.getAttribute('data-nombre') || opt.text
+                    });
+                }
+            }
+            return integrantes;
         }
 
         function extractBase64(dataUrl) {
@@ -272,20 +359,28 @@
         }
 
         async function procesarEvaluacion() {
-            const selectEst = document.getElementById('selectEstudiante');
-            const estudianteNombre = selectEst.options[selectEst.selectedIndex]?.getAttribute('data-nombre');
+            const integrantes = obtenerIntegrantesSeleccionados();
             const actividad = document.getElementById('selectActividad').value;
             const inputSolucion = document.getElementById('archivoSolucionario');
             const inputEstudiante = document.getElementById('archivoEstudiante');
             const btn = document.getElementById('btnEvaluar');
 
-            if (!selectEst.value || !estudianteNombre || !inputSolucion.files[0] || !inputEstudiante.files[0]) {
-                alert('Por favor selecciona la asignatura, el estudiante, la actividad y adjunta ambos archivos PDF.');
+            if (integrantes.length === 0) {
+                alert('Por favor selecciona la asignatura y al menos al estudiante principal.');
+                return;
+            }
+
+            if (!inputSolucion.files[0] || !inputEstudiante.files[0]) {
+                alert('Por favor adjunta ambos archivos PDF (Solucionario y Examen/Trabajo).');
                 return;
             }
 
             const fileSol = inputSolucion.files[0];
             const fileEst = inputEstudiante.files[0];
+
+            const nombresRotulo = integrantes.length > 1
+                ? `Grupo: ${integrantes.map(i => i.nombre).join(' | ')}`
+                : integrantes[0].nombre;
 
             btn.disabled = true;
             document.getElementById('contenidoInicial').style.display = 'none';
@@ -299,9 +394,9 @@
 
                 const payloadData = {
                     accion: 'evaluarParcial',
-                    nombreEstudiante: estudianteNombre,
+                    nombreEstudiante: nombresRotulo,
                     actividadEvaluada: actividad,
-                    fileNameEstudiante: `${estudianteNombre}_${fileEst.name}`,
+                    fileNameEstudiante: `${integrantes[0].nombre}_${fileEst.name}`,
                     fileTypeEstudiante: fileEst.type || "application/pdf",
                     fileBase64Estudiante: extractBase64(base64EstFull),
                     fileTypeSolucionario: fileSol.type || "application/pdf",
@@ -330,7 +425,7 @@
                     console.log("5. Guardando versión marcada en Google Drive...");
                     const payloadSave = {
                         accion: 'guardarPdfAnotado',
-                        fileName: `CORREGIDO_${estudianteNombre}_${fileEst.name}`,
+                        fileName: `CORREGIDO_${integrantes[0].nombre}_${fileEst.name}`,
                         fileBase64Anotado: pdfBase64Anotado
                     };
 
@@ -341,7 +436,7 @@
                     const dataSave = await resSave.json();
 
                     urlDriveActual = dataSave.urlDrive || data.urlDrive || "#";
-                    mostrarResultado(data.evaluacion, urlDriveActual, estudianteNombre);
+                    mostrarResultado(data.evaluacion, urlDriveActual, nombresRotulo);
                 } else {
                     alert('Error reportado por el servidor: ' + (data.mensaje || 'Respuesta no válida'));
                 }
@@ -371,7 +466,6 @@
 
                 let marcasAProcesar = anotaciones;
 
-                // SI LA IA NO DEVUELVE MARCAS O EL ARREGLO VIENE VACÍO, GUARDA ESTAMPAS DE RESPALDO
                 if (!marcasAProcesar || !Array.isArray(marcasAProcesar) || marcasAProcesar.length === 0) {
                     console.warn("No se recibieron marcas de la IA. Generando marcas de respaldo obligatorias...");
                     marcasAProcesar = [
@@ -413,7 +507,6 @@
 
                     const [yMin, xMin, yMax, xMax] = box;
 
-                    // CONVERSIÓN DE COORDENADAS 0-1000 A PUNTOS PDF (Origen: Esquina inferior izquierda)
                     const rectX = Math.max((xMin / 1000) * width, 10);
                     const rectWidth = Math.min(Math.max(((xMax - xMin) / 1000) * width, 50), width - rectX - 10);
                     const rectHeight = Math.min(Math.max(((yMax - yMin) / 1000) * height, 30), height - 20);
@@ -424,7 +517,6 @@
                     const colorFondo = esExito ? rgb(0.93, 0.98, 0.94) : rgb(0.99, 0.95, 0.95);
                     const colorTexto = esExito ? rgb(0.05, 0.45, 0.1) : rgb(0.7, 0, 0);
 
-                    // 1. Dibuja el recuadro sobre el error/acierto
                     page.drawRectangle({
                         x: rectX,
                         y: rectY,
@@ -434,7 +526,6 @@
                         borderWidth: 2,
                     });
 
-                    // 2. Dibuja la caja explicativa de texto
                     if (anot.comentario) {
                         const fontSize = 8.0;
                         const lineHeight = 10.0;
@@ -501,7 +592,6 @@
             } catch (e) {
                 console.error("CRÍTICO - Error en estamparErroresEnPDF:", e);
                 alert("Atención: Ocurrió un fallo técnico al dibujar sobre el PDF: " + e.message);
-                // Si falla, eleva el error para no subir un archivo limpio sin darse cuenta
                 throw e; 
             }
         }
@@ -568,32 +658,40 @@
             document.getElementById('detalleEvaluacion').style.display = 'block';
         }
 
+        function actualizarNotaPantalla(val) {
+            if (val !== "") {
+                document.getElementById('notaIA').textContent = parseFloat(val).toFixed(1);
+            }
+        }
+
         async function enviarReporteEstudiante() {
             const selectMat = document.getElementById('selectMateria');
-            const selectEst = document.getElementById('selectEstudiante');
             const asignaturaId = selectMat.value;
             const nombreAsignatura = selectMat.options[selectMat.selectedIndex]?.text || ""; 
-            const estudianteId = selectEst.value;
-            const estudianteNombre = selectEst.options[selectEst.selectedIndex]?.getAttribute('data-nombre');
             const actividad = document.getElementById('selectActividad').value;
             const notaFinal = document.getElementById('inputNotaModificada').value;
             const btn = document.getElementById('btnEnviarCorreo');
 
-            if (!evaluacionActual || !estudianteId) {
-                alert('No hay una evaluación activa para enviar.');
+            const integrantes = obtenerIntegrantesSeleccionados();
+
+            if (!evaluacionActual || integrantes.length === 0) {
+                alert('No hay una evaluación activa o no hay estudiantes seleccionados.');
                 return;
             }
 
+            const confirmar = confirm(`¿Deseas enviar el reporte y el PDF marcado por correo a los ${integrantes.length} estudiante(s)?\n\n` + 
+                integrantes.map(i => `• ${i.nombre}`).join('\n'));
+            if (!confirmar) return;
+
             btn.disabled = true;
-            btn.textContent = '⏳ Enviando correo...';
+            btn.textContent = `⏳ Enviando correo a ${integrantes.length} estudiante(s)...`;
 
             try {
                 const payloadData = {
                     accion: 'enviarReporteCorreo',
                     asignaturaId: asignaturaId,
                     nombreAsignatura: nombreAsignatura,
-                    estudianteId: estudianteId,
-                    nombreEstudiante: estudianteNombre,
+                    integrantes: JSON.stringify(integrantes),
                     actividad: actividad,
                     notaFinal: notaFinal,
                     resumen: evaluacionActual.resumen,
@@ -619,9 +717,9 @@
                 alert('Error al intentar enviar el correo: ' + error.message);
             } finally {
                 btn.disabled = false;
-                btn.textContent = '📧 Enviar Reporte al Correo del Estudiante';
+                btn.textContent = '📧 Enviar PDF Marcado al Correo del Estudiante';
             }
         }
-</script>
+    </script>
 </body>
 </html>
