@@ -22,6 +22,8 @@
         .btn:hover { background: #3a1555; }
         .btn-send { background: #2E8B57; margin-top: 15px; }
         .btn-send:hover { background: #246b45; }
+        .btn-save-grade { background: #0066cc; margin-top: 8px; }
+        .btn-save-grade:hover { background: #004d99; }
         .btn:disabled { background: #a38db5; cursor: not-allowed; }
         .score-box { background: #f8f5fc; border: 2px solid #4A1C6B; border-radius: 10px; padding: 15px; text-align: center; margin-bottom: 18px; }
         .score-number { font-size: 42px; font-weight: 800; color: #4A1C6B; }
@@ -39,6 +41,12 @@
         .modalidad-radio { display: flex; gap: 15px; margin-bottom: 14px; }
         .modalidad-radio label { font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .modalidad-radio input[type="radio"] { margin-bottom: 0; cursor: pointer; }
+        
+        /* Caja de Registro en Base de Datos Docente */
+        .registro-sistema-box { background: #f0f7ff; border: 1.5px solid #b3d7ff; border-radius: 10px; padding: 16px; margin-top: 20px; }
+        .registro-sistema-box h4 { font-size: 14px; color: #004d99; margin-bottom: 10px; }
+        .grid-parametros { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        @media (max-width: 600px) { .grid-parametros { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -103,7 +111,7 @@
             </div>
 
             <label for="selectActividad">Actividad a Calificar:</label>
-            <select id="selectActividad">
+            <select id="selectActividad" onchange="sincronizarParametrosDocente()">
                 <option value="Parcial 1">Parcial 1</option>
                 <option value="Parcial 2">Parcial 2</option>
                 <option value="Parcial 3">Parcial 3</option>
@@ -179,6 +187,46 @@
 
                 <a id="linkDrive" href="#" target="_blank" class="drive-link">📁 Ver PDF Marcado con Errores en Google Drive ↗</a>
 
+                <!-- ============================================================== -->
+                <!-- SECCIÓN: REGISTRO DE NOTA EN EL SISTEMA (PANEL DOCENTE) -->
+                <!-- ============================================================== -->
+                <div class="registro-sistema-box">
+                    <h4>📋 Registro en Base de Datos Docente</h4>
+                    <p style="font-size: 12px; color: #555; margin-bottom: 12px;">
+                        ¿Deseas asentar esta calificación en la sábana de notas de la materia? Ajusta los parámetros:
+                    </p>
+
+                    <div class="grid-parametros">
+                        <div>
+                            <label for="selectCorteDocente">Corte:</label>
+                            <select id="selectCorteDocente">
+                                <option value="1">Corte 1</option>
+                                <option value="2">Corte 2</option>
+                                <option value="3">Corte 3</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="selectTipoDocente">Tipo de Nota:</label>
+                            <select id="selectTipoDocente">
+                                <option value="Parcial">Parcial</option>
+                                <option value="Taller">Taller</option>
+                                <option value="Quiz">Quiz</option>
+                                <option value="Exposición">Exposición</option>
+                                <option value="Proyecto de Aplicación">Proyecto de Aplicación</option>
+                                <option value="Trabajo Escrito">Trabajo Escrito</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="inputPorcentajeDocente">Porcentaje (%):</label>
+                            <input type="number" id="inputPorcentajeDocente" value="20" min="1" max="100">
+                        </div>
+                    </div>
+
+                    <button class="btn btn-save-grade" id="btnGuardarNota" onclick="guardarNotaEnSistema()">
+                        💾 Asentar Nota en Sistema para el/los Estudiante(s)
+                    </button>
+                </div>
+
                 <button class="btn btn-send" id="btnEnviarCorreo" onclick="enviarReporteEstudiante()">📧 Enviar PDF Marcado al Correo del Estudiante</button>
             </div>
         </div>
@@ -233,7 +281,41 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             cargarAsignaturas();
+            sincronizarParametrosDocente();
         });
+
+        // Sincroniza automáticamente los campos del panel docente según la actividad seleccionada
+        function sincronizarParametrosDocente() {
+            const act = document.getElementById('selectActividad').value;
+            const selectCorte = document.getElementById('selectCorteDocente');
+            const selectTipo = document.getElementById('selectTipoDocente');
+            const inputPorc = document.getElementById('inputPorcentajeDocente');
+
+            if (act.includes("Parcial 1") || act.includes("Taller 1") || act.includes("Quiz 1") || act.includes("Avance 1")) {
+                selectCorte.value = "1";
+            } else if (act.includes("Parcial 2") || act.includes("Taller 2") || act.includes("Quiz 2") || act.includes("Avance 2")) {
+                selectCorte.value = "2";
+            } else if (act.includes("Parcial 3") || act.includes("Taller 3") || act.includes("Quiz 3") || act.includes("Final")) {
+                selectCorte.value = "3";
+            }
+
+            if (act.includes("Parcial")) {
+                selectTipo.value = "Parcial";
+                inputPorc.value = "20";
+            } else if (act.includes("Taller")) {
+                selectTipo.value = "Taller";
+                inputPorc.value = "10";
+            } else if (act.includes("Quiz")) {
+                selectTipo.value = "Quiz";
+                inputPorc.value = "10";
+            } else if (act.includes("Exposición")) {
+                selectTipo.value = "Exposición";
+                inputPorc.value = "10";
+            } else if (act.includes("Proyecto") || act.includes("Avance")) {
+                selectTipo.value = "Proyecto de Aplicación";
+                inputPorc.value = "15";
+            }
+        }
 
         function cambiarModalidad() {
             const esGrupal = document.querySelector('input[name="modalidadEntrega"]:checked').value === "grupal";
@@ -419,7 +501,7 @@
                     console.log("4. Estampando marcas gráficas en el PDF con PDF-LIB...");
                     const pdfArrayBuffer = await fileEst.arrayBuffer();
 
-                    // SINCRONIZACIÓN CLAVE: Se pasa anotaciones, aspectos a mejorar y desglose para asegurar marcas
+                    // Se envía todo el conjunto de información para garantizar el estampado de recuadros
                     const pdfBase64Anotado = await estamparErroresEnPDF(
                         pdfArrayBuffer, 
                         data.evaluacion.anotacionesGraficas || [], 
@@ -455,7 +537,7 @@
             }
         }
 
-        // Sanitización tipográfica estricta para evitar incompatibilidades WinAnsi en Helvetica
+        // Sanitización tipográfica para evitar incompatibilidades WinAnsi en Helvetica
         function sanitizarTextoPdf(str) {
             if (!str) return "";
             return String(str)
@@ -472,7 +554,7 @@
                 .replace(/≥/g, ">=")
                 .replace(/∞/g, "inf")
                 .replace(/√/g, "sqrt")
-                .replace(/[^\x00-\xFF]/g, ""); // Remueve cualquier otro carácter incompatible con ISO-8859-1
+                .replace(/[^\x00-\xFF]/g, ""); // Remueve cualquier otro carácter fuera de ISO-8859-1
         }
 
         async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones, aspectosAMejorar = [], desglose = []) {
@@ -491,9 +573,9 @@
 
                 let marcasAProcesar = Array.isArray(anotaciones) ? anotaciones.filter(a => a && (a.comentario || a.box_2d)) : [];
 
-                // RESPALDO 1: Si la IA devolvió el arreglo de marcas vacío, generar recuadros usando aspectosAMejorar
+                // RESPALDO 1: Si la IA no colocó recuadros directos, mapear desde 'aspectosAMejorar'
                 if (marcasAProcesar.length === 0 && Array.isArray(aspectosAMejorar) && aspectosAMejorar.length > 0) {
-                    console.warn("La IA no incluyó coordenadas directas. Mapeando recuadros desde 'aspectosAMejorar'...");
+                    console.warn("Mapeando recuadros a partir de 'aspectosAMejorar'...");
                     marcasAProcesar = aspectosAMejorar.map((mejora, idx) => ({
                         pagina: Math.min(idx + 1, pages.length),
                         box_2d: [140 + ((idx % 4) * 110), 80, 230 + ((idx % 4) * 110), 920],
@@ -502,7 +584,7 @@
                     }));
                 }
 
-                // RESPALDO 2: Si aún no hay marcas, extraer observaciones del desglose con puntaje 0 o penalizado
+                // RESPALDO 2: Si aún no hay marcas, extraer criterios penalizados del desglose
                 if (marcasAProcesar.length === 0 && Array.isArray(desglose) && desglose.length > 0) {
                     const puntosConFalla = desglose.filter(d => (parseFloat(d.puntajeObtenido) || 0) < (parseFloat(d.puntajeMaximo) || 0));
                     if (puntosConFalla.length > 0) {
@@ -510,26 +592,16 @@
                             pagina: Math.min(idx + 1, pages.length),
                             box_2d: [150 + ((idx % 4) * 100), 80, 240 + ((idx % 4) * 100), 920],
                             tipo: "ERROR",
-                            comentario: `${item.ejercicio || 'Criterio'}: ${item.comentario || 'Observación de evaluación'}`
+                            comentario: `${item.ejercicio || 'Criterio'}: ${item.comentario || 'Observación técnica'}`
                         }));
                     }
                 }
 
-                // RESPALDO 3: Sellos de auditoría de seguridad
+                // RESPALDO 3: Sellos de revisión por defecto
                 if (marcasAProcesar.length === 0) {
                     marcasAProcesar = [
-                        { 
-                            pagina: 1, 
-                            box_2d: [140, 80, 230, 920], 
-                            tipo: "ERROR", 
-                            comentario: "Auditoria APA 7: Verificar sangrias de 1.27 cm, margenes y fuentes." 
-                        },
-                        { 
-                            pagina: 1, 
-                            box_2d: [260, 80, 350, 920], 
-                            tipo: "EXITO", 
-                            comentario: "Documento digital recibido y evaluado por el sistema institucional." 
-                        }
+                        { pagina: 1, box_2d: [140, 80, 230, 920], tipo: "ERROR", comentario: "Auditoria APA 7: Verificar sangrias de 1.27 cm, margenes y fuentes." },
+                        { pagina: 1, box_2d: [260, 80, 350, 920], tipo: "EXITO", comentario: "Documento digital recibido y evaluado por el sistema institucional." }
                     ];
                 }
 
@@ -550,19 +622,15 @@
 
                     let [yMin, xMin, yMax, xMax] = box.map(v => parseFloat(v) || 0);
 
-                    // NORMALIZACIÓN: Si la IA devuelve valores relativos de 0 a 1 (ej. 0.15 en vez de 150)
+                    // NORMALIZACIÓN: Si la IA devuelve valores relativos decimales de 0.0 a 1.0
                     if (yMax <= 1.0 && xMax <= 1.0 && (yMax > 0 || xMax > 0)) {
-                        yMin *= 1000;
-                        xMin *= 1000;
-                        yMax *= 1000;
-                        xMax *= 1000;
+                        yMin *= 1000; xMin *= 1000; yMax *= 1000; xMax *= 1000;
                     }
 
-                    // Prevenir coordenadas invertidas
                     if (yMin > yMax) [yMin, yMax] = [yMax, yMin];
                     if (xMin > xMax) [xMin, xMax] = [xMax, xMin];
 
-                    // Conversión al sistema cartesiano del PDF (origen en esquina inferior izquierda)
+                    // Conversión al sistema cartesiano del PDF
                     const rectX = Math.max((xMin / 1000) * width, 15);
                     const rectWidth = Math.min(Math.max(((xMax - xMin) / 1000) * width, 55), width - rectX - 15);
                     const rectHeight = Math.min(Math.max(((yMax - yMin) / 1000) * height, 30), height - 25);
@@ -573,7 +641,7 @@
                     const colorFondo = esExito ? rgb(0.93, 0.98, 0.94) : rgb(0.99, 0.95, 0.95);
                     const colorTexto = esExito ? rgb(0.05, 0.45, 0.1) : rgb(0.7, 0, 0);
 
-                    // 1. Dibuja el recuadro sobre el sector indicado
+                    // 1. Dibuja el recuadro de resaltado
                     page.drawRectangle({
                         x: rectX,
                         y: rectY,
@@ -720,6 +788,70 @@
         function actualizarNotaPantalla(val) {
             if (val !== "") {
                 document.getElementById('notaIA').textContent = parseFloat(val).toFixed(1);
+            }
+        }
+
+        // ==============================================================
+        // FUNCIÓN: ASENTAR NOTA EN EL SISTEMA (CONTROL ESTUDIANTIL)
+        // ==============================================================
+        async function guardarNotaEnSistema() {
+            const selectMat = document.getElementById('selectMateria');
+            const asignaturaId = selectMat.value;
+            const corte = document.getElementById('selectCorteDocente').value;
+            const tipo = document.getElementById('selectTipoDocente').value;
+            const porcentaje = document.getElementById('inputPorcentajeDocente').value;
+            const notaFinal = document.getElementById('inputNotaModificada').value;
+            const btn = document.getElementById('btnGuardarNota');
+
+            const integrantes = obtenerIntegrantesSeleccionados();
+
+            if (integrantes.length === 0 || !asignaturaId) {
+                alert('No hay una asignatura o estudiantes seleccionados.');
+                return;
+            }
+
+            const confirmar = confirm(`¿Deseas registrar en el sistema la nota ${notaFinal} en Corte ${corte} (${tipo} - ${porcentaje}%) para los siguientes estudiantes?\n\n` + 
+                integrantes.map(i => `• ${i.nombre}`).join('\n'));
+            if (!confirmar) return;
+
+            btn.disabled = true;
+            btn.textContent = `⏳ Asentando nota en base de datos...`;
+
+            try {
+                const payloadGuardar = {
+                    accion: 'guardarNota',
+                    asignaturaId: asignaturaId,
+                    corte: parseInt(corte),
+                    tipo: tipo,
+                    porcentaje: parseFloat(porcentaje) || 0,
+                    nota: parseFloat(notaFinal),
+                    integrantes: JSON.stringify(integrantes),
+                    estudianteId: integrantes[0].id // Respaldo individual
+                };
+
+                const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payloadGuardar)
+                });
+
+                const data = await response.json();
+
+                if (data.ok) {
+                    alert(`✅ ¡Éxito! ${data.mensaje || 'Nota guardada correctamente en el sistema.'}`);
+                    btn.style.backgroundColor = "#28a745";
+                    btn.textContent = `✓ Nota Registrada Exitosamente`;
+                } else {
+                    alert(`⚠️ No se pudo registrar la nota: ${data.mensaje}`);
+                    btn.disabled = false;
+                    btn.textContent = `💾 Asentar Nota en Sistema para el/los Estudiante(s)`;
+                }
+
+            } catch (error) {
+                console.error('Error al guardar nota:', error);
+                alert('Error de conexión al asentar la nota: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = `💾 Asentar Nota en Sistema para el/los Estudiante(s)`;
             }
         }
 
