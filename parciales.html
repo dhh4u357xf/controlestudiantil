@@ -496,6 +496,22 @@
                 console.log("3. Respuesta recibida del servidor:", data);
 
                 if (data.ok && data.evaluacion) {
+                    // =========================================================================
+                    // RECALCULO DINÁMICO DETERMINISTA: CÁLCULO ESTRICTO DE LA NOTA PORCENTUAL
+                    // =========================================================================
+                    if (data.evaluacion.desglose && Array.isArray(data.evaluacion.desglose) && data.evaluacion.desglose.length > 0) {
+                        let totalObt = 0;
+                        let totalMax = 0;
+                        data.evaluacion.desglose.forEach(item => {
+                            totalObt += parseFloat(item.puntajeObtenido) || 0;
+                            totalMax += parseFloat(item.puntajeMaximo) || 0;
+                        });
+                        if (totalMax > 0) {
+                            const notaCalculada = (5.0 * totalObt) / totalMax;
+                            data.evaluacion.nota = parseFloat(Math.min(5.0, Math.max(0.0, notaCalculada)).toFixed(1));
+                        }
+                    }
+
                     evaluacionActual = data.evaluacion;
 
                     console.log("4. Estampando marcas gráficas en el PDF con PDF-LIB...");
@@ -751,7 +767,6 @@
             // 2. Cálculo dinámico y estricto dependiente ÚNICAMENTE de los porcentajes
             let notaCalculada = 0.0;
             if (sumaMaxima > 0) {
-                // Regla de tres estándar sobre escala 0.0 a 5.0
                 notaCalculada = (5.0 * sumaObtenida) / sumaMaxima;
             } else if (eval && eval.nota !== undefined) {
                 notaCalculada = parseFloat(String(eval.nota).replace(',', '.')) || 0.0;
@@ -764,7 +779,7 @@
             // Sincronizar la nota exacta en la evaluación activa
             eval.nota = parseFloat(notaFormateada);
 
-            // 3. Renderizar la fila de total acumulado
+            // 3. Renderizar la fila de total acumulado con el cálculo real
             if (eval.desglose && eval.desglose.length > 0) {
                 tbody.innerHTML += `
                     <tr style="background-color: #f8f5fc; font-weight: bold; border-top: 2px solid #4A1C6B;">
