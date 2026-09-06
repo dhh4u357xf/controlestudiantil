@@ -167,12 +167,15 @@
 
                 <div class="summary-text" id="resumenIA">Resumen de evaluación...</div>
 
-                <h4>Desglose por Ejercicio:</h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; margin-bottom: 8px;">
+                    <h4 style="margin: 0;">Desglose por Ejercicio:</h4>
+                    <button type="button" class="btn" style="width: auto; padding: 6px 14px; font-size: 12px; background: #4A1C6B;" onclick="recalcularNotaDesdeDesglose()">🔄 Recalcular Nota</button>
+                </div>
                 <table>
                     <thead>
                         <tr>
                             <th>Ejercicio</th>
-                            <th>Puntos</th>
+                            <th style="text-align: center;">Puntos (%)</th>
                             <th>Observaciones de cercanía</th>
                         </tr>
                     </thead>
@@ -496,9 +499,7 @@
                 console.log("3. Respuesta recibida del servidor:", data);
 
                 if (data.ok && data.evaluacion) {
-                    // =========================================================================
-                    // RECALCULO DINÁMICO DETERMINISTA: CÁLCULO ESTRICTO DE LA NOTA PORCENTUAL
-                    // =========================================================================
+                    // Recálculo determinista de la nota
                     if (data.evaluacion.desglose && Array.isArray(data.evaluacion.desglose) && data.evaluacion.desglose.length > 0) {
                         let totalObt = 0;
                         let totalMax = 0;
@@ -517,7 +518,6 @@
                     console.log("4. Estampando marcas gráficas en el PDF con PDF-LIB...");
                     const pdfArrayBuffer = await fileEst.arrayBuffer();
 
-                    // Se envía todo el conjunto de información para garantizar el estampado de recuadros
                     const pdfBase64Anotado = await estamparErroresEnPDF(
                         pdfArrayBuffer, 
                         data.evaluacion.anotacionesGraficas || [], 
@@ -553,7 +553,6 @@
             }
         }
 
-        // Sanitización tipográfica para evitar incompatibilidades WinAnsi en Helvetica
         function sanitizarTextoPdf(str) {
             if (!str) return "";
             return String(str)
@@ -570,7 +569,7 @@
                 .replace(/≥/g, ">=")
                 .replace(/∞/g, "inf")
                 .replace(/√/g, "sqrt")
-                .replace(/[^\x00-\xFF]/g, ""); // Remueve cualquier otro carácter fuera de ISO-8859-1
+                .replace(/[^\x00-\xFF]/g, "");
         }
 
         async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones, aspectosAMejorar = [], desglose = []) {
@@ -589,9 +588,7 @@
 
                 let marcasAProcesar = Array.isArray(anotaciones) ? anotaciones.filter(a => a && (a.comentario || a.box_2d)) : [];
 
-                // RESPALDO 1: Si la IA no colocó recuadros directos, mapear desde 'aspectosAMejorar'
                 if (marcasAProcesar.length === 0 && Array.isArray(aspectosAMejorar) && aspectosAMejorar.length > 0) {
-                    console.warn("Mapeando recuadros a partir de 'aspectosAMejorar'...");
                     marcasAProcesar = aspectosAMejorar.map((mejora, idx) => ({
                         pagina: Math.min(idx + 1, pages.length),
                         box_2d: [140 + ((idx % 4) * 110), 80, 230 + ((idx % 4) * 110), 920],
@@ -600,7 +597,6 @@
                     }));
                 }
 
-                // RESPALDO 2: Si aún no hay marcas, extraer criterios penalizados del desglose
                 if (marcasAProcesar.length === 0 && Array.isArray(desglose) && desglose.length > 0) {
                     const puntosConFalla = desglose.filter(d => (parseFloat(d.puntajeObtenido) || 0) < (parseFloat(d.puntajeMaximo) || 0));
                     if (puntosConFalla.length > 0) {
@@ -613,15 +609,12 @@
                     }
                 }
 
-                // RESPALDO 3: Sellos de revisión por defecto
                 if (marcasAProcesar.length === 0) {
                     marcasAProcesar = [
                         { pagina: 1, box_2d: [140, 80, 230, 920], tipo: "ERROR", comentario: "Auditoria APA 7: Verificar sangrias de 1.27 cm, margenes y fuentes." },
                         { pagina: 1, box_2d: [260, 80, 350, 920], tipo: "EXITO", comentario: "Documento digital recibido y evaluado por el sistema institucional." }
                     ];
                 }
-
-                console.log(`Aplicando ${marcasAProcesar.length} marcas gráficas sobre el PDF...`);
 
                 marcasAProcesar.forEach((anot, idx) => {
                     let idxPagina = (parseInt(anot.pagina) || 1) - 1;
@@ -638,7 +631,6 @@
 
                     let [yMin, xMin, yMax, xMax] = box.map(v => parseFloat(v) || 0);
 
-                    // NORMALIZACIÓN: Si la IA devuelve valores relativos decimales de 0.0 a 1.0
                     if (yMax <= 1.0 && xMax <= 1.0 && (yMax > 0 || xMax > 0)) {
                         yMin *= 1000; xMin *= 1000; yMax *= 1000; xMax *= 1000;
                     }
@@ -646,7 +638,6 @@
                     if (yMin > yMax) [yMin, yMax] = [yMax, yMin];
                     if (xMin > xMax) [xMin, xMax] = [xMax, xMin];
 
-                    // Conversión al sistema cartesiano del PDF
                     const rectX = Math.max((xMin / 1000) * width, 15);
                     const rectWidth = Math.min(Math.max(((xMax - xMin) / 1000) * width, 55), width - rectX - 15);
                     const rectHeight = Math.min(Math.max(((yMax - yMin) / 1000) * height, 30), height - 25);
@@ -657,7 +648,6 @@
                     const colorFondo = esExito ? rgb(0.93, 0.98, 0.94) : rgb(0.99, 0.95, 0.95);
                     const colorTexto = esExito ? rgb(0.05, 0.45, 0.1) : rgb(0.7, 0, 0);
 
-                    // 1. Dibuja el recuadro de resaltado
                     page.drawRectangle({
                         x: rectX,
                         y: rectY,
@@ -667,7 +657,6 @@
                         borderWidth: 2,
                     });
 
-                    // 2. Dibuja la caja explicativa de texto sanitizado
                     if (anot.comentario) {
                         const comentarioLimpio = sanitizarTextoPdf(anot.comentario);
                         const fontSize = 8.0;
@@ -728,10 +717,7 @@
                     }
                 });
 
-                const pdfModifiedBytes = await pdfDoc.saveAsBase64();
-                console.log("Marcas estampadas exitosamente sobre el PDF.");
-                return pdfModifiedBytes;
-
+                return await pdfDoc.saveAsBase64();
             } catch (e) {
                 console.error("CRÍTICO - Error en estamparErroresEnPDF:", e);
                 alert("Atención: Ocurrió un fallo técnico al dibujar sobre el PDF: " + e.message);
@@ -746,9 +732,8 @@
             let sumaObtenida = 0;
             let sumaMaxima = 0;
 
-            // 1. Recorrer el desglose sumando dinámicamente los porcentajes reales
             if (eval.desglose && eval.desglose.length > 0) {
-                eval.desglose.forEach(item => {
+                eval.desglose.forEach((item, idx) => {
                     let ob = parseFloat(item.puntajeObtenido) || 0;
                     let mx = parseFloat(item.puntajeMaximo) || 0;
                     sumaObtenida += ob;
@@ -757,14 +742,15 @@
                     tbody.innerHTML += `
                         <tr>
                             <td><strong>${item.ejercicio || 'Criterio'}</strong></td>
-                            <td style="text-align: center; white-space: nowrap;">${ob}% / ${mx}%</td>
+                            <td style="text-align: center; white-space: nowrap;">
+                                <input type="number" class="input-puntaje-obtenido" data-index="${idx}" data-max="${mx}" value="${ob}" min="0" max="${mx}" step="0.1" style="width: 65px; display: inline-block; padding: 4px 6px; margin-bottom: 0; text-align: center; border: 1.5px solid #4A1C6B; border-radius: 6px; font-weight: bold; color: #4A1C6B;"> % / ${mx}%
+                            </td>
                             <td>${item.comentario || ''}</td>
                         </tr>
                     `;
                 });
             }
 
-            // 2. Cálculo dinámico y estricto dependiente ÚNICAMENTE de los porcentajes
             let notaCalculada = 0.0;
             if (sumaMaxima > 0) {
                 notaCalculada = (5.0 * sumaObtenida) / sumaMaxima;
@@ -772,27 +758,22 @@
                 notaCalculada = parseFloat(String(eval.nota).replace(',', '.')) || 0.0;
             }
 
-            // Asegurar que no sobrepase 5.0 ni baje de 0.0
             notaCalculada = Math.min(5.0, Math.max(0.0, notaCalculada));
             const notaFormateada = notaCalculada.toFixed(1);
-
-            // Sincronizar la nota exacta en la evaluación activa
             eval.nota = parseFloat(notaFormateada);
 
-            // 3. Renderizar la fila de total acumulado con el cálculo real
             if (eval.desglose && eval.desglose.length > 0) {
                 tbody.innerHTML += `
-                    <tr style="background-color: #f8f5fc; font-weight: bold; border-top: 2px solid #4A1C6B;">
+                    <tr id="filaTotalDesglose" style="background-color: #f8f5fc; font-weight: bold; border-top: 2px solid #4A1C6B;">
                         <td><strong>TOTAL PORCENTAJES ACUMULADOS</strong></td>
-                        <td style="text-align: center; color: #4A1C6B; font-size: 14px;">${sumaObtenida.toFixed(2)}% / ${sumaMaxima.toFixed(2)}%</td>
-                        <td style="color: #666; font-size: 12px;">Equivalente a una nota final de <strong>${notaFormateada} / 5.0</strong></td>
+                        <td id="txtTotalPuntajes" style="text-align: center; color: #4A1C6B; font-size: 14px;">${sumaObtenida.toFixed(2)}% / ${sumaMaxima.toFixed(2)}%</td>
+                        <td id="txtEquivalenciaNota" style="color: #666; font-size: 12px;">Equivalente a una nota final de <strong>${notaFormateada} / 5.0</strong></td>
                     </tr>
                 `;
             } else {
                 tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#888;">No se generaron detalles para esta actividad.</td></tr>';
             }
 
-            // 4. Mostrar valores en pantalla
             document.getElementById('notaIA').textContent = notaFormateada;
             document.getElementById('inputNotaModificada').value = notaFormateada;
             document.getElementById('nombreEstudianteResultado').textContent = estudiante;
@@ -810,15 +791,54 @@
             document.getElementById('detalleEvaluacion').style.display = 'block';
         }
 
+        // Función para recalcular puntajes modificados en la tabla
+        function recalcularNotaDesdeDesglose() {
+            if (!evaluacionActual || !evaluacionActual.desglose) return;
+
+            const inputs = document.querySelectorAll('.input-puntaje-obtenido');
+            let totalObt = 0;
+            let totalMax = 0;
+
+            inputs.forEach(inp => {
+                const idx = parseInt(inp.getAttribute('data-index'), 10);
+                const maxVal = parseFloat(inp.getAttribute('data-max')) || 0;
+                let val = parseFloat(inp.value) || 0;
+
+                if (val < 0) val = 0;
+                if (maxVal > 0 && val > maxVal) val = maxVal;
+                inp.value = val;
+
+                if (evaluacionActual.desglose[idx]) {
+                    evaluacionActual.desglose[idx].puntajeObtenido = val;
+                }
+
+                totalObt += val;
+                totalMax += maxVal;
+            });
+
+            let notaCalc = 0.0;
+            if (totalMax > 0) {
+                notaCalc = (5.0 * totalObt) / totalMax;
+            }
+            notaCalc = Math.min(5.0, Math.max(0.0, notaCalc));
+            const notaStr = notaCalc.toFixed(1);
+
+            evaluacionActual.nota = parseFloat(notaStr);
+            document.getElementById('notaIA').textContent = notaStr;
+            document.getElementById('inputNotaModificada').value = notaStr;
+
+            const txtTotal = document.getElementById('txtTotalPuntajes');
+            const txtEq = document.getElementById('txtEquivalenciaNota');
+            if (txtTotal) txtTotal.textContent = `${totalObt.toFixed(2)}% / ${totalMax.toFixed(2)}%`;
+            if (txtEq) txtEq.innerHTML = `Equivalente a una nota final de <strong>${notaStr} / 5.0</strong>`;
+        }
+
         function actualizarNotaPantalla(val) {
             if (val !== "") {
                 document.getElementById('notaIA').textContent = parseFloat(val).toFixed(1);
             }
         }
 
-// ==============================================================
-        // FUNCIÓN: ASENTAR NOTA EN EL SISTEMA (CONTROL ESTUDIANTIL)
-        // ==============================================================
         async function guardarNotaEnSistema() {
             const selectMat = document.getElementById('selectMateria');
             const asignaturaId = selectMat.value;
@@ -872,7 +892,6 @@
                 console.error('Error al guardar nota:', error);
                 alert('Error de conexión al asentar la nota: ' + error.message);
             } finally {
-                // Siempre rehabilita el botón con su estilo y texto original
                 btn.disabled = false;
                 btn.style.backgroundColor = "";
                 btn.textContent = `💾 Asentar Nota en Sistema para el/los Estudiante(s)`;
