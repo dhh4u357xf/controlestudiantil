@@ -864,12 +864,8 @@
 
                 if (data.ok) {
                     alert(`✅ ¡Éxito! ${data.mensaje || 'Nota guardada correctamente en el sistema.'}`);
-                    btn.style.backgroundColor = "#28a745";
-                    btn.textContent = `✓ Nota Registrada Exitosamente`;
                 } else {
                     alert(`⚠️ No se pudo registrar la nota: ${data.mensaje}`);
-                    btn.disabled = false;
-                    btn.textContent = `💾 Asentar Nota en Sistema para el/los Estudiante(s)`;
                 }
 
             } catch (error) {
