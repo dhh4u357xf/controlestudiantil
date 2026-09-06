@@ -816,7 +816,7 @@
             }
         }
 
-        // ==============================================================
+// ==============================================================
         // FUNCIÓN: ASENTAR NOTA EN EL SISTEMA (CONTROL ESTUDIANTIL)
         // ==============================================================
         async function guardarNotaEnSistema() {
@@ -851,7 +851,7 @@
                     porcentaje: parseFloat(porcentaje) || 0,
                     nota: parseFloat(notaFinal),
                     integrantes: JSON.stringify(integrantes),
-                    estudianteId: integrantes[0].id // Respaldo individual
+                    estudianteId: integrantes[0].id
                 };
 
                 const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
@@ -871,7 +871,10 @@
             } catch (error) {
                 console.error('Error al guardar nota:', error);
                 alert('Error de conexión al asentar la nota: ' + error.message);
+            } finally {
+                // Siempre rehabilita el botón con su estilo y texto original
                 btn.disabled = false;
+                btn.style.backgroundColor = "";
                 btn.textContent = `💾 Asentar Nota en Sistema para el/los Estudiante(s)`;
             }
         }
