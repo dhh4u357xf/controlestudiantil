@@ -42,6 +42,21 @@
         .modalidad-radio label { font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .modalidad-radio input[type="radio"] { margin-bottom: 0; cursor: pointer; }
         
+        /* Estilos específicos para los inputs de edición en el desglose */
+        .input-desglose-num {
+            width: 58px;
+            display: inline-block;
+            padding: 4px 5px;
+            margin-bottom: 0;
+            text-align: center;
+            border: 1.5px solid #4A1C6B;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        .input-desglose-obt { color: #4A1C6B; }
+        .input-desglose-max { color: #555; border-color: #bbb; }
+
         /* Caja de Registro en Base de Datos Docente */
         .registro-sistema-box { background: #f0f7ff; border: 1.5px solid #b3d7ff; border-radius: 10px; padding: 16px; margin-top: 20px; }
         .registro-sistema-box h4 { font-size: 14px; color: #004d99; margin-bottom: 10px; }
@@ -175,7 +190,7 @@
                     <thead>
                         <tr>
                             <th>Ejercicio</th>
-                            <th style="text-align: center;">Puntos (%)</th>
+                            <th style="text-align: center; width: 175px;">Puntos (%) [Obt / Máx]</th>
                             <th>Observaciones de cercanía</th>
                         </tr>
                     </thead>
@@ -589,6 +604,7 @@
                 let marcasAProcesar = Array.isArray(anotaciones) ? anotaciones.filter(a => a && (a.comentario || a.box_2d)) : [];
 
                 if (marcasAProcesar.length === 0 && Array.isArray(aspectosAMejorar) && aspectosAMejorar.length > 0) {
+                    console.warn("Mapeando recuadros a partir de 'aspectosAMejorar'...");
                     marcasAProcesar = aspectosAMejorar.map((mejora, idx) => ({
                         pagina: Math.min(idx + 1, pages.length),
                         box_2d: [140 + ((idx % 4) * 110), 80, 230 + ((idx % 4) * 110), 920],
@@ -743,7 +759,8 @@
                         <tr>
                             <td><strong>${item.ejercicio || 'Criterio'}</strong></td>
                             <td style="text-align: center; white-space: nowrap;">
-                                <input type="number" class="input-puntaje-obtenido" data-index="${idx}" data-max="${mx}" value="${ob}" min="0" max="${mx}" step="0.1" style="width: 65px; display: inline-block; padding: 4px 6px; margin-bottom: 0; text-align: center; border: 1.5px solid #4A1C6B; border-radius: 6px; font-weight: bold; color: #4A1C6B;"> % / ${mx}%
+                                <input type="number" class="input-desglose-num input-desglose-obt" data-index="${idx}" value="${ob}" min="0" step="0.1" title="Porcentaje obtenido"> % / 
+                                <input type="number" class="input-desglose-num input-desglose-max" data-index="${idx}" value="${mx}" min="0" step="0.1" title="Porcentaje máximo del criterio"> %
                             </td>
                             <td>${item.comentario || ''}</td>
                         </tr>
@@ -791,29 +808,36 @@
             document.getElementById('detalleEvaluacion').style.display = 'block';
         }
 
-        // Función para recalcular puntajes modificados en la tabla
+        // Función para recalcular puntajes modificados en la tabla (tanto obtenidos como máximos)
         function recalcularNotaDesdeDesglose() {
             if (!evaluacionActual || !evaluacionActual.desglose) return;
 
-            const inputs = document.querySelectorAll('.input-puntaje-obtenido');
+            const inputsObt = document.querySelectorAll('.input-desglose-obt');
+            const inputsMax = document.querySelectorAll('.input-desglose-max');
             let totalObt = 0;
             let totalMax = 0;
 
-            inputs.forEach(inp => {
-                const idx = parseInt(inp.getAttribute('data-index'), 10);
-                const maxVal = parseFloat(inp.getAttribute('data-max')) || 0;
-                let val = parseFloat(inp.value) || 0;
+            inputsObt.forEach((inpObt, i) => {
+                const inpMax = inputsMax[i];
+                const idx = parseInt(inpObt.getAttribute('data-index'), 10);
 
-                if (val < 0) val = 0;
-                if (maxVal > 0 && val > maxVal) val = maxVal;
-                inp.value = val;
+                let valObt = parseFloat(inpObt.value) || 0;
+                let valMax = parseFloat(inpMax.value) || 0;
+
+                if (valObt < 0) valObt = 0;
+                if (valMax < 0) valMax = 0;
+                if (valMax > 0 && valObt > valMax) valObt = valMax; // Evita que obtenido supere al máximo asignado
+
+                inpObt.value = valObt;
+                inpMax.value = valMax;
 
                 if (evaluacionActual.desglose[idx]) {
-                    evaluacionActual.desglose[idx].puntajeObtenido = val;
+                    evaluacionActual.desglose[idx].puntajeObtenido = valObt;
+                    evaluacionActual.desglose[idx].puntajeMaximo = valMax;
                 }
 
-                totalObt += val;
-                totalMax += maxVal;
+                totalObt += valObt;
+                totalMax += valMax;
             });
 
             let notaCalc = 0.0;
