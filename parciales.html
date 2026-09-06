@@ -724,28 +724,13 @@
         }
 
         function mostrarResultado(eval, urlDrive, estudiante) {
-            let notaLimpia = 0.0;
-            if (eval && eval.nota !== undefined && eval.nota !== null) {
-                let notaStr = String(eval.nota).replace(',', '.').trim();
-                let parsed = parseFloat(notaStr);
-                if (!isNaN(parsed)) {
-                    notaLimpia = parsed;
-                }
-            }
-
-            const notaFormateada = notaLimpia.toFixed(1);
-
-            document.getElementById('notaIA').textContent = notaFormateada;
-            document.getElementById('inputNotaModificada').value = notaFormateada;
-            document.getElementById('nombreEstudianteResultado').textContent = estudiante;
-            document.getElementById('resumenIA').textContent = eval.resumen || "Sin resumen disponible.";
-
             const tbody = document.getElementById('tablaDesglose');
             tbody.innerHTML = '';
             
             let sumaObtenida = 0;
             let sumaMaxima = 0;
 
+            // 1. Recorrer el desglose sumando dinámicamente los porcentajes reales
             if (eval.desglose && eval.desglose.length > 0) {
                 eval.desglose.forEach(item => {
                     let ob = parseFloat(item.puntajeObtenido) || 0;
@@ -761,7 +746,26 @@
                         </tr>
                     `;
                 });
+            }
 
+            // 2. Cálculo dinámico y estricto dependiente ÚNICAMENTE de los porcentajes
+            let notaCalculada = 0.0;
+            if (sumaMaxima > 0) {
+                // Regla de tres estándar sobre escala 0.0 a 5.0
+                notaCalculada = (5.0 * sumaObtenida) / sumaMaxima;
+            } else if (eval && eval.nota !== undefined) {
+                notaCalculada = parseFloat(String(eval.nota).replace(',', '.')) || 0.0;
+            }
+
+            // Asegurar que no sobrepase 5.0 ni baje de 0.0
+            notaCalculada = Math.min(5.0, Math.max(0.0, notaCalculada));
+            const notaFormateada = notaCalculada.toFixed(1);
+
+            // Sincronizar la nota exacta en la evaluación activa
+            eval.nota = parseFloat(notaFormateada);
+
+            // 3. Renderizar la fila de total acumulado
+            if (eval.desglose && eval.desglose.length > 0) {
                 tbody.innerHTML += `
                     <tr style="background-color: #f8f5fc; font-weight: bold; border-top: 2px solid #4A1C6B;">
                         <td><strong>TOTAL PORCENTAJES ACUMULADOS</strong></td>
@@ -772,6 +776,12 @@
             } else {
                 tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#888;">No se generaron detalles para esta actividad.</td></tr>';
             }
+
+            // 4. Mostrar valores en pantalla
+            document.getElementById('notaIA').textContent = notaFormateada;
+            document.getElementById('inputNotaModificada').value = notaFormateada;
+            document.getElementById('nombreEstudianteResultado').textContent = estudiante;
+            document.getElementById('resumenIA').textContent = eval.resumen || "Sin resumen disponible.";
 
             const ulFort = document.getElementById('listaFortalezas');
             ulFort.innerHTML = '';
