@@ -13,7 +13,7 @@
         }
 
         body {
-            background: #f4f6f9;f
+            background: #f4f6f9;
             min-height: 100vh;
         }
 
@@ -371,18 +371,31 @@
             </div>
         </div>
 
-        <!-- SECCIÓN: Registrar Notas -->
+        <!-- SECCIÓN: Registrar Notas (SOPORTE UNO, VARIOS O TODOS) -->
         <div id="notas" class="section">
             <div class="card">
                 <h3>Registrar / Desglosar notas por actividad</h3>
 
-                <div class="grid-2">
-                    <select id="notaMateria" onchange="filtrarEstudiantesPorMateriaSeleccionada()">
-                        <option value="">Materia</option>
-                    </select>
-                    <select id="notaEstudiante">
-                        <option value="">-- Selecciona una materia primero --</option>
-                    </select>
+                <label style="font-size:13px; font-weight:600; color:#444; margin-bottom:4px; display:block;">Materia:</label>
+                <select id="notaMateria" onchange="filtrarEstudiantesPorMateriaSeleccionada()">
+                    <option value="">-- Selecciona una materia primero --</option>
+                </select>
+
+                <!-- CONTENEDOR MULTI-SELECCIÓN DE ESTUDIANTES -->
+                <div style="margin-bottom:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <label style="font-size:13px; font-weight:600; color:#444; margin:0;">
+                            Estudiantes (<span id="cantSeleccionados">0</span> seleccionados):
+                        </label>
+                        <div>
+                            <button type="button" class="btn" style="padding:4px 8px; font-size:11px; background:#4A1C6B;" onclick="seleccionarTodosEstudiantes(true)">Todos</button>
+                            <button type="button" class="btn" style="padding:4px 8px; font-size:11px; background:#888;" onclick="seleccionarTodosEstudiantes(false)">Ninguno</button>
+                        </div>
+                    </div>
+                    
+                    <div id="listaCheckEstudiantes" style="max-height:180px; overflow-y:auto; border:1.5px solid #ddd; border-radius:8px; padding:10px; background:#fafafa;">
+                        <span style="font-size:12px; color:#888;">Selecciona una materia para cargar la lista de estudiantes.</span>
+                    </div>
                 </div>
 
                 <div class="grid-3">
@@ -406,7 +419,7 @@
 
                 <input type="number" id="notaValor" placeholder="Nota de la actividad (0.0 - 5.0)" min="0" max="5" step="0.1">
 
-                <button class="btn" id="btnGuardarNota" onclick="guardarNota()">Guardar nota de la actividad</button>
+                <button class="btn" id="btnGuardarNota" onclick="guardarNota()">Guardar nota para los estudiantes seleccionados</button>
             </div>
         </div>
 
@@ -736,16 +749,18 @@
             }
         }
 
+        // Cargar checkboxes de estudiantes para la materia seleccionada
         async function filtrarEstudiantesPorMateriaSeleccionada() {
             const idAsignatura = document.getElementById('notaMateria').value;
-            const selectEst = document.getElementById('notaEstudiante');
+            const contenedor = document.getElementById('listaCheckEstudiantes');
+            document.getElementById('cantSeleccionados').textContent = '0';
 
             if (!idAsignatura) {
-                selectEst.innerHTML = '<option value="">-- Selecciona una materia primero --</option>';
+                contenedor.innerHTML = '<span style="font-size:12px; color:#888;">-- Selecciona una materia primero --</span>';
                 return;
             }
 
-            selectEst.innerHTML = '<option value="">Cargando estudiantes matriculados...</option>';
+            contenedor.innerHTML = '<span style="font-size:12px; color:#666;">Cargando estudiantes matriculados...</span>';
 
             try {
                 const response = await fetch(SCRIPT_URL, {
@@ -760,20 +775,36 @@
                 const data = await response.json();
 
                 if (data.ok && data.estudiantes && data.estudiantes.length > 0) {
-                    selectEst.innerHTML = '<option value="">-- Selecciona Estudiante --</option>';
+                    contenedor.innerHTML = '';
                     data.estudiantes.forEach(e => {
-                        selectEst.innerHTML += `<option value="${e.id}">${e.nombre} (${e.documento})</option>`;
+                        contenedor.innerHTML += `
+                            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:normal; cursor:pointer; margin-bottom:6px;">
+                                <input type="checkbox" class="check-estudiante-nota" value="${e.id}" style="width:auto; margin:0;" onchange="actualizarContadorCheck()">
+                                <span><strong>${e.nombre}</strong> <span style="color:#777; font-size:11px;">(${e.documento})</span></span>
+                            </label>
+                        `;
                     });
                 } else {
-                    selectEst.innerHTML = '<option value="">No hay estudiantes inscritos en esta materia</option>';
+                    contenedor.innerHTML = '<span style="font-size:12px; color:#888;">No hay estudiantes inscritos en esta materia.</span>';
                 }
             } catch (error) {
                 console.error('Error al filtrar estudiantes:', error);
-                selectEst.innerHTML = '<option value="">Error al cargar la lista</option>';
+                contenedor.innerHTML = '<span style="font-size:12px; color:#c62828;">Error al cargar la lista.</span>';
             }
         }
 
-async function actualizarFiltrosReporte() {
+        function seleccionarTodosEstudiantes(marcar) {
+            const checks = document.querySelectorAll('.check-estudiante-nota');
+            checks.forEach(chk => chk.checked = marcar);
+            actualizarContadorCheck();
+        }
+
+        function actualizarContadorCheck() {
+            const seleccionados = document.querySelectorAll('.check-estudiante-nota:checked').length;
+            document.getElementById('cantSeleccionados').textContent = seleccionados;
+        }
+
+        async function actualizarFiltrosReporte() {
             const idAsignatura = document.getElementById('reporteMateria').value;
             const selectEst = document.getElementById('reporteEstudiante');
             selectEst.innerHTML = '<option value="">-- Todos los Estudiantes --</option>';
@@ -808,7 +839,6 @@ async function actualizarFiltrosReporte() {
                 selectEst.innerHTML = '<option value="">-- Todos los Estudiantes --</option>';
             }
 
-            // Actualiza la tabla de asistencias con la materia elegida
             cargarReporteAsistencia();
         }
 
@@ -929,8 +959,8 @@ async function actualizarFiltrosReporte() {
             }, 1000);
         }
 
+        // Guardar nota para uno, varios o todos los estudiantes seleccionados
         async function guardarNota() {
-            const estudianteId = document.getElementById('notaEstudiante').value;
             const asignaturaId = document.getElementById('notaMateria').value;
             const corte = document.getElementById('notaCorte').value;
             const tipo = document.getElementById('notaTipo').value;
@@ -938,13 +968,19 @@ async function actualizarFiltrosReporte() {
             const nota = document.getElementById('notaValor').value;
             const btn = document.getElementById('btnGuardarNota');
 
-            if (!estudianteId || !asignaturaId || !corte || !tipo || !porcentaje || !nota) {
-                alert('Por favor completa todos los campos para registrar la nota.');
+            const checks = document.querySelectorAll('.check-estudiante-nota:checked');
+            const estudiantesIds = Array.from(checks).map(chk => chk.value);
+
+            if (!asignaturaId || estudiantesIds.length === 0 || !corte || !tipo || !porcentaje || !nota) {
+                alert('Por favor completa todos los campos y selecciona al menos un estudiante.');
                 return;
             }
 
+            const confirmacion = confirm(`¿Deseas asignar la nota ${nota} (${tipo} - ${porcentaje}%) a ${estudiantesIds.length} estudiante(s)?`);
+            if (!confirmacion) return;
+
             btn.disabled = true;
-            btn.textContent = 'Guardando...';
+            btn.textContent = `Guardando en ${estudiantesIds.length} estudiante(s)...`;
 
             try {
                 const response = await fetch(SCRIPT_URL, {
@@ -952,7 +988,7 @@ async function actualizarFiltrosReporte() {
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({
                         accion: 'guardarNota',
-                        estudianteId: estudianteId,
+                        estudiantesIds: estudiantesIds,
                         asignaturaId: asignaturaId,
                         corte: corte,
                         tipo: `${tipo} (${porcentaje}% del corte)`,
@@ -967,13 +1003,14 @@ async function actualizarFiltrosReporte() {
                 if (data.ok) {
                     document.getElementById('notaValor').value = '';
                     document.getElementById('notaPorcentaje').value = '';
+                    seleccionarTodosEstudiantes(false);
                 }
             } catch (error) {
                 console.error('Error al guardar nota:', error);
                 alert('Error al intentar guardar la nota.');
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'Guardar nota de la actividad';
+                btn.textContent = 'Guardar nota para los estudiantes seleccionados';
             }
         }
 
@@ -1095,7 +1132,6 @@ async function actualizarFiltrosReporte() {
             }
         }
 
-        // Abrir modal de edición con los datos precargados
         function abrirModalEdicion(idNota) {
             const registro = notasHistorialCargadas.find(n => String(n.idNota) === String(idNota));
             if (!registro) {
@@ -1117,7 +1153,6 @@ async function actualizarFiltrosReporte() {
             document.getElementById('modalEditarNota').style.display = 'none';
         }
 
-        // Guardar la edición de una nota específica
         async function guardarEdicionNota() {
             const idNota = document.getElementById('modalEditIdNota').value;
             const corte = document.getElementById('modalEditCorte').value;
@@ -1153,7 +1188,7 @@ async function actualizarFiltrosReporte() {
 
                 if (data.ok) {
                     cerrarModalEdicion();
-                    consultarNotasFiltradas(); // Refresca automáticamente la tabla y promedios
+                    consultarNotasFiltradas();
                 }
             } catch (e) {
                 console.error("Error al editar nota:", e);
@@ -1164,7 +1199,6 @@ async function actualizarFiltrosReporte() {
             }
         }
 
-        // Eliminar puntualmente una nota
         async function confirmarEliminarNota(idNota, estudianteNombre, tipoActividad) {
             const confirmar = confirm(`¿Estás seguro de ELIMINAR permanentemente esta nota?\n\n• Estudiante: ${estudianteNombre}\n• Actividad: ${tipoActividad}\n\nEsta acción no se puede deshacer.`);
             if (!confirmar) return;
@@ -1183,7 +1217,7 @@ async function actualizarFiltrosReporte() {
                 alert(data.mensaje);
 
                 if (data.ok) {
-                    consultarNotasFiltradas(); // Refresca la tabla y promedios
+                    consultarNotasFiltradas();
                 }
             } catch (e) {
                 console.error("Error al eliminar nota:", e);
