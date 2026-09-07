@@ -602,157 +602,168 @@
         }
 
         async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones, aspectosAMejorar = [], desglose = []) {
-            try {
-                if (typeof PDFLib === 'undefined') {
-                    throw new Error("PDFLib no está cargado en el documento HTML.");
-                }
+    try {
+        if (typeof PDFLib === 'undefined') {
+            throw new Error("PDFLib no está cargado en el documento HTML.");
+        }
 
-                const { PDFDocument, rgb } = PDFLib;
-                const pdfDoc = await PDFDocument.load(pdfBytesBuffer);
-                const pages = pdfDoc.getPages();
+        const { PDFDocument, rgb } = PDFLib;
+        const pdfDoc = await PDFDocument.load(pdfBytesBuffer);
+        const pages = pdfDoc.getPages();
 
-                if (!pages || pages.length === 0) {
-                    throw new Error("El PDF no contiene páginas legibles.");
-                }
+        if (!pages || pages.length === 0) {
+            throw new Error("El PDF no contiene páginas legibles.");
+        }
 
-                let marcasAProcesar = Array.isArray(anotaciones) ? anotaciones.filter(a => a && (a.comentario || a.box_2d)) : [];
+        let marcasAProcesar = Array.isArray(anotaciones) ? anotaciones.filter(a => a && (a.comentario || a.box_2d)) : [];
 
-                if (marcasAProcesar.length === 0 && Array.isArray(aspectosAMejorar) && aspectosAMejorar.length > 0) {
-                    marcasAProcesar = aspectosAMejorar.map((mejora, idx) => ({
-                        pagina: Math.min(idx + 1, pages.length),
-                        box_2d: [140 + ((idx % 4) * 110), 80, 230 + ((idx % 4) * 110), 920],
-                        tipo: "ERROR",
-                        comentario: mejora
-                    }));
-                }
+        if (marcasAProcesar.length === 0 && Array.isArray(aspectosAMejorar) && aspectosAMejorar.length > 0) {
+            marcasAProcesar = aspectosAMejorar.map((mejora, idx) => ({
+                pagina: Math.min(idx + 1, pages.length),
+                box_2d: [140 + ((idx % 4) * 110), 80, 210 + ((idx % 4) * 110), 920],
+                tipo: "ERROR",
+                comentario: mejora
+            }));
+        }
 
-                if (marcasAProcesar.length === 0 && Array.isArray(desglose) && desglose.length > 0) {
-                    const puntosConFalla = desglose.filter(d => (parseFloat(d.puntajeObtenido) || 0) < (parseFloat(d.puntajeMaximo) || 0));
-                    if (puntosConFalla.length > 0) {
-                        marcasAProcesar = puntosConFalla.map((item, idx) => ({
-                            pagina: Math.min(idx + 1, pages.length),
-                            box_2d: [150 + ((idx % 4) * 100), 80, 240 + ((idx % 4) * 100), 920],
-                            tipo: "ERROR",
-                            comentario: `${item.ejercicio || 'Criterio'}: ${item.comentario || 'Observación técnica'}`
-                        }));
-                    }
-                }
-
-                if (marcasAProcesar.length === 0) {
-                    marcasAProcesar = [
-                        { pagina: 1, box_2d: [140, 80, 230, 920], tipo: "ERROR", comentario: "Auditoria APA 7: Verificar sangrias de 1.27 cm, margenes y fuentes." },
-                        { pagina: 1, box_2d: [260, 80, 350, 920], tipo: "EXITO", comentario: "Documento digital recibido y evaluado por el sistema institucional." }
-                    ];
-                }
-
-                marcasAProcesar.forEach((anot, idx) => {
-                    let idxPagina = (parseInt(anot.pagina) || 1) - 1;
-                    if (idxPagina < 0) idxPagina = 0;
-                    if (idxPagina >= pages.length) idxPagina = pages.length - 1;
-
-                    const page = pages[idxPagina];
-                    const { width, height } = page.getSize();
-
-                    let box = anot.box_2d || anot.bounding_box || anot.box;
-                    if (!box || !Array.isArray(box) || box.length < 4) {
-                        box = [140 + ((idx % 4) * 110), 80, 230 + ((idx % 4) * 110), 920]; 
-                    }
-
-                    let [yMin, xMin, yMax, xMax] = box.map(v => parseFloat(v) || 0);
-
-                    if (yMax <= 1.0 && xMax <= 1.0 && (yMax > 0 || xMax > 0)) {
-                        yMin *= 1000; xMin *= 1000; yMax *= 1000; xMax *= 1000;
-                    }
-
-                    if (yMin > yMax) [yMin, yMax] = [yMax, yMin];
-                    if (xMin > xMax) [xMin, xMax] = [xMax, xMin];
-
-                    const rectX = Math.max((xMin / 1000) * width, 15);
-                    const rectWidth = Math.min(Math.max(((xMax - xMin) / 1000) * width, 55), width - rectX - 15);
-                    const rectHeight = Math.min(Math.max(((yMax - yMin) / 1000) * height, 30), height - 25);
-                    const rectY = Math.max(height - ((yMax / 1000) * height), 15);
-
-                    const esExito = String(anot.tipo || "").toUpperCase() === "EXITO";
-                    const colorBorde = esExito ? rgb(0.1, 0.65, 0.2) : rgb(0.85, 0.1, 0.1);
-                    const colorFondo = esExito ? rgb(0.93, 0.98, 0.94) : rgb(0.99, 0.95, 0.95);
-                    const colorTexto = esExito ? rgb(0.05, 0.45, 0.1) : rgb(0.7, 0, 0);
-
-                    page.drawRectangle({
-                        x: rectX,
-                        y: rectY,
-                        width: rectWidth,
-                        height: rectHeight,
-                        borderColor: colorBorde,
-                        borderWidth: 2,
-                    });
-
-                    if (anot.comentario) {
-                        const comentarioLimpio = sanitizarTextoPdf(anot.comentario);
-                        const fontSize = 8.0;
-                        const lineHeight = 10.5;
-                        const maxTextWidth = Math.min(300, width - rectX - 25);
-
-                        const wrapText = (text, maxW) => {
-                            const words = String(text).split(' ');
-                            const lines = [];
-                            let currentLine = '';
-
-                            words.forEach(word => {
-                                const testLine = currentLine ? `${currentLine} ${word}` : word;
-                                if (testLine.length * (fontSize * 0.50) > maxW && currentLine) {
-                                    lines.push(currentLine);
-                                    currentLine = word;
-                                } else {
-                                    currentLine = testLine;
-                                }
-                            });
-                            if (currentLine) lines.push(currentLine);
-                            return lines;
-                        };
-
-                        const textLines = wrapText(comentarioLimpio, maxTextWidth);
-                        const boxPadding = 5;
-                        const bgBoxWidth = Math.min(
-                            Math.max(...textLines.map(l => l.length * (fontSize * 0.52))) + (boxPadding * 2),
-                            maxTextWidth + (boxPadding * 2)
-                        );
-                        const bgBoxHeight = (textLines.length * lineHeight) + (boxPadding * 2);
-
-                        let textYBase = rectY + rectHeight + 3;
-                        if (textYBase + bgBoxHeight > height - 12) {
-                            textYBase = Math.max(rectY - bgBoxHeight - 3, 12);
-                        }
-
-                        const startX = Math.min(rectX, width - bgBoxWidth - 12);
-
-                        page.drawRectangle({
-                            x: startX,
-                            y: textYBase,
-                            width: bgBoxWidth,
-                            height: bgBoxHeight,
-                            color: colorFondo,
-                            borderColor: colorBorde,
-                            borderWidth: 0.8,
-                        });
-
-                        textLines.forEach((line, i) => {
-                            page.drawText(line, {
-                                x: startX + boxPadding,
-                                y: textYBase + bgBoxHeight - boxPadding - ((i + 1) * lineHeight) + 2,
-                                size: fontSize,
-                                color: colorTexto,
-                            });
-                        });
-                    }
-                });
-
-                return await pdfDoc.saveAsBase64();
-            } catch (e) {
-                console.error("CRÍTICO - Error en estamparErroresEnPDF:", e);
-                alert("Atención: Ocurrió un fallo técnico al dibujar sobre el PDF: " + e.message);
-                throw e; 
+        if (marcasAProcesar.length === 0 && Array.isArray(desglose) && desglose.length > 0) {
+            const puntosConFalla = desglose.filter(d => (parseFloat(d.puntajeObtenido) || 0) < (parseFloat(d.puntajeMaximo) || 0));
+            if (puntosConFalla.length > 0) {
+                marcasAProcesar = puntosConFalla.map((item, idx) => ({
+                    pagina: Math.min(idx + 1, pages.length),
+                    box_2d: [150 + ((idx % 4) * 100), 80, 220 + ((idx % 4) * 100), 920],
+                    tipo: "ERROR",
+                    comentario: `${item.ejercicio || 'Criterio'}: ${item.comentario || 'Observación técnica'}`
+                }));
             }
         }
+
+        if (marcasAProcesar.length === 0) {
+            marcasAProcesar = [
+                { pagina: 1, box_2d: [140, 80, 210, 920], tipo: "ERROR", comentario: "Auditoria APA 7: Verificar sangrias de 1.27 cm, margenes y fuentes." },
+                { pagina: 1, box_2d: [240, 80, 310, 920], tipo: "EXITO", comentario: "Documento digital recibido y evaluado por el sistema institucional." }
+            ];
+        }
+
+        marcasAProcesar.forEach((anot, idx) => {
+            let idxPagina = (parseInt(anot.pagina) || 1) - 1;
+            if (idxPagina < 0) idxPagina = 0;
+            if (idxPagina >= pages.length) idxPagina = pages.length - 1;
+
+            const page = pages[idxPagina];
+            const { width, height } = page.getSize();
+
+            let box = anot.box_2d || anot.bounding_box || anot.box;
+            if (!box || !Array.isArray(box) || box.length < 4) {
+                box = [140 + ((idx % 4) * 110), 80, 210 + ((idx % 4) * 110), 920]; 
+            }
+
+            let [yMin, xMin, yMax, xMax] = box.map(v => parseFloat(v) || 0);
+
+            // Normalización si los valores vinieron en escala 0.0 a 1.0 en lugar de 0 a 1000
+            if (yMax <= 1.0 && xMax <= 1.0 && (yMax > 0 || xMax > 0)) {
+                yMin *= 1000; xMin *= 1000; yMax *= 1000; xMax *= 1000;
+            }
+
+            if (yMin > yMax) [yMin, yMax] = [yMax, yMin];
+            if (xMin > xMax) [xMin, xMax] = [xMax, xMin];
+
+            // Conversión cartesiana proporcional exacta (IA Top-Left -> PDF Bottom-Left)
+            const rawX = (xMin / 1000) * width;
+            const rawW = ((xMax - xMin) / 1000) * width;
+            const rawH = ((yMax - yMin) / 1000) * height;
+            const rawY = height - ((yMax / 1000) * height);
+
+            // Dimensiones con límites suaves para evitar invasión de líneas adyacentes
+            const rectWidth = Math.max(Math.min(rawW, width - 20), 40);
+            const rectHeight = Math.max(Math.min(rawH, height - 20), 16);
+            const rectX = Math.max(8, Math.min(rawX, width - rectWidth - 8));
+            const rectY = Math.max(8, Math.min(rawY, height - rectHeight - 8));
+
+            const esExito = String(anot.tipo || "").toUpperCase() === "EXITO";
+            const colorBorde = esExito ? rgb(0.1, 0.65, 0.2) : rgb(0.85, 0.1, 0.1);
+            const colorFondo = esExito ? rgb(0.93, 0.98, 0.94) : rgb(0.99, 0.95, 0.95);
+            const colorTexto = esExito ? rgb(0.05, 0.45, 0.1) : rgb(0.7, 0, 0);
+
+            // 1. Dibuja el recuadro sobre la zona exacta
+            page.drawRectangle({
+                x: rectX,
+                y: rectY,
+                width: rectWidth,
+                height: rectHeight,
+                borderColor: colorBorde,
+                borderWidth: 1.8,
+            });
+
+            // 2. Dibuja la viñeta explicativa con ajuste adaptativo
+            if (anot.comentario) {
+                const comentarioLimpio = sanitizarTextoPdf(anot.comentario);
+                const fontSize = 7.5;
+                const lineHeight = 9.5;
+                const maxTextWidth = Math.min(260, width - rectX - 15);
+
+                const wrapText = (text, maxW) => {
+                    const words = String(text).split(' ');
+                    const lines = [];
+                    let currentLine = '';
+
+                    words.forEach(word => {
+                        const testLine = currentLine ? `${currentLine} ${word}` : word;
+                        if (testLine.length * (fontSize * 0.48) > maxW && currentLine) {
+                            lines.push(currentLine);
+                            currentLine = word;
+                        } else {
+                            currentLine = testLine;
+                        }
+                    });
+                    if (currentLine) lines.push(currentLine);
+                    return lines;
+                };
+
+                const textLines = wrapText(comentarioLimpio, maxTextWidth);
+                const boxPadding = 4;
+                const bgBoxWidth = Math.min(
+                    Math.max(...textLines.map(l => l.length * (fontSize * 0.50))) + (boxPadding * 2),
+                    maxTextWidth + (boxPadding * 2)
+                );
+                const bgBoxHeight = (textLines.length * lineHeight) + (boxPadding * 2);
+
+                // Si queda espacio hacia arriba del recuadro, lo coloca arriba; si choca con el tope, lo ubica abajo
+                let textYBase = rectY + rectHeight + 2;
+                if (textYBase + bgBoxHeight > height - 10) {
+                    textYBase = Math.max(rectY - bgBoxHeight - 2, 8);
+                }
+
+                const startX = Math.min(rectX, width - bgBoxWidth - 10);
+
+                page.drawRectangle({
+                    x: startX,
+                    y: textYBase,
+                    width: bgBoxWidth,
+                    height: bgBoxHeight,
+                    color: colorFondo,
+                    borderColor: colorBorde,
+                    borderWidth: 0.8,
+                });
+
+                textLines.forEach((line, i) => {
+                    page.drawText(line, {
+                        x: startX + boxPadding,
+                        y: textYBase + bgBoxHeight - boxPadding - ((i + 1) * lineHeight) + 2,
+                        size: fontSize,
+                        color: colorTexto,
+                    });
+                });
+            }
+        });
+
+        return await pdfDoc.saveAsBase64();
+    } catch (e) {
+        console.error("CRÍTICO - Error en estamparErroresEnPDF:", e);
+        alert("Atención: Ocurrió un fallo técnico al dibujar sobre el PDF: " + e.message);
+        throw e; 
+    }
+}
 
         function mostrarResultado(eval, urlDrive, estudiante) {
             const tbody = document.getElementById('tablaDesglose');
