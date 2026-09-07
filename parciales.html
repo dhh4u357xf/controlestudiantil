@@ -44,7 +44,7 @@
         .modalidad-radio label { font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .modalidad-radio input[type="radio"] { margin-bottom: 0; cursor: pointer; }
         
-        /* ESTILOS REFORZADOS PARA LAS CAJAS DE PORCENTAJES EN EL DESGLOSE */
+        /* Cajas compactas para porcentajes obtenidos y máximos */
         .box-puntos-flex {
             display: inline-flex;
             align-items: center;
@@ -106,36 +106,29 @@
                 </label>
             </div>
 
-            <!-- CONTENEDOR DE INTEGRANTES -->
+            <!-- CONTENEDOR DE INTEGRANTES CON BUSCADOR DINÁMICO -->
             <div id="contenedorIntegrantes">
                 <label id="labelEstudiante1" for="selectEstudiante1">Estudiante:</label>
-                <select id="selectEstudiante1">
-                    <option value="">-- Selecciona una asignatura primero --</option>
-                </select>
+                <input type="text" id="selectEstudiante1" list="listaSugerenciasEstudiantes" placeholder="-- Selecciona una asignatura primero --" autocomplete="off">
 
                 <!-- Integrantes 2 a 5 para trabajos grupales -->
                 <div id="grupoIntegrantesAdicionales" style="display: none;">
                     <label for="selectEstudiante2">Integrante 2:</label>
-                    <select id="selectEstudiante2">
-                        <option value="">-- Opcional (Selecciona Integrante 2) --</option>
-                    </select>
+                    <input type="text" id="selectEstudiante2" list="listaSugerenciasEstudiantes" placeholder="Escribe o busca Integrante 2 (Opcional)..." autocomplete="off">
 
                     <label for="selectEstudiante3">Integrante 3:</label>
-                    <select id="selectEstudiante3">
-                        <option value="">-- Opcional (Selecciona Integrante 3) --</option>
-                    </select>
+                    <input type="text" id="selectEstudiante3" list="listaSugerenciasEstudiantes" placeholder="Escribe o busca Integrante 3 (Opcional)..." autocomplete="off">
 
                     <label for="selectEstudiante4">Integrante 4:</label>
-                    <select id="selectEstudiante4">
-                        <option value="">-- Opcional (Selecciona Integrante 4) --</option>
-                    </select>
+                    <input type="text" id="selectEstudiante4" list="listaSugerenciasEstudiantes" placeholder="Escribe o busca Integrante 4 (Opcional)..." autocomplete="off">
 
                     <label for="selectEstudiante5">Integrante 5:</label>
-                    <select id="selectEstudiante5">
-                        <option value="">-- Opcional (Selecciona Integrante 5) --</option>
-                    </select>
+                    <input type="text" id="selectEstudiante5" list="listaSugerenciasEstudiantes" placeholder="Escribe o busca Integrante 5 (Opcional)..." autocomplete="off">
                 </div>
             </div>
+
+            <!-- Datalist global para sugerencias -->
+            <datalist id="listaSugerenciasEstudiantes"></datalist>
 
             <label for="selectActividad">Actividad a Calificar:</label>
             <select id="selectActividad" onchange="sincronizarParametrosDocente()">
@@ -311,6 +304,7 @@
 
         let evaluacionActual = null;
         let urlDriveActual = "";
+        let listaEstudiantesGlobalEvaluador = [];
 
         document.addEventListener('DOMContentLoaded', function() {
             cargarAsignaturas();
@@ -362,7 +356,8 @@
                 grupoAdicionales.style.display = 'none';
                 label1.textContent = 'Estudiante:';
                 for (let i = 2; i <= 5; i++) {
-                    document.getElementById(`selectEstudiante${i}`).value = "";
+                    const el = document.getElementById(`selectEstudiante${i}`);
+                    if (el) el.value = "";
                 }
             }
         }
@@ -401,14 +396,26 @@
                 document.getElementById('selectEstudiante5')
             ];
 
+            let datalist = document.getElementById('listaSugerenciasEstudiantes');
+            if (!datalist) {
+                datalist = document.createElement('datalist');
+                datalist.id = 'listaSugerenciasEstudiantes';
+                document.body.appendChild(datalist);
+            }
+
             if (!idAsignatura) {
+                listaEstudiantesGlobalEvaluador = [];
+                datalist.innerHTML = '';
                 selects.forEach(s => {
-                    s.innerHTML = `<option value="">-- Selecciona una asignatura primero --</option>`;
+                    if (s) {
+                        s.value = '';
+                        s.placeholder = '-- Selecciona una asignatura primero --';
+                    }
                 });
                 return;
             }
 
-            selects[0].innerHTML = '<option value="">Cargando estudiantes matriculados...</option>';
+            selects[0].placeholder = 'Cargando estudiantes matriculados...';
 
             try {
                 const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
@@ -423,19 +430,34 @@
                 const data = await response.json();
 
                 if (data.ok && data.estudiantes && data.estudiantes.length > 0) {
+                    listaEstudiantesGlobalEvaluador = data.estudiantes;
+                    datalist.innerHTML = '';
+                    data.estudiantes.forEach(e => {
+                        datalist.innerHTML += `<option value="${e.nombre} (${e.documento})"></option>`;
+                    });
+
                     selects.forEach((sel, idx) => {
-                        const esOpcional = idx > 0 ? " (Opcional)" : "";
-                        sel.innerHTML = `<option value="">-- Selecciona Integrante ${idx + 1}${esOpcional} --</option>`;
-                        data.estudiantes.forEach(e => {
-                            sel.innerHTML += `<option value="${e.id}" data-nombre="${e.nombre}">${e.nombre} (${e.documento})</option>`;
-                        });
+                        if (sel) {
+                            const esOpcional = idx > 0 ? " (Opcional)" : "";
+                            sel.value = '';
+                            sel.placeholder = `Escribe o busca Integrante ${idx + 1}${esOpcional}...`;
+                        }
                     });
                 } else {
-                    selects.forEach(s => s.innerHTML = '<option value="">No hay estudiantes inscritos en esta materia</option>');
+                    listaEstudiantesGlobalEvaluador = [];
+                    datalist.innerHTML = '';
+                    selects.forEach(s => {
+                        if (s) {
+                            s.value = '';
+                            s.placeholder = 'No hay estudiantes inscritos en esta materia';
+                        }
+                    });
                 }
             } catch (error) {
                 console.error('Error al cargar estudiantes:', error);
-                selects.forEach(s => s.innerHTML = '<option value="">Error al cargar la lista</option>');
+                selects.forEach(s => {
+                    if (s) s.placeholder = 'Error al cargar la lista';
+                });
             }
         }
 
@@ -445,14 +467,21 @@
 
             for (let i = 1; i <= 5; i++) {
                 const sel = document.getElementById(`selectEstudiante${i}`);
-                const id = sel.value;
-                if (id && !idsVistos.has(id)) {
-                    idsVistos.add(id);
-                    const opt = sel.options[sel.selectedIndex];
-                    integrantes.push({
-                        id: id,
-                        nombre: opt.getAttribute('data-nombre') || opt.text
-                    });
+                if (!sel) continue;
+
+                const textoIngresado = (sel.value || "").trim().toLowerCase();
+                if (!textoIngresado) continue;
+
+                const est = listaEstudiantesGlobalEvaluador.find(e => {
+                    const nomDoc = `${e.nombre} (${e.documento})`.toLowerCase();
+                    return nomDoc.includes(textoIngresado) || 
+                           e.nombre.toLowerCase().includes(textoIngresado) || 
+                           String(e.documento).includes(textoIngresado);
+                });
+
+                if (est && !idsVistos.has(est.id)) {
+                    idsVistos.add(est.id);
+                    integrantes.push({ id: est.id, nombre: est.nombre });
                 }
             }
             return integrantes;
@@ -602,168 +631,164 @@
         }
 
         async function estamparErroresEnPDF(pdfBytesBuffer, anotaciones, aspectosAMejorar = [], desglose = []) {
-    try {
-        if (typeof PDFLib === 'undefined') {
-            throw new Error("PDFLib no está cargado en el documento HTML.");
-        }
-
-        const { PDFDocument, rgb } = PDFLib;
-        const pdfDoc = await PDFDocument.load(pdfBytesBuffer);
-        const pages = pdfDoc.getPages();
-
-        if (!pages || pages.length === 0) {
-            throw new Error("El PDF no contiene páginas legibles.");
-        }
-
-        let marcasAProcesar = Array.isArray(anotaciones) ? anotaciones.filter(a => a && (a.comentario || a.box_2d)) : [];
-
-        if (marcasAProcesar.length === 0 && Array.isArray(aspectosAMejorar) && aspectosAMejorar.length > 0) {
-            marcasAProcesar = aspectosAMejorar.map((mejora, idx) => ({
-                pagina: Math.min(idx + 1, pages.length),
-                box_2d: [140 + ((idx % 4) * 110), 80, 210 + ((idx % 4) * 110), 920],
-                tipo: "ERROR",
-                comentario: mejora
-            }));
-        }
-
-        if (marcasAProcesar.length === 0 && Array.isArray(desglose) && desglose.length > 0) {
-            const puntosConFalla = desglose.filter(d => (parseFloat(d.puntajeObtenido) || 0) < (parseFloat(d.puntajeMaximo) || 0));
-            if (puntosConFalla.length > 0) {
-                marcasAProcesar = puntosConFalla.map((item, idx) => ({
-                    pagina: Math.min(idx + 1, pages.length),
-                    box_2d: [150 + ((idx % 4) * 100), 80, 220 + ((idx % 4) * 100), 920],
-                    tipo: "ERROR",
-                    comentario: `${item.ejercicio || 'Criterio'}: ${item.comentario || 'Observación técnica'}`
-                }));
-            }
-        }
-
-        if (marcasAProcesar.length === 0) {
-            marcasAProcesar = [
-                { pagina: 1, box_2d: [140, 80, 210, 920], tipo: "ERROR", comentario: "Auditoria APA 7: Verificar sangrias de 1.27 cm, margenes y fuentes." },
-                { pagina: 1, box_2d: [240, 80, 310, 920], tipo: "EXITO", comentario: "Documento digital recibido y evaluado por el sistema institucional." }
-            ];
-        }
-
-        marcasAProcesar.forEach((anot, idx) => {
-            let idxPagina = (parseInt(anot.pagina) || 1) - 1;
-            if (idxPagina < 0) idxPagina = 0;
-            if (idxPagina >= pages.length) idxPagina = pages.length - 1;
-
-            const page = pages[idxPagina];
-            const { width, height } = page.getSize();
-
-            let box = anot.box_2d || anot.bounding_box || anot.box;
-            if (!box || !Array.isArray(box) || box.length < 4) {
-                box = [140 + ((idx % 4) * 110), 80, 210 + ((idx % 4) * 110), 920]; 
-            }
-
-            let [yMin, xMin, yMax, xMax] = box.map(v => parseFloat(v) || 0);
-
-            // Normalización si los valores vinieron en escala 0.0 a 1.0 en lugar de 0 a 1000
-            if (yMax <= 1.0 && xMax <= 1.0 && (yMax > 0 || xMax > 0)) {
-                yMin *= 1000; xMin *= 1000; yMax *= 1000; xMax *= 1000;
-            }
-
-            if (yMin > yMax) [yMin, yMax] = [yMax, yMin];
-            if (xMin > xMax) [xMin, xMax] = [xMax, xMin];
-
-            // Conversión cartesiana proporcional exacta (IA Top-Left -> PDF Bottom-Left)
-            const rawX = (xMin / 1000) * width;
-            const rawW = ((xMax - xMin) / 1000) * width;
-            const rawH = ((yMax - yMin) / 1000) * height;
-            const rawY = height - ((yMax / 1000) * height);
-
-            // Dimensiones con límites suaves para evitar invasión de líneas adyacentes
-            const rectWidth = Math.max(Math.min(rawW, width - 20), 40);
-            const rectHeight = Math.max(Math.min(rawH, height - 20), 16);
-            const rectX = Math.max(8, Math.min(rawX, width - rectWidth - 8));
-            const rectY = Math.max(8, Math.min(rawY, height - rectHeight - 8));
-
-            const esExito = String(anot.tipo || "").toUpperCase() === "EXITO";
-            const colorBorde = esExito ? rgb(0.1, 0.65, 0.2) : rgb(0.85, 0.1, 0.1);
-            const colorFondo = esExito ? rgb(0.93, 0.98, 0.94) : rgb(0.99, 0.95, 0.95);
-            const colorTexto = esExito ? rgb(0.05, 0.45, 0.1) : rgb(0.7, 0, 0);
-
-            // 1. Dibuja el recuadro sobre la zona exacta
-            page.drawRectangle({
-                x: rectX,
-                y: rectY,
-                width: rectWidth,
-                height: rectHeight,
-                borderColor: colorBorde,
-                borderWidth: 1.8,
-            });
-
-            // 2. Dibuja la viñeta explicativa con ajuste adaptativo
-            if (anot.comentario) {
-                const comentarioLimpio = sanitizarTextoPdf(anot.comentario);
-                const fontSize = 7.5;
-                const lineHeight = 9.5;
-                const maxTextWidth = Math.min(260, width - rectX - 15);
-
-                const wrapText = (text, maxW) => {
-                    const words = String(text).split(' ');
-                    const lines = [];
-                    let currentLine = '';
-
-                    words.forEach(word => {
-                        const testLine = currentLine ? `${currentLine} ${word}` : word;
-                        if (testLine.length * (fontSize * 0.48) > maxW && currentLine) {
-                            lines.push(currentLine);
-                            currentLine = word;
-                        } else {
-                            currentLine = testLine;
-                        }
-                    });
-                    if (currentLine) lines.push(currentLine);
-                    return lines;
-                };
-
-                const textLines = wrapText(comentarioLimpio, maxTextWidth);
-                const boxPadding = 4;
-                const bgBoxWidth = Math.min(
-                    Math.max(...textLines.map(l => l.length * (fontSize * 0.50))) + (boxPadding * 2),
-                    maxTextWidth + (boxPadding * 2)
-                );
-                const bgBoxHeight = (textLines.length * lineHeight) + (boxPadding * 2);
-
-                // Si queda espacio hacia arriba del recuadro, lo coloca arriba; si choca con el tope, lo ubica abajo
-                let textYBase = rectY + rectHeight + 2;
-                if (textYBase + bgBoxHeight > height - 10) {
-                    textYBase = Math.max(rectY - bgBoxHeight - 2, 8);
+            try {
+                if (typeof PDFLib === 'undefined') {
+                    throw new Error("PDFLib no está cargado en el documento HTML.");
                 }
 
-                const startX = Math.min(rectX, width - bgBoxWidth - 10);
+                const { PDFDocument, rgb } = PDFLib;
+                const pdfDoc = await PDFDocument.load(pdfBytesBuffer);
+                const pages = pdfDoc.getPages();
 
-                page.drawRectangle({
-                    x: startX,
-                    y: textYBase,
-                    width: bgBoxWidth,
-                    height: bgBoxHeight,
-                    color: colorFondo,
-                    borderColor: colorBorde,
-                    borderWidth: 0.8,
-                });
+                if (!pages || pages.length === 0) {
+                    throw new Error("El PDF no contiene páginas legibles.");
+                }
 
-                textLines.forEach((line, i) => {
-                    page.drawText(line, {
-                        x: startX + boxPadding,
-                        y: textYBase + bgBoxHeight - boxPadding - ((i + 1) * lineHeight) + 2,
-                        size: fontSize,
-                        color: colorTexto,
+                let marcasAProcesar = Array.isArray(anotaciones) ? anotaciones.filter(a => a && (a.comentario || a.box_2d)) : [];
+
+                if (marcasAProcesar.length === 0 && Array.isArray(aspectosAMejorar) && aspectosAMejorar.length > 0) {
+                    marcasAProcesar = aspectosAMejorar.map((mejora, idx) => ({
+                        pagina: Math.min(idx + 1, pages.length),
+                        box_2d: [140 + ((idx % 4) * 110), 80, 210 + ((idx % 4) * 110), 920],
+                        tipo: "ERROR",
+                        comentario: mejora
+                    }));
+                }
+
+                if (marcasAProcesar.length === 0 && Array.isArray(desglose) && desglose.length > 0) {
+                    const puntosConFalla = desglose.filter(d => (parseFloat(d.puntajeObtenido) || 0) < (parseFloat(d.puntajeMaximo) || 0));
+                    if (puntosConFalla.length > 0) {
+                        marcasAProcesar = puntosConFalla.map((item, idx) => ({
+                            pagina: Math.min(idx + 1, pages.length),
+                            box_2d: [150 + ((idx % 4) * 100), 80, 220 + ((idx % 4) * 100), 920],
+                            tipo: "ERROR",
+                            comentario: `${item.ejercicio || 'Criterio'}: ${item.comentario || 'Observación técnica'}`
+                        }));
+                    }
+                }
+
+                if (marcasAProcesar.length === 0) {
+                    marcasAProcesar = [
+                        { pagina: 1, box_2d: [140, 80, 210, 920], tipo: "ERROR", comentario: "Auditoria APA 7: Verificar sangrias de 1.27 cm, margenes y fuentes." },
+                        { pagina: 1, box_2d: [240, 80, 310, 920], tipo: "EXITO", comentario: "Documento digital recibido y evaluado por el sistema institucional." }
+                    ];
+                }
+
+                marcasAProcesar.forEach((anot, idx) => {
+                    let numPagina = parseInt(anot.pagina) || 1;
+                    let idxPagina = numPagina - 1;
+                    if (idxPagina < 0) idxPagina = 0;
+                    if (idxPagina >= pages.length) idxPagina = pages.length - 1;
+
+                    const page = pages[idxPagina];
+                    const { width, height } = page.getSize();
+
+                    let box = anot.box_2d || anot.bounding_box || anot.box;
+                    if (!box || !Array.isArray(box) || box.length < 4) {
+                        box = [140 + ((idx % 4) * 110), 80, 210 + ((idx % 4) * 110), 920]; 
+                    }
+
+                    let [yMin, xMin, yMax, xMax] = box.map(v => parseFloat(v) || 0);
+
+                    if (yMax <= 1.0 && xMax <= 1.0 && (yMax > 0 || xMax > 0)) {
+                        yMin *= 1000; xMin *= 1000; yMax *= 1000; xMax *= 1000;
+                    }
+
+                    if (yMin > yMax) [yMin, yMax] = [yMax, yMin];
+                    if (xMin > xMax) [xMin, xMax] = [xMax, xMin];
+
+                    // Conversión exacta top-left de IA a bottom-left de PDF-LIB
+                    const rawX = (xMin / 1000) * width;
+                    const rawW = ((xMax - xMin) / 1000) * width;
+                    const rawH = ((yMax - yMin) / 1000) * height;
+                    const rawY = height - ((yMax / 1000) * height);
+
+                    const rectWidth = Math.max(Math.min(rawW, width - 20), 40);
+                    const rectHeight = Math.max(Math.min(rawH, height - 20), 16);
+                    const rectX = Math.max(8, Math.min(rawX, width - rectWidth - 8));
+                    const rectY = Math.max(8, Math.min(rawY, height - rectHeight - 8));
+
+                    const esExito = String(anot.tipo || "").toUpperCase() === "EXITO";
+                    const colorBorde = esExito ? rgb(0.1, 0.65, 0.2) : rgb(0.85, 0.1, 0.1);
+                    const colorFondo = esExito ? rgb(0.93, 0.98, 0.94) : rgb(0.99, 0.95, 0.95);
+                    const colorTexto = esExito ? rgb(0.05, 0.45, 0.1) : rgb(0.7, 0, 0);
+
+                    page.drawRectangle({
+                        x: rectX,
+                        y: rectY,
+                        width: rectWidth,
+                        height: rectHeight,
+                        borderColor: colorBorde,
+                        borderWidth: 1.8,
                     });
-                });
-            }
-        });
 
-        return await pdfDoc.saveAsBase64();
-    } catch (e) {
-        console.error("CRÍTICO - Error en estamparErroresEnPDF:", e);
-        alert("Atención: Ocurrió un fallo técnico al dibujar sobre el PDF: " + e.message);
-        throw e; 
-    }
-}
+                    if (anot.comentario) {
+                        const comentarioLimpio = sanitizarTextoPdf(anot.comentario);
+                        const fontSize = 7.5;
+                        const lineHeight = 9.5;
+                        const maxTextWidth = Math.min(260, width - rectX - 15);
+
+                        const wrapText = (text, maxW) => {
+                            const words = String(text).split(' ');
+                            const lines = [];
+                            let currentLine = '';
+
+                            words.forEach(word => {
+                                const testLine = currentLine ? `${currentLine} ${word}` : word;
+                                if (testLine.length * (fontSize * 0.48) > maxW && currentLine) {
+                                    lines.push(currentLine);
+                                    currentLine = word;
+                                } else {
+                                    currentLine = testLine;
+                                }
+                            });
+                            if (currentLine) lines.push(currentLine);
+                            return lines;
+                        };
+
+                        const textLines = wrapText(comentarioLimpio, maxTextWidth);
+                        const boxPadding = 4;
+                        const bgBoxWidth = Math.min(
+                            Math.max(...textLines.map(l => l.length * (fontSize * 0.50))) + (boxPadding * 2),
+                            maxTextWidth + (boxPadding * 2)
+                        );
+                        const bgBoxHeight = (textLines.length * lineHeight) + (boxPadding * 2);
+
+                        let textYBase = rectY + rectHeight + 2;
+                        if (textYBase + bgBoxHeight > height - 10) {
+                            textYBase = Math.max(rectY - bgBoxHeight - 2, 8);
+                        }
+
+                        const startX = Math.min(rectX, width - bgBoxWidth - 10);
+
+                        page.drawRectangle({
+                            x: startX,
+                            y: textYBase,
+                            width: bgBoxWidth,
+                            height: bgBoxHeight,
+                            color: colorFondo,
+                            borderColor: colorBorde,
+                            borderWidth: 0.8,
+                        });
+
+                        textLines.forEach((line, i) => {
+                            page.drawText(line, {
+                                x: startX + boxPadding,
+                                y: textYBase + bgBoxHeight - boxPadding - ((i + 1) * lineHeight) + 2,
+                                size: fontSize,
+                                color: colorTexto,
+                            });
+                        });
+                    }
+                });
+
+                return await pdfDoc.saveAsBase64();
+            } catch (e) {
+                console.error("CRÍTICO - Error en estamparErroresEnPDF:", e);
+                alert("Atención: Ocurrió un fallo técnico al dibujar sobre el PDF: " + e.message);
+                throw e; 
+            }
+        }
 
         function mostrarResultado(eval, urlDrive, estudiante) {
             const tbody = document.getElementById('tablaDesglose');
@@ -835,7 +860,6 @@
             document.getElementById('detalleEvaluacion').style.display = 'block';
         }
 
-        // Función para recalcular puntajes modificados en la tabla (tanto obtenidos como máximos)
         function recalcularNotaDesdeDesglose() {
             if (!evaluacionActual || !evaluacionActual.desglose) return;
 
@@ -853,7 +877,7 @@
 
                 if (valObt < 0) valObt = 0;
                 if (valMax < 0) valMax = 0;
-                if (valMax > 0 && valObt > valMax) valObt = valMax; // Evita que obtenido supere al máximo asignado
+                if (valMax > 0 && valObt > valMax) valObt = valMax;
 
                 inpObt.value = valObt;
                 inpMax.value = valMax;
