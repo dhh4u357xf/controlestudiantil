@@ -28,9 +28,11 @@
         .score-box { background: #f8f5fc; border: 2px solid #4A1C6B; border-radius: 10px; padding: 15px; text-align: center; margin-bottom: 18px; }
         .score-number { font-size: 42px; font-weight: 800; color: #4A1C6B; }
         .summary-text { font-size: 14px; line-height: 1.5; color: #555; margin-bottom: 16px; background: #fafafa; padding: 12px; border-radius: 8px; border-left: 4px solid #F4A300; }
+        
         table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px; }
         th { background: #f1ebf7; color: #4A1C6B; padding: 8px; text-align: left; }
-        td { padding: 8px; border-bottom: 1px solid #eee; }
+        td { padding: 8px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        
         .badge-list { list-style: none; padding: 0; margin-bottom: 14px; }
         .badge-list li { font-size: 13px; padding: 6px 10px; border-radius: 6px; margin-bottom: 6px; }
         .fortalezas li { background: #e8f5e9; color: #2e7d32; }
@@ -42,20 +44,30 @@
         .modalidad-radio label { font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .modalidad-radio input[type="radio"] { margin-bottom: 0; cursor: pointer; }
         
-        /* Estilos específicos para los inputs de edición en el desglose */
+        /* ESTILOS REFORZADOS PARA LAS CAJAS DE PORCENTAJES EN EL DESGLOSE */
+        .box-puntos-flex {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
         .input-desglose-num {
-            width: 58px;
-            display: inline-block;
-            padding: 4px 5px;
-            margin-bottom: 0;
+            width: 44px !important;
+            height: 30px;
+            padding: 2px 4px !important;
+            margin: 0 !important;
             text-align: center;
             border: 1.5px solid #4A1C6B;
             border-radius: 6px;
             font-weight: bold;
-            font-size: 13px;
+            font-size: 12px;
+            background: #fff;
+            outline: none;
         }
-        .input-desglose-obt { color: #4A1C6B; }
-        .input-desglose-max { color: #555; border-color: #bbb; }
+        .input-desglose-obt { color: #4A1C6B; border-color: #4A1C6B; }
+        .input-desglose-max { color: #555; border-color: #bbb; background: #fdfdfd; }
+        .separador-puntos { font-weight: bold; color: #777; font-size: 12px; margin: 0 1px; }
 
         /* Caja de Registro en Base de Datos Docente */
         .registro-sistema-box { background: #f0f7ff; border: 1.5px solid #b3d7ff; border-radius: 10px; padding: 16px; margin-top: 20px; }
@@ -186,16 +198,19 @@
                     <h4 style="margin: 0;">Desglose por Ejercicio:</h4>
                     <button type="button" class="btn" style="width: auto; padding: 6px 14px; font-size: 12px; background: #4A1C6B;" onclick="recalcularNotaDesdeDesglose()">🔄 Recalcular Nota</button>
                 </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Ejercicio</th>
-                            <th style="text-align: center; width: 175px;">Puntos (%) [Obt / Máx]</th>
-                            <th>Observaciones de cercanía</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tablaDesglose"></tbody>
-                </table>
+                
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Ejercicio</th>
+                                <th style="text-align: center; width: 155px; min-width: 155px; white-space: nowrap;">Puntos (%)</th>
+                                <th>Observaciones de cercanía</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaDesglose"></tbody>
+                    </table>
+                </div>
 
                 <h4 style="color: #2e7d32; font-size: 13px; margin-top: 10px;">✅ Fortalezas:</h4>
                 <ul class="badge-list fortalezas" id="listaFortalezas"></ul>
@@ -514,7 +529,6 @@
                 console.log("3. Respuesta recibida del servidor:", data);
 
                 if (data.ok && data.evaluacion) {
-                    // Recálculo determinista de la nota
                     if (data.evaluacion.desglose && Array.isArray(data.evaluacion.desglose) && data.evaluacion.desglose.length > 0) {
                         let totalObt = 0;
                         let totalMax = 0;
@@ -604,7 +618,6 @@
                 let marcasAProcesar = Array.isArray(anotaciones) ? anotaciones.filter(a => a && (a.comentario || a.box_2d)) : [];
 
                 if (marcasAProcesar.length === 0 && Array.isArray(aspectosAMejorar) && aspectosAMejorar.length > 0) {
-                    console.warn("Mapeando recuadros a partir de 'aspectosAMejorar'...");
                     marcasAProcesar = aspectosAMejorar.map((mejora, idx) => ({
                         pagina: Math.min(idx + 1, pages.length),
                         box_2d: [140 + ((idx % 4) * 110), 80, 230 + ((idx % 4) * 110), 920],
@@ -759,8 +772,11 @@
                         <tr>
                             <td><strong>${item.ejercicio || 'Criterio'}</strong></td>
                             <td style="text-align: center; white-space: nowrap;">
-                                <input type="number" class="input-desglose-num input-desglose-obt" data-index="${idx}" value="${ob}" min="0" step="0.1" title="Porcentaje obtenido"> % / 
-                                <input type="number" class="input-desglose-num input-desglose-max" data-index="${idx}" value="${mx}" min="0" step="0.1" title="Porcentaje máximo del criterio"> %
+                                <div class="box-puntos-flex">
+                                    <input type="number" class="input-desglose-num input-desglose-obt" data-index="${idx}" value="${ob}" min="0" step="0.1" title="Porcentaje obtenido">%
+                                    <span class="separador-puntos">/</span>
+                                    <input type="number" class="input-desglose-num input-desglose-max" data-index="${idx}" value="${mx}" min="0" step="0.1" title="Porcentaje máximo del criterio">%
+                                </div>
                             </td>
                             <td>${item.comentario || ''}</td>
                         </tr>
@@ -783,7 +799,7 @@
                 tbody.innerHTML += `
                     <tr id="filaTotalDesglose" style="background-color: #f8f5fc; font-weight: bold; border-top: 2px solid #4A1C6B;">
                         <td><strong>TOTAL PORCENTAJES ACUMULADOS</strong></td>
-                        <td id="txtTotalPuntajes" style="text-align: center; color: #4A1C6B; font-size: 14px;">${sumaObtenida.toFixed(2)}% / ${sumaMaxima.toFixed(2)}%</td>
+                        <td id="txtTotalPuntajes" style="text-align: center; color: #4A1C6B; font-size: 14px; white-space: nowrap;">${sumaObtenida.toFixed(2)}% / ${sumaMaxima.toFixed(2)}%</td>
                         <td id="txtEquivalenciaNota" style="color: #666; font-size: 12px;">Equivalente a una nota final de <strong>${notaFormateada} / 5.0</strong></td>
                     </tr>
                 `;
