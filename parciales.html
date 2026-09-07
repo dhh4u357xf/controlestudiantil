@@ -69,6 +69,15 @@
         .input-desglose-max { color: #555; border-color: #bbb; background: #fdfdfd; }
         .separador-puntos { font-weight: bold; color: #777; font-size: 12px; margin: 0 1px; }
 
+        /* Estilo de inputs de filtro */
+        .input-filtro-estudiante {
+            padding: 7px 10px !important;
+            font-size: 12px !important;
+            margin-bottom: 6px !important;
+            border-color: #c9b6db !important;
+            background-color: #faf7fc;
+        }
+
         /* Caja de Registro en Base de Datos Docente */
         .registro-sistema-box { background: #f0f7ff; border: 1.5px solid #b3d7ff; border-radius: 10px; padding: 16px; margin-top: 20px; }
         .registro-sistema-box h4 { font-size: 14px; color: #004d99; margin-bottom: 10px; }
@@ -106,29 +115,41 @@
                 </label>
             </div>
 
-            <!-- CONTENEDOR DE INTEGRANTES CON BUSCADOR DINÁMICO -->
+            <!-- CONTENEDOR DE INTEGRANTES CON BUSCADOR EN VIVO Y SELECT -->
             <div id="contenedorIntegrantes">
-                <label id="labelEstudiante1" for="selectEstudiante1">Estudiante:</label>
-                <input type="text" id="selectEstudiante1" list="listaSugerenciasEstudiantes" placeholder="-- Selecciona una asignatura primero --" autocomplete="off">
+                <label id="labelEstudiante1" for="selectEstudiante1">Estudiante Principal:</label>
+                <input type="text" id="filtroEstudiante1" class="input-filtro-estudiante" placeholder="🔍 Escribe para filtrar estudiante 1..." oninput="filtrarSelectEstudiantes(1)">
+                <select id="selectEstudiante1">
+                    <option value="">-- Selecciona una asignatura primero --</option>
+                </select>
 
                 <!-- Integrantes 2 a 5 para trabajos grupales -->
                 <div id="grupoIntegrantesAdicionales" style="display: none;">
                     <label for="selectEstudiante2">Integrante 2:</label>
-                    <input type="text" id="selectEstudiante2" list="listaSugerenciasEstudiantes" placeholder="Escribe o busca Integrante 2 (Opcional)..." autocomplete="off">
+                    <input type="text" id="filtroEstudiante2" class="input-filtro-estudiante" placeholder="🔍 Escribe para filtrar integrante 2..." oninput="filtrarSelectEstudiantes(2)">
+                    <select id="selectEstudiante2">
+                        <option value="">-- Opcional (Selecciona Integrante 2) --</option>
+                    </select>
 
                     <label for="selectEstudiante3">Integrante 3:</label>
-                    <input type="text" id="selectEstudiante3" list="listaSugerenciasEstudiantes" placeholder="Escribe o busca Integrante 3 (Opcional)..." autocomplete="off">
+                    <input type="text" id="filtroEstudiante3" class="input-filtro-estudiante" placeholder="🔍 Escribe para filtrar integrante 3..." oninput="filtrarSelectEstudiantes(3)">
+                    <select id="selectEstudiante3">
+                        <option value="">-- Opcional (Selecciona Integrante 3) --</option>
+                    </select>
 
                     <label for="selectEstudiante4">Integrante 4:</label>
-                    <input type="text" id="selectEstudiante4" list="listaSugerenciasEstudiantes" placeholder="Escribe o busca Integrante 4 (Opcional)..." autocomplete="off">
+                    <input type="text" id="filtroEstudiante4" class="input-filtro-estudiante" placeholder="🔍 Escribe para filtrar integrante 4..." oninput="filtrarSelectEstudiantes(4)">
+                    <select id="selectEstudiante4">
+                        <option value="">-- Opcional (Selecciona Integrante 4) --</option>
+                    </select>
 
                     <label for="selectEstudiante5">Integrante 5:</label>
-                    <input type="text" id="selectEstudiante5" list="listaSugerenciasEstudiantes" placeholder="Escribe o busca Integrante 5 (Opcional)..." autocomplete="off">
+                    <input type="text" id="filtroEstudiante5" class="input-filtro-estudiante" placeholder="🔍 Escribe para filtrar integrante 5..." oninput="filtrarSelectEstudiantes(5)">
+                    <select id="selectEstudiante5">
+                        <option value="">-- Opcional (Selecciona Integrante 5) --</option>
+                    </select>
                 </div>
             </div>
-
-            <!-- Datalist global para sugerencias -->
-            <datalist id="listaSugerenciasEstudiantes"></datalist>
 
             <label for="selectActividad">Actividad a Calificar:</label>
             <select id="selectActividad" onchange="sincronizarParametrosDocente()">
@@ -354,10 +375,12 @@
                 label1.textContent = 'Integrante 1 (Principal):';
             } else {
                 grupoAdicionales.style.display = 'none';
-                label1.textContent = 'Estudiante:';
+                label1.textContent = 'Estudiante Principal:';
                 for (let i = 2; i <= 5; i++) {
                     const el = document.getElementById(`selectEstudiante${i}`);
+                    const inp = document.getElementById(`filtroEstudiante${i}`);
                     if (el) el.value = "";
+                    if (inp) inp.value = "";
                 }
             }
         }
@@ -388,34 +411,20 @@
 
         async function cargarEstudiantesPorMateria() {
             const idAsignatura = document.getElementById('selectMateria').value;
-            const selects = [
-                document.getElementById('selectEstudiante1'),
-                document.getElementById('selectEstudiante2'),
-                document.getElementById('selectEstudiante3'),
-                document.getElementById('selectEstudiante4'),
-                document.getElementById('selectEstudiante5')
-            ];
 
-            let datalist = document.getElementById('listaSugerenciasEstudiantes');
-            if (!datalist) {
-                datalist = document.createElement('datalist');
-                datalist.id = 'listaSugerenciasEstudiantes';
-                document.body.appendChild(datalist);
+            for (let i = 1; i <= 5; i++) {
+                const sel = document.getElementById(`selectEstudiante${i}`);
+                const inp = document.getElementById(`filtroEstudiante${i}`);
+                if (inp) inp.value = "";
+                if (sel) sel.innerHTML = `<option value="">-- Selecciona una asignatura primero --</option>`;
             }
 
             if (!idAsignatura) {
                 listaEstudiantesGlobalEvaluador = [];
-                datalist.innerHTML = '';
-                selects.forEach(s => {
-                    if (s) {
-                        s.value = '';
-                        s.placeholder = '-- Selecciona una asignatura primero --';
-                    }
-                });
                 return;
             }
 
-            selects[0].placeholder = 'Cargando estudiantes matriculados...';
+            document.getElementById('selectEstudiante1').innerHTML = '<option value="">Cargando estudiantes matriculados...</option>';
 
             try {
                 const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
@@ -431,33 +440,44 @@
 
                 if (data.ok && data.estudiantes && data.estudiantes.length > 0) {
                     listaEstudiantesGlobalEvaluador = data.estudiantes;
-                    datalist.innerHTML = '';
-                    data.estudiantes.forEach(e => {
-                        datalist.innerHTML += `<option value="${e.nombre} (${e.documento})"></option>`;
-                    });
-
-                    selects.forEach((sel, idx) => {
-                        if (sel) {
-                            const esOpcional = idx > 0 ? " (Opcional)" : "";
-                            sel.value = '';
-                            sel.placeholder = `Escribe o busca Integrante ${idx + 1}${esOpcional}...`;
-                        }
-                    });
+                    for (let i = 1; i <= 5; i++) {
+                        poblarSelectEstudiante(i, listaEstudiantesGlobalEvaluador);
+                    }
                 } else {
                     listaEstudiantesGlobalEvaluador = [];
-                    datalist.innerHTML = '';
-                    selects.forEach(s => {
-                        if (s) {
-                            s.value = '';
-                            s.placeholder = 'No hay estudiantes inscritos en esta materia';
-                        }
-                    });
+                    for (let i = 1; i <= 5; i++) {
+                        document.getElementById(`selectEstudiante${i}`).innerHTML = '<option value="">No hay estudiantes inscritos en esta materia</option>';
+                    }
                 }
             } catch (error) {
                 console.error('Error al cargar estudiantes:', error);
-                selects.forEach(s => {
-                    if (s) s.placeholder = 'Error al cargar la lista';
-                });
+                for (let i = 1; i <= 5; i++) {
+                    document.getElementById(`selectEstudiante${i}`).innerHTML = '<option value="">Error al cargar la lista</option>';
+                }
+            }
+        }
+
+        function poblarSelectEstudiante(num, lista) {
+            const sel = document.getElementById(`selectEstudiante${num}`);
+            if (!sel) return;
+            const esOpcional = num > 1 ? " (Opcional)" : "";
+            sel.innerHTML = `<option value="">-- Selecciona Integrante ${num}${esOpcional} (${lista.length}) --</option>`;
+            lista.forEach(e => {
+                sel.innerHTML += `<option value="${e.id}" data-nombre="${e.nombre}">${e.nombre} (${e.documento})</option>`;
+            });
+        }
+
+        // Filtra en vivo las opciones del desplegable al escribir
+        function filtrarSelectEstudiantes(num) {
+            const filtro = (document.getElementById(`filtroEstudiante${num}`)?.value || "").trim().toLowerCase();
+            const filtrados = listaEstudiantesGlobalEvaluador.filter(e => {
+                const textoCompleto = `${e.nombre} ${e.documento}`.toLowerCase();
+                return textoCompleto.includes(filtro);
+            });
+            poblarSelectEstudiante(num, filtrados);
+            const sel = document.getElementById(`selectEstudiante${num}`);
+            if (filtrados.length === 1 && sel) {
+                sel.selectedIndex = 1;
             }
         }
 
@@ -467,21 +487,15 @@
 
             for (let i = 1; i <= 5; i++) {
                 const sel = document.getElementById(`selectEstudiante${i}`);
-                if (!sel) continue;
+                if (!sel || !sel.value) continue;
 
-                const textoIngresado = (sel.value || "").trim().toLowerCase();
-                if (!textoIngresado) continue;
+                const id = sel.value;
+                const opt = sel.options[sel.selectedIndex];
+                const nombre = opt.getAttribute('data-nombre') || opt.text;
 
-                const est = listaEstudiantesGlobalEvaluador.find(e => {
-                    const nomDoc = `${e.nombre} (${e.documento})`.toLowerCase();
-                    return nomDoc.includes(textoIngresado) || 
-                           e.nombre.toLowerCase().includes(textoIngresado) || 
-                           String(e.documento).includes(textoIngresado);
-                });
-
-                if (est && !idsVistos.has(est.id)) {
-                    idsVistos.add(est.id);
-                    integrantes.push({ id: est.id, nombre: est.nombre });
+                if (id && !idsVistos.has(id)) {
+                    idsVistos.add(id);
+                    integrantes.push({ id: id, nombre: nombre });
                 }
             }
             return integrantes;
@@ -690,6 +704,7 @@
 
                     let [yMin, xMin, yMax, xMax] = box.map(v => parseFloat(v) || 0);
 
+                    // Normalización de escala decimal
                     if (yMax <= 1.0 && xMax <= 1.0 && (yMax > 0 || xMax > 0)) {
                         yMin *= 1000; xMin *= 1000; yMax *= 1000; xMax *= 1000;
                     }
@@ -697,7 +712,7 @@
                     if (yMin > yMax) [yMin, yMax] = [yMax, yMin];
                     if (xMin > xMax) [xMin, xMax] = [xMax, xMin];
 
-                    // Conversión exacta top-left de IA a bottom-left de PDF-LIB
+                    // Conversión cartesiana proporcional exacta (IA Top-Left -> PDF Bottom-Left)
                     const rawX = (xMin / 1000) * width;
                     const rawW = ((xMax - xMin) / 1000) * width;
                     const rawH = ((yMax - yMin) / 1000) * height;
