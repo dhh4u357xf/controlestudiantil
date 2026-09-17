@@ -258,12 +258,12 @@
                 Eres un docente experto en peritaje curricular y evaluación universitaria. Analiza detalladamente el documento PDF adjunto (Guía de Exposición y Rúbrica) y extrae ESTRICTAMENTE lo siguiente de forma precisa y literal:
 
                 1. CRITERIOS Y PONDERACIONES EXACTAS DE LA RÚBRICA:
-                   - Extrae ÚNICAMENTE los criterios que aparecen en la tabla de evaluación de la rúbrica (ej: Dominio Conceptual y Rigor Matemático, Estructura y Claridad Pedagógica, Aplicación Práctica y Casos, Defensa y Manejo de Preguntas). No agregues elementos externos (como normas APA).
+                   - Extrae ÚNICAMENTE los criterios que aparecen en la tabla de evaluación de la rúbrica.
                    - Extrae el porcentaje exacto indicado en cada criterio (ej: 35%, 25%, 20%, 20%). Si no suman 100% exacto, ajústalos proporcionalmente para que sumen exactamente 100%.
                    - Extrae la descripción textual de los niveles: Insuficiente, Aceptable/Regular, Bueno, Excelente.
 
                 2. TEMÁTICAS, TEMAS O EJES ESTRATÉGICOS (TEXTUALMENTE):
-                   - Busca en el documento la sección de distribución o listado de temas (por ejemplo, titulados como "Tema 1: ...", "Tema 2: ...", "Eje 1", etc.) y extráelos LITERALMENTE uno por uno tal como están escritos en el texto.
+                   - Lee el documento y extrae LITERALMENTE todas las temáticas, temas, ejes o unidades de exposición que contenga el documento. Si no encuentras secciones explícitas de temas, extrae los títulos principales del contenido.
 
                 RESPONDE ÚNICAMENTE EN FORMATO JSON PURO con esta estructura exacta:
                 {
@@ -278,15 +278,15 @@
                     }
                   ],
                   "tematicas": [
-                    "Tema 1: Integración de Funciones Trigonométricas",
-                    "Tema 2: Integración de Funciones Racionales por Fracciones Parciales"
+                    "Tema 1: ...",
+                    "Tema 2: ..."
                   ]
                 }
                 `;
 
                 const payloadData = {
                     accion: 'evaluarParcial',
-                    nombreEstudiante: 'AnalisisGuiaExhaustivo',
+                    nombreEstudiante: 'AnalisisGuiaDinamico',
                     actividadEvaluada: promptIA,
                     fileNameEstudiante: fileRubrica.name,
                     fileTypeEstudiante: fileRubrica.type || "application/pdf",
@@ -308,16 +308,11 @@
                 if (data.ok && data.evaluacion) {
                     let rawCriterios = data.evaluacion.criterios || data.evaluacion.desglose;
                     
-                    // Capturar temáticas extraídas o respaldar con los temas de la guía de cálculo si la IA no los halló
+                    // Asignación estrictamente dinámica de las temáticas devueltas por la IA
                     if (Array.isArray(data.evaluacion.tematicas) && data.evaluacion.tematicas.length > 0) {
                         tematicasExtraidasGlobal = data.evaluacion.tematicas;
                     } else {
-                        tematicasExtraidasGlobal = [
-                            "Tema 1: Integración de Funciones Trigonométricas",
-                            "Tema 2: Integración de Funciones Racionales por Fracciones Parciales",
-                            "Tema 3: Cálculo de Áreas de Regiones Planas",
-                            "Tema 4: Cálculo de Volúmenes de Sólidos de Revolución"
-                        ];
+                        tematicasExtraidasGlobal = ["Tema 1: Tema General de Exposición"];
                     }
                     
                     if (Array.isArray(rawCriterios) && rawCriterios.length > 0) {
@@ -326,7 +321,7 @@
                             porcentaje: parseFloat(d.porcentaje || d.puntajeMaximo) || 25,
                             niveles: {
                                 Insuficiente: d.insuficiente || d.comentario || "Desempeño deficiente según rúbrica.",
-                                Aceptable: d.aceptable || d.regular || "Desempeño básico.",
+                                Aceptable: d.aceptable || "Desempeño básico.",
                                 Bueno: d.bueno || "Desempeño destacado.",
                                 Excelente: d.excelente || "Desempeño sobresaliente e impecable."
                             }
@@ -356,12 +351,12 @@
                     construirInterfazCalificacion();
                     document.getElementById('panelCalificacion').style.display = 'block';
                 } else {
-                    cargarCriteriosEstandarPorDefecto();
+                    alert("La IA no pudo procesar correctamente el archivo. Verifique el documento.");
                 }
 
             } catch (error) {
                 console.error('Error al analizar rúbrica con IA:', error);
-                cargarCriteriosEstandarPorDefecto();
+                alert('Error al conectar con el servidor de IA.');
             } finally {
                 document.getElementById('cargandoRubrica').style.display = 'none';
             }
@@ -378,37 +373,10 @@
 
         function cargarCriteriosEstandarPorDefecto() {
             criteriosRubricaGlobal = [
-                { nombre: "Dominio Conceptual y Rigor Matemático", porcentaje: 35, niveles: { Insuficiente: "Errores graves en la deducción.", Aceptable: "Fórmulas básicas sin solidez.", Bueno: "Comprende fundamentos teóricos.", Excelente: "Dominio impecable de la teoría." } },
-                { nombre: "Estructura y Claridad Pedagógica", porcentaje: 25, niveles: { Insuficiente: "Presentación desordenada.", Aceptable: "Lectura reiterada de diapositivas.", Bueno: "Buena organización secuencial.", Excelente: "Exposición fluida y profesional." } },
-                { nombre: "Aplicación Práctica y Casos", porcentaje: 20, niveles: { Insuficiente: "Ejercicio ausente o erróneo.", Aceptable: "Resuelto mecánicamente.", Bueno: "Acorde a la ingeniería.", Excelente: "Caso contextualizado y riguroso." } },
-                { nombre: "Defensa y Manejo de Preguntas", porcentaje: 20, niveles: { Insuficiente: "Evidencian dependencia total.", Aceptable: "Respuestas vagas.", Bueno: "Responden con solvencia.", Excelente: "Defensa individual brillante." } }
+                { nombre: "Dominio Conceptual", porcentaje: 50, niveles: { Insuficiente: "Deficiente.", Aceptable: "Básico.", Bueno: "Adecuado.", Excelente: "Impecable." } },
+                { nombre: "Claridad y Defensa", porcentaje: 50, niveles: { Insuficiente: "Inseguro.", Aceptable: "Regular.", Bueno: "Claro.", Excelente: "Sobresaliente." } }
             ];
-
-            tematicasExtraidasGlobal = [
-                "Tema 1: Integración de Funciones Trigonométricas", 
-                "Tema 2: Integración de Funciones Racionales por Fracciones Parciales", 
-                "Tema 3: Cálculo de Áreas de Regiones Planas", 
-                "Tema 4: Cálculo de Volúmenes de Sólidos de Revolución"
-            ];
-
-            datosCalificacionesEstudiantes = {};
-            estudiantesSeleccionadosGlobal.forEach(est => {
-                datosCalificacionesEstudiantes[est.id] = {
-                    tematicaSeleccionada: tematicasExtraidasGlobal[0],
-                    preguntasGeneradas: [],
-                    criterios: criteriosRubricaGlobal.map(crit => ({
-                        nombreCriterio: crit.nombre,
-                        porcentajeMaximo: crit.porcentaje,
-                        nivelesTexto: crit.niveles,
-                        notaCriterio: 4.5,
-                        nivelSeleccionado: "Excelente"
-                    }))
-                };
-            });
-
-            indiceEstudianteActivo = 0;
-            construirInterfazCalificacion();
-            document.getElementById('panelCalificacion').style.display = 'block';
+            tematicasExtraidasGlobal = ["Tema General de Exposición"];
         }
 
         function construirInterfazCalificacion() {
@@ -553,7 +521,7 @@
 
             try {
                 const promptPreguntas = `
-                Actúa como un profesor universitario exigente. Genera exactamente 3 preguntas de defensa y sustentación oral con su respectiva respuesta modelo, basadas en la siguiente temática de exposición: "${tematica}".
+                Actúa como un profesor universitario exigente. Genera exactamente 3 preguntas de defensa y sustentación oral con su respectiva respuesta modelo, basadas en la siguiente temática exacta extraída de la guía: "${tematica}".
                 El nivel de dificultad debe ser estrictamente: ${dificultad}.
 
                 RESPONDE ÚNICAMENTE EN FORMATO JSON PURO con esta estructura exacta:
