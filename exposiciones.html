@@ -254,42 +254,40 @@
                 const fileRubrica = inputRubrica.files[0];
                 const base64RubricaFull = await convertirBase64(fileRubrica);
 
-const promptIA = `
-Eres un docente experto en peritaje curricular y evaluación universitaria. Analiza el documento PDF de la guía de exposición académica adjunto y extrae estrictamente lo siguiente:
+                const promptIA = `
+                Eres un docente experto en peritaje curricular y evaluación universitaria. Analiza detalladamente el documento PDF de la guía de exposición académica adjunto y extrae ESTRICTAMENTE lo que aparece de forma explícita en el texto, sin inventar ni agregar criterios o temas externos:
 
-1. CRITERIOS Y PONDERACIONES EXACTAS:
-   - Extrae todos los criterios de evaluación de la rúbrica (ej: Dominio Conceptual, Estructura Pedagógica, Aplicación Práctica, Defensa, etc.).
-   - Extrae el porcentaje exacto indicado entre paréntesis (ej: 35%, 25%, 20%, 20%).
-   - CONDICIÓN MATEMÁTICA ESTRICTA: Los porcentajes extraídos deben sumar exactamente el 100%. Si en la rúbrica suman más o menos (por ejemplo 105%), normalízalos proporcionalmente de forma matemática exacta para que su suma total sea estrictamente 100%.
-   - Extrae la descripción textual para los niveles de desempeño si están presentes (Insuficiente, Regular/Aceptable, Bueno, Excelente).
+                1. CRITERIOS Y PONDERACIONES EXACTAS:
+                   - Extrae ÚNICAMENTE los criterios de evaluación que figuren textualmente en la tabla de la rúbrica del documento (ej: Dominio Conceptual y Rigor Matemático, Estructura y Claridad Pedagógica, Aplicación Práctica y Casos, Defensa y Manejo de Preguntas). NO agregues criterios externos (como formato APA u otros) si no están en la tabla de la rúbrica.
+                   - Extrae el porcentaje exacto indicado en cada criterio (ej: 35%, 25%, 20%, 20%). 
+                   - Si la suma total no da 100%, ajústalos proporcionalmente para que sumen exactamente 100%.
+                   - Extrae textualmente o resume la descripción exacta de los niveles: insuficiente, regular/aceptable, bueno, excelente.
 
-2. TEMÁTICAS O EJES ESTRATÉGICOS:
-   - Extrae todas las temáticas, temas, unidades o grupos de exposición detallados en el documento (ej: "Tema 1: Integración de Funciones Trigonométricas", "Tema 2: Integración de Funciones Racionales por Fracciones Parciales", etc.).
+                2. TEMÁTICAS O EJES ESTRATÉGICOS (TEXTUALES):
+                   - Busca en el documento las secciones tituladas como "Tema", "Eje", "Grupo" o similares (ej: "Tema 1: Integración de Funciones Trigonométricas", etc.) y extráelas TEXTUALMENTE tal como están redactadas en el documento fuente.
 
-RESPONDE ÚNICAMENTE EN FORMATO JSON PURO, sin bloques de texto adicionales, utilizando esta estructura exacta:
-{
-  "criterios": [
-    {
-      "nombre": "Dominio Conceptual y Rigor Matemático",
-      "porcentaje": 35,
-      "insuficiente": "Presenta errores conceptuales graves...",
-      "aceptable": "Explica la teoría básica, pero muestra vacíos...",
-      "bueno": "Domina la temática central con precisión...",
-      "excelente": "Dominio absoluto y riguroso de la teoría..."
-    }
-  ],
-  "tematicas": [
-    "Tema 1: Integración de Funciones Trigonométricas",
-    "Tema 2: Integración de Funciones Racionales por Fracciones Parciales",
-    "Tema 3: Cálculo de Áreas de Regiones Planas",
-    "Tema 4: Cálculo de Volúmenes de Sólidos de Revolución"
-  ]
-}
-`;
+                RESPONDE ÚNICAMENTE EN FORMATO JSON PURO con esta estructura exacta:
+                {
+                  "criterios": [
+                    {
+                      "nombre": "Nombre exacto del criterio de la rúbrica",
+                      "porcentaje": 35,
+                      "insuficiente": "Descripción textual...",
+                      "aceptable": "Descripción textual...",
+                      "bueno": "Descripción textual...",
+                      "excelente": "Descripción textual..."
+                    }
+                  ],
+                  "tematicas": [
+                    "Tema 1: Integración de Funciones Trigonométricas",
+                    "Tema 2: Integración de Funciones Racionales por Fracciones Parciales"
+                  ]
+                }
+                `;
 
                 const payloadData = {
                     accion: 'evaluarParcial',
-                    nombreEstudiante: 'AnalisisRubricaTemas',
+                    nombreEstudiante: 'AnalisisRubricaFiel',
                     actividadEvaluada: promptIA,
                     fileNameEstudiante: fileRubrica.name,
                     fileTypeEstudiante: fileRubrica.type || "application/pdf",
@@ -310,7 +308,9 @@ RESPONDE ÚNICAMENTE EN FORMATO JSON PURO, sin bloques de texto adicionales, uti
 
                 if (data.ok && data.evaluacion) {
                     let rawCriterios = data.evaluacion.criterios || data.evaluacion.desglose;
-                    tematicasExtraidasGlobal = data.evaluacion.tematicas || ["Tema 1: Fundamentos Teóricos", "Tema 2: Aplicaciones Prácticas"];
+                    tematicasExtraidasGlobal = data.evaluacion.tematicas && data.evaluacion.tematicas.length > 0 
+                        ? data.evaluacion.tematicas 
+                        : ["Tema 1: Sin temáticas detectadas textualmente"];
                     
                     if (Array.isArray(rawCriterios) && rawCriterios.length > 0) {
                         criteriosRubricaGlobal = rawCriterios.map(d => ({
@@ -318,7 +318,7 @@ RESPONDE ÚNICAMENTE EN FORMATO JSON PURO, sin bloques de texto adicionales, uti
                             porcentaje: parseFloat(d.porcentaje || d.puntajeMaximo) || 25,
                             niveles: {
                                 Insuficiente: d.insuficiente || d.comentario || "Desempeño deficiente según rúbrica.",
-                                Aceptable: d.aceptable || "Desempeño básico.",
+                                Aceptable: d.aceptable || d.regular || "Desempeño básico.",
                                 Bueno: d.bueno || "Desempeño destacado.",
                                 Excelente: d.excelente || "Desempeño sobresaliente e impecable."
                             }
@@ -332,7 +332,7 @@ RESPONDE ÚNICAMENTE EN FORMATO JSON PURO, sin bloques de texto adicionales, uti
                     datosCalificacionesEstudiantes = {};
                     estudiantesSeleccionadosGlobal.forEach(est => {
                         datosCalificacionesEstudiantes[est.id] = {
-                            tematicaSeleccionada: tematicasExtraidasGlobal[0] || "Tema General",
+                            tematicaSeleccionada: tematicasExtraidasGlobal[0],
                             preguntasGeneradas: [],
                             criterios: criteriosRubricaGlobal.map(crit => ({
                                 nombreCriterio: crit.nombre,
@@ -370,13 +370,13 @@ RESPONDE ÚNICAMENTE EN FORMATO JSON PURO, sin bloques de texto adicionales, uti
 
         function cargarCriteriosEstandarPorDefecto() {
             criteriosRubricaGlobal = [
-                { nombre: "Dominio Conceptual y Rigor", porcentaje: 35, niveles: { Insuficiente: "Errores graves en la deducción.", Aceptable: "Fórmulas básicas sin solidez.", Bueno: "Comprende fundamentos teóricos.", Excelente: "Dominio impecable de la teoría." } },
+                { nombre: "Dominio Conceptual y Rigor Matemático", porcentaje: 35, niveles: { Insuficiente: "Errores graves en la deducción.", Aceptable: "Fórmulas básicas sin solidez.", Bueno: "Comprende fundamentos teóricos.", Excelente: "Dominio impecable de la teoría." } },
                 { nombre: "Estructura y Claridad Pedagógica", porcentaje: 25, niveles: { Insuficiente: "Presentación desordenada.", Aceptable: "Lectura reiterada de diapositivas.", Bueno: "Buena organización secuencial.", Excelente: "Exposición fluida y profesional." } },
                 { nombre: "Aplicación Práctica y Casos", porcentaje: 20, niveles: { Insuficiente: "Ejercicio ausente o erróneo.", Aceptable: "Resuelto mecánicamente.", Bueno: "Acorde a la ingeniería.", Excelente: "Caso contextualizado y riguroso." } },
                 { nombre: "Defensa y Manejo de Preguntas", porcentaje: 20, niveles: { Insuficiente: "Evidencian dependencia total.", Aceptable: "Respuestas vagas.", Bueno: "Responden con solvencia.", Excelente: "Defensa individual brillante." } }
             ];
 
-            tematicasExtraidasGlobal = ["Tema 1: Fundamentos de Ingeniería", "Tema 2: Sistemas y Aplicaciones Prácticas", "Tema 3: Análisis y Modelado Avanzado"];
+            tematicasExtraidasGlobal = ["Tema 1: Integración de Funciones Trigonométricas", "Tema 2: Integración de Funciones Racionales por Fracciones Parciales", "Tema 3: Cálculo de Áreas de Regiones Planas", "Tema 4: Cálculo de Volúmenes de Sólidos de Revolución"];
 
             datosCalificacionesEstudiantes = {};
             estudiantesSeleccionadosGlobal.forEach(est => {
@@ -707,7 +707,7 @@ RESPONDE ÚNICAMENTE EN FORMATO JSON PURO, sin bloques de texto adicionales, uti
                         : "Cumplimiento evaluado por rúbrica.";
 
                     if (crit.notaCriterio >= 3.8) {
-                        fortalezasArr.push(`<strong>${crit.nombreCriterio}:</strong> ${descNivel}`);
+                        fortalezasArr.push(`<strong>${crit.nombreCriterio}:</strong> Tuviste ${descNivel}`);
                     } else {
                         mejorasArr.push(`<strong>${crit.nombreCriterio}:</strong> ${descNivel}`);
                     }
@@ -717,7 +717,7 @@ RESPONDE ÚNICAMENTE EN FORMATO JSON PURO, sin bloques de texto adicionales, uti
                             <td><strong>${crit.nombreCriterio}</strong></td>
                             <td style="text-align: center;">${crit.porcentajeMaximo}%</td>
                             <td style="text-align: center;"><strong>${crit.notaCriterio.toFixed(1)}</strong> (${crit.nivelSeleccionado})</td>
-                            <td>${crit.nombreCriterio}: ${descNivel}</td>
+                            <td>${crit.nombreCriterio}: Tuviste ${descNivel}</td>
                         </tr>
                     `;
                 });
@@ -795,7 +795,7 @@ RESPONDE ÚNICAMENTE EN FORMATO JSON PURO, sin bloques de texto adicionales, uti
             let mejorasArr = [];
             let desgloseArr = criteriosEst.map(crit => {
                 let desc = crit.nivelesTexto && crit.nivelesTexto[crit.nivelSeleccionado] ? crit.nivelesTexto[crit.nivelSeleccionado] : "";
-                let textoRetro = `${crit.nombreCriterio}: ${desc}`;
+                let textoRetro = `${crit.nombreCriterio}: Tuviste ${desc}`;
                 if (crit.notaCriterio >= 3.8) fortalezasArr.push(textoRetro);
                 else mejorasArr.push(textoRetro);
 
@@ -803,7 +803,7 @@ RESPONDE ÚNICAMENTE EN FORMATO JSON PURO, sin bloques de texto adicionales, uti
                     ejercicio: crit.nombreCriterio,
                     puntajeObtenido: crit.notaCriterio,
                     puntajeMaximo: 5.0,
-                    comentario: `[${crit.nivelSeleccionado}] ${desc}`
+                    comentario: `[${crit.nivelSeleccionado}] Tuviste ${desc}`
                 };
             });
 
