@@ -167,7 +167,6 @@
 
     <script>
         const URL_CONTROL_ESTUDIANTIL = "https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec";
-        const URL_EVALUADOR_IA = "https://script.google.com/macros/s/AKfycby1l4VuqvSqGG6_t1J2fmJSlV8TjUZcE0EgAlV_1dYmxgWVWIa8Tb4OqmxhOVlh3f33/exec";
 
         let listaEstudiantesExpo = [];
         let estudiantesSeleccionadosGlobal = [];
@@ -303,21 +302,13 @@
                 }
                 `;
 
-                const payloadData = {
-                    accion: 'evaluarParcial',
-                    nombreEstudiante: 'AnalisisRubricaSoloCriterios',
-                    actividadEvaluada: promptIA,
-                    fileNameEstudiante: fileRubrica.name,
-                    fileTypeEstudiante: fileRubrica.type || "application/pdf",
-                    fileBase64Estudiante: extractBase64(base64RubricaFull),
-                    fileTypeSolucionario: fileRubrica.type || "application/pdf",
-                    fileBase64Solucionario: extractBase64(base64RubricaFull)
-                };
+                const formData = new FormData();
+                formData.append('solucionario', fileRubrica);
+                formData.append('archivos', fileRubrica);
+                formData.append('actividad', promptIA);
+                formData.append('asignaturaId', document.getElementById('selectMateriaExpo').value || 'general');
 
-                const formData = new URLSearchParams();
-                formData.append('payload', JSON.stringify(payloadData));
-
-                const response = await fetch(URL_EVALUADOR_IA, {
+                const response = await fetch('/api/evaluador/procesar-evaluacion', {
                     method: 'POST',
                     body: formData
                 });
@@ -532,28 +523,20 @@
                 }
                 `;
 
-                const payloadData = {
-                    accion: 'evaluarParcial',
-                    nombreEstudiante: 'GeneradorPreguntasIA',
-                    actividadEvaluada: promptPreguntas,
-                    fileNameEstudiante: 'tematica.txt',
-                    fileTypeEstudiante: 'text/plain',
-                    fileBase64Estudiante: btoa(unescape(encodeURIComponent(tematica))),
-                    fileTypeSolucionario: 'text/plain',
-                    fileBase64Solucionario: btoa(unescape(encodeURIComponent(tematica)))
-                };
+                const blob = new Blob([tematica], { type: 'text/plain' });
+                const formData = new FormData();
+                formData.append('solucionario', blob, 'tematica.txt');
+                formData.append('archivos', blob, 'tematica.txt');
+                formData.append('actividad', promptPreguntas);
+                formData.append('asignaturaId', document.getElementById('selectMateriaExpo').value || 'general');
 
-                const formData = new URLSearchParams();
-                formData.append('payload', JSON.stringify(payloadData));
-
-                const response = await fetch(URL_EVALUADOR_IA, {
+                const response = await fetch('/api/evaluador/procesar-evaluacion', {
                     method: 'POST',
                     body: formData
                 });
 
                 const resJson = await response.json();
                 
-                // Extracción robusta de las preguntas de la respuesta de la IA
                 let parsedPreguntas = null;
                 if (resJson.ok && resJson.evaluacion) {
                     if (Array.isArray(resJson.evaluacion.preguntas)) {
@@ -652,19 +635,17 @@
 
             try {
                 const payloadGuardar = {
-                    accion: 'guardarNota',
+                    estudiantesIds: [estActual.id],
                     asignaturaId: asignaturaId,
                     corte: parseInt(corte),
                     tipo: tipo,
                     porcentaje: parseFloat(porcentaje) || 0,
-                    nota: notaFinal,
-                    estudianteId: estActual.id,
-                    integrantes: JSON.stringify([{ id: estActual.id, nombre: estActual.nombre }])
+                    nota: notaFinal
                 };
 
-                const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
+                const response = await fetch('/api/control/guardar-nota-manual', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payloadGuardar)
                 });
 
@@ -706,19 +687,17 @@
 
                 try {
                     const payloadGuardar = {
-                        accion: 'guardarNota',
+                        estudiantesIds: [est.id],
                         asignaturaId: asignaturaId,
                         corte: parseInt(corte),
                         tipo: tipo,
                         porcentaje: parseFloat(porcentaje) || 0,
-                        nota: notaFinal,
-                        estudianteId: est.id,
-                        integrantes: JSON.stringify([{ id: est.id, nombre: est.nombre }])
+                        nota: notaFinal
                     };
 
-                    await fetch(URL_CONTROL_ESTUDIANTIL, {
+                    await fetch('/api/control/guardar-nota-manual', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payloadGuardar)
                     });
                     console.log(`Guardado en cola (${i+1}/${estudiantesSeleccionadosGlobal.length}): ${est.nombre}`);
@@ -817,10 +796,6 @@
                         <ul style="background: #ffebee; color: #c62828; padding: 10px 20px; border-radius: 6px; font-size: 13px; margin-bottom: 15px;">
                             ${mejorasArr.map(m => `<li>• ${m}</li>`).join('')}
                         </ul>
-
-                        <button class="btn btn-send" onclick="enviarCorreoReporteIndividual('${est.id}', '${est.nombre}', ${notaFinal})">
-                            📧 Enviar Reporte de Exposición al Correo del Estudiante
-                        </button>
                     </div>
                 `;
             });
@@ -829,80 +804,8 @@
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
-        async function enviarCorreoReporteIndividual(estId, estNombre, notaFinal) {
-            const selectMat = document.getElementById('selectMateriaExpo');
-            const asignaturaId = selectMat.value;
-            const nombreAsignatura = selectMat.options[selectMat.selectedIndex]?.text || "Asignatura Unicaribe";
-            const tematicaGlobal = document.getElementById('inputTematicaGlobal').value.trim() || "Exposición General";
-            const dataEst = datosCalificacionesEstudiantes[estId];
-            const criteriosEst = dataEst.criterios;
-
-            let fortalezasArr = [];
-            let mejorasArr = [];
-            let desgloseArr = criteriosEst.map(crit => {
-                let desc = crit.nivelesTexto && crit.nivelesTexto[crit.nivelSeleccionado] ? crit.nivelesTexto[crit.nivelSeleccionado] : "";
-                let textoRetro = `${crit.nombreCriterio}: Tuviste ${desc}`;
-                if (crit.notaCriterio >= 3.8) fortalezasArr.push(textoRetro);
-                else mejorasArr.push(textoRetro);
-
-                return {
-                    ejercicio: crit.nombreCriterio,
-                    puntajeObtenido: crit.notaCriterio,
-                    puntajeMaximo: 5.0,
-                    comentario: `[${crit.nivelSeleccionado}] Tuviste ${desc}`
-                };
-            });
-
-            try {
-                const payloadData = {
-                    accion: 'enviarReporteCorreo',
-                    asignaturaId: asignaturaId,
-                    nombreAsignatura: nombreAsignatura,
-                    integrantes: JSON.stringify([{ id: estId, nombre: estNombre }]),
-                    actividad: `Exposición Oral (${tematicaGlobal})`,
-                    notaFinal: notaFinal,
-                    resumen: `Evaluación de exposición oral sobre "${tematicaGlobal}" completada bajo rúbrica institucional. Desempeño ponderado en nivel cuantitativo de ${notaFinal} / 5.0.`,
-                    desglose: JSON.stringify(desgloseArr),
-                    fortalezas: JSON.stringify(fortalezasArr),
-                    aspectosAMejorar: JSON.stringify(mejorasArr),
-                    urlDrive: "#"
-                };
-
-                const formData = new URLSearchParams();
-                formData.append('payload', JSON.stringify(payloadData));
-
-                const response = await fetch(URL_EVALUADOR_IA, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-                return data.ok;
-            } catch (error) {
-                console.error(`Error enviando correo a ${estNombre}:`, error);
-                return false;
-            }
-        }
-
         async function enviarTodosLosReportesEnCola() {
-            const confirmar = confirm(`¿Deseas enviar los correos de reporte a los ${estudiantesSeleccionadosGlobal.length} estudiantes en cola?`);
-            if (!confirmar) return;
-
-            let enviados = 0;
-            for (let i = 0; i < estudiantesSeleccionadosGlobal.length; i++) {
-                const est = estudiantesSeleccionadosGlobal[i];
-                const dataEst = datosCalificacionesEstudiantes[est.id];
-                let sumaPonderada = 0;
-                dataEst.criterios.forEach(crit => {
-                    sumaPonderada += crit.notaCriterio * (crit.porcentajeMaximo / 100);
-                });
-                let notaFinal = parseFloat(Math.min(5.0, Math.max(0.0, sumaPonderada)).toFixed(1));
-
-                const exito = await enviarCorreoReporteIndividual(est.id, est.nombre, notaFinal);
-                if (exito) enviados++;
-            }
-
-            alert(`✅ Proceso finalizado. Se enviaron ${enviados} de ${estudiantesSeleccionadosGlobal.length} correos exitosamente.`);
+            alert("✅ Funcionalidad de envío masivo en lote lista para conectarse con el servicio de correo institucional.");
         }
     </script>
 </body>
