@@ -252,7 +252,6 @@
             return dataUrl.replace(/^data:.*,/, '');
         }
 
-        // PROMPT 1: Extracción dinámica de criterios y porcentajes de la rúbrica vía Google Apps Script
         async function analizarRubricaEIniciarEvaluacion() {
             const checks = document.querySelectorAll('.check-estudiante:checked');
             estudiantesSeleccionadosGlobal = [];
@@ -283,22 +282,22 @@
                 const fileRubrica = inputRubrica.files[0];
                 const base64RubricaFull = await convertirBase64(fileRubrica);
 
-                const promptExtraccionRubrica = `
+                const promptIA = `
                 Eres un docente experto en peritaje curricular y evaluación universitaria. Analiza detalladamente la tabla de la rúbrica en este documento PDF y extrae ESTRICTAMENTE lo siguiente:
                 1. Los criterios de evaluación que aparecen en la tabla.
                 2. El porcentaje exacto indicado en cada criterio. Si la suma no da 100%, ajústalos proporcionalmente para que sumen exactamente 100%.
-                3. La descripción textual exacta de los niveles para cada criterio: Insuficiente, Aceptable/Regular, Bueno, Excelente.
+                3. La descripción textual de los niveles: Insuficiente, Aceptable/Regular, Bueno, Excelente.
 
-                RESPONDE ÚNICAMENTE EN FORMATO JSON PURO con esta estructura exacta, sin texto adicional:
+                RESPONDE ÚNICAMENTE EN FORMATO JSON PURO con esta estructura exacta:
                 {
                   "criterios": [
                     {
                       "nombre": "Nombre exacto del criterio",
                       "porcentaje": 35,
-                      "insuficiente": "Descripción textual...",
-                      "aceptable": "Descripción textual...",
-                      "bueno": "Descripción textual...",
-                      "excelente": "Descripción textual..."
+                      "insuficiente": "Descripción...",
+                      "aceptable": "Descripción...",
+                      "bueno": "Descripción...",
+                      "excelente": "Descripción..."
                     }
                   ]
                 }
@@ -306,8 +305,8 @@
 
                 const payloadData = {
                     accion: 'evaluarParcial',
-                    nombreEstudiante: 'AnalisisRubricaExposiciones',
-                    actividadEvaluada: promptExtraccionRubrica,
+                    nombreEstudiante: 'AnalisisRubricaSoloCriterios',
+                    actividadEvaluada: promptIA,
                     fileNameEstudiante: fileRubrica.name,
                     fileTypeEstudiante: fileRubrica.type || "application/pdf",
                     fileBase64Estudiante: extractBase64(base64RubricaFull),
@@ -325,56 +324,45 @@
 
                 const data = await response.json();
 
-                let rawCriterios = null;
                 if (data.ok && data.evaluacion) {
-                    if (Array.isArray(data.evaluacion.criterios)) {
-                        rawCriterios = data.evaluacion.criterios;
-                    } else if (typeof data.evaluacion.resumen === 'string') {
-                        try {
-                            const cleanJson = data.evaluacion.resumen.replace(/```json/g, '').replace(/```/g, '').trim();
-                            const subParsed = JSON.parse(cleanJson);
-                            if (subParsed && Array.isArray(subParsed.criterios)) {
-                                rawCriterios = subParsed.criterios;
+                    let rawCriterios = data.evaluacion.criterios || data.evaluacion.desglose;
+                    
+                    if (Array.isArray(rawCriterios) && rawCriterios.length > 0) {
+                        criteriosRubricaGlobal = rawCriterios.map(d => ({
+                            nombre: d.nombre || d.ejercicio || "Criterio",
+                            porcentaje: parseFloat(d.porcentaje || d.puntajeMaximo) || 25,
+                            niveles: {
+                                Insuficiente: d.insuficiente || d.comentario || "Desempeño deficiente según rúbrica.",
+                                Aceptable: d.aceptable || "Desempeño básico.",
+                                Bueno: d.bueno || "Desempeño destacado.",
+                                Excelente: d.excelente || "Desempeño sobresaliente e impecable."
                             }
-                        } catch (e) {
-                            console.error("Error al parsear resumen de criterios:", e);
-                        }
+                        }));
+                    } else {
+                        cargarCriteriosEstandarPorDefecto();
                     }
-                }
 
-                if (Array.isArray(rawCriterios) && rawCriterios.length > 0) {
-                    criteriosRubricaGlobal = rawCriterios.map(d => ({
-                        nombre: d.nombre || "Criterio",
-                        porcentaje: parseFloat(d.porcentaje) || 25,
-                        niveles: {
-                            Insuficiente: d.insuficiente || "Desempeño deficiente.",
-                            Aceptable: d.aceptable || "Desempeño básico.",
-                            Bueno: d.bueno || "Desempeño destacado.",
-                            Excelente: d.excelente || "Desempeño sobresaliente."
-                        }
-                    }));
+                    normalizarPorcentajesRubrica();
+
+                    datosCalificacionesEstudiantes = {};
+                    estudiantesSeleccionadosGlobal.forEach(est => {
+                        datosCalificacionesEstudiantes[est.id] = {
+                            criterios: criteriosRubricaGlobal.map(crit => ({
+                                nombreCriterio: crit.nombre,
+                                porcentajeMaximo: crit.porcentaje,
+                                nivelesTexto: crit.niveles,
+                                notaCriterio: 4.5,
+                                nivelSeleccionado: "Excelente"
+                            }))
+                        };
+                    });
+
+                    indiceEstudianteActivo = 0;
+                    construirInterfazCalificacion();
+                    document.getElementById('panelCalificacion').style.display = 'block';
                 } else {
                     cargarCriteriosEstandarPorDefecto();
                 }
-
-                normalizarPorcentajesRubrica();
-
-                datosCalificacionesEstudiantes = {};
-                estudiantesSeleccionadosGlobal.forEach(est => {
-                    datosCalificacionesEstudiantes[est.id] = {
-                        criterios: criteriosRubricaGlobal.map(crit => ({
-                            nombreCriterio: crit.nombre,
-                            porcentajeMaximo: crit.porcentaje,
-                            nivelesTexto: crit.niveles,
-                            notaCriterio: 4.5,
-                            nivelSeleccionado: "Excelente"
-                        }))
-                    };
-                });
-
-                indiceEstudianteActivo = 0;
-                construirInterfazCalificacion();
-                document.getElementById('panelCalificacion').style.display = 'block';
 
             } catch (error) {
                 console.error('Error al analizar rúbrica con IA:', error);
@@ -395,7 +383,7 @@
 
         function cargarCriteriosEstandarPorDefecto() {
             criteriosRubricaGlobal = [
-                { nombre: "Dominio Conceptual y Rigor", porcentaje: 35, niveles: { Insuficiente: "Errores graves en la deducción.", Aceptable: "Fórmulas básicas sin solidez.", Bueno: "Comprende fundamentos teóricos.", Excelente: "Dominio impecable de la teoría." } },
+                { nombre: "Dominio Conceptual y Rigor Matemático", porcentaje: 35, niveles: { Insuficiente: "Errores graves en la deducción.", Aceptable: "Fórmulas básicas sin solidez.", Bueno: "Comprende fundamentos teóricos.", Excelente: "Dominio impecable de la teoría." } },
                 { nombre: "Estructura y Claridad Pedagógica", porcentaje: 25, niveles: { Insuficiente: "Presentación desordenada.", Aceptable: "Lectura reiterada de diapositivas.", Bueno: "Buena organización secuencial.", Excelente: "Exposición fluida y profesional." } },
                 { nombre: "Aplicación Práctica y Casos", porcentaje: 20, niveles: { Insuficiente: "Ejercicio ausente o erróneo.", Aceptable: "Resuelto mecánicamente.", Bueno: "Acorde a la ingeniería.", Excelente: "Caso contextualizado y riguroso." } },
                 { nombre: "Defensa y Manejo de Preguntas", porcentaje: 20, niveles: { Insuficiente: "Evidencian dependencia total.", Aceptable: "Respuestas vagas.", Bueno: "Responden con solvencia.", Excelente: "Defensa individual brillante." } }
@@ -521,7 +509,6 @@
             calcularNotaTotalEstudianteActivo();
         }
 
-        // PROMPT 2: Generación dinámica de preguntas según la temática y dificultad
         async function generarPreguntasAleatoriasIA() {
             const tematica = document.getElementById('inputTematicaGlobal').value.trim() || "Exposición General";
             const dificultad = document.getElementById('selectDificultadPregunta').value;
@@ -566,10 +553,357 @@
 
                 const resJson = await response.json();
                 
+                // Extracción robusta de las preguntas de la respuesta de la IA
                 let parsedPreguntas = null;
                 if (resJson.ok && resJson.evaluacion) {
                     if (Array.isArray(resJson.evaluacion.preguntas)) {
                         parsedPreguntas = resJson.evaluacion.preguntas;
                     } else if (typeof resJson.evaluacion.resumen === 'string') {
                         try {
-                            const cleanJson = resJson.evaluacion.resumen.replace(/```json/g, '').replace(/
+                            const cleanJson = resJson.evaluacion.resumen.replace(/```json/g, '').replace(/```/g, '').trim();
+                            const subParsed = JSON.parse(cleanJson);
+                            if (subParsed && Array.isArray(subParsed.preguntas)) {
+                                parsedPreguntas = subParsed.preguntas;
+                            }
+                        } catch (e) {
+                            console.error("No se pudo parsear el resumen interno:", e);
+                        }
+                    }
+                }
+
+                if (parsedPreguntas && parsedPreguntas.length > 0) {
+                    preguntasGlobalesGeneradas = parsedPreguntas.map(p => ({
+                        dificultad: dificultad,
+                        enunciado: p.enunciado || "Pregunta de sustentación",
+                        respuesta: p.respuesta || "Respuesta modelo institucional"
+                    }));
+                } else {
+                    preguntasGlobalesGeneradas = [
+                        { dificultad: dificultad, enunciado: `¿Cuáles son los fundamentos teóricos aplicados en ${tematica}?`, respuesta: "Se fundamenta en el análisis riguroso de los conceptos expuestos." },
+                        { dificultad: dificultad, enunciado: `Explique un caso práctico relacionado con ${tematica}.`, respuesta: "Mediante la resolución paso a paso del modelo propuesto en clase." },
+                        { dificultad: dificultad, enunciado: `¿Qué limitaciones técnicas presenta ${tematica}?`, respuesta: "Depende de las restricciones de contorno y los parámetros iniciales." }
+                    ];
+                }
+
+                renderizarFormularioCriteriosEstudianteActivo();
+            } catch (e) {
+                console.error("Error generando preguntas con IA:", e);
+                alert("Error al conectar con la IA para generar preguntas.");
+                contenedorP.innerHTML = `<p style="color:red; font-size:12px;">Error al generar preguntas.</p>`;
+            }
+        }
+
+        function actualizarNotaPorNivel(idxCrit, nivel) {
+            const estActual = estudiantesSeleccionadosGlobal[indiceEstudianteActivo];
+            const inputNota = document.querySelectorAll('.input-nota-criterio')[idxCrit];
+            const descDiv = document.getElementById(`descNivel_${idxCrit}`);
+            
+            let notaSugerida = 4.5;
+            if (nivel === "Insuficiente") notaSugerida = 2.0;
+            else if (nivel === "Aceptable") notaSugerida = 3.4;
+            else if (nivel === "Bueno") notaSugerida = 4.1;
+            else if (nivel === "Excelente") notaSugerida = 4.8;
+
+            inputNota.value = notaSugerida;
+            datosCalificacionesEstudiantes[estActual.id].criterios[idxCrit].notaCriterio = notaSugerida;
+            datosCalificacionesEstudiantes[estActual.id].criterios[idxCrit].nivelSeleccionado = nivel;
+
+            const crit = datosCalificacionesEstudiantes[estActual.id].criterios[idxCrit];
+            if (crit.nivelesTexto && crit.nivelesTexto[nivel]) {
+                descDiv.innerHTML = `📝 <em>${crit.nivelesTexto[nivel]}</em>`;
+            }
+
+            calcularNotaTotalEstudianteActivo();
+        }
+
+        function calcularNotaTotalEstudianteActivo() {
+            guardarDatosFormularioActual();
+            const estActual = estudiantesSeleccionadosGlobal[indiceEstudianteActivo];
+            const criteriosEst = datosCalificacionesEstudiantes[estActual.id].criterios;
+
+            let sumaPonderada = 0;
+            criteriosEst.forEach(crit => {
+                sumaPonderada += crit.notaCriterio * (crit.porcentajeMaximo / 100);
+            });
+
+            let notaFinal = Math.min(5.0, Math.max(0.0, sumaPonderada));
+            document.getElementById('notaDefinitivaExpo').textContent = notaFinal.toFixed(1);
+        }
+
+        async function guardarNotaEstudianteActualSistema() {
+            guardarDatosFormularioActual();
+            const asignaturaId = document.getElementById('selectMateriaExpo').value;
+            const estActual = estudiantesSeleccionadosGlobal[indiceEstudianteActivo];
+            const corte = document.getElementById('selectCorteExpo').value;
+            const tipo = document.getElementById('inputTipoExpo').value;
+            const porcentaje = document.getElementById('inputPorcentajeExpo').value;
+
+            const criteriosEst = datosCalificacionesEstudiantes[estActual.id].criterios;
+            let sumaPonderada = 0;
+            criteriosEst.forEach(crit => {
+                sumaPonderada += crit.notaCriterio * (crit.porcentajeMaximo / 100);
+            });
+            let notaFinal = parseFloat(Math.min(5.0, Math.max(0.0, sumaPonderada)).toFixed(1));
+
+            if (!asignaturaId || !estActual) {
+                alert('Faltan datos obligatorios.');
+                return;
+            }
+
+            try {
+                const payloadGuardar = {
+                    accion: 'guardarNota',
+                    asignaturaId: asignaturaId,
+                    corte: parseInt(corte),
+                    tipo: tipo,
+                    porcentaje: parseFloat(porcentaje) || 0,
+                    nota: notaFinal,
+                    estudianteId: estActual.id,
+                    integrantes: JSON.stringify([{ id: estActual.id, nombre: estActual.nombre }])
+                };
+
+                const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payloadGuardar)
+                });
+
+                const data = await response.json();
+                if (data.ok) {
+                    alert(`✅ Nota guardada con éxito para ${estActual.nombre}.`);
+                } else {
+                    alert('⚠️ Error al guardar: ' + data.mensaje);
+                }
+            } catch (error) {
+                console.error('Error al guardar nota:', error);
+                alert('Error de conexión con el servidor.');
+            }
+        }
+
+        async function asentarTodasLasNotasEnCola() {
+            guardarDatosFormularioActual();
+            const asignaturaId = document.getElementById('selectMateriaExpo').value;
+            const corte = document.getElementById('selectCorteExpo').value;
+            const tipo = document.getElementById('inputTipoExpo').value;
+            const porcentaje = document.getElementById('inputPorcentajeExpo').value;
+
+            if (!asignaturaId) {
+                alert('Selecciona una asignatura.');
+                return;
+            }
+
+            const confirmar = confirm(`¿Deseas asentar en cola las notas de los ${estudiantesSeleccionadosGlobal.length} estudiantes seleccionados?`);
+            if (!confirmar) return;
+
+            for (let i = 0; i < estudiantesSeleccionadosGlobal.length; i++) {
+                const est = estudiantesSeleccionadosGlobal[i];
+                const dataEst = datosCalificacionesEstudiantes[est.id];
+                let sumaPonderada = 0;
+                dataEst.criterios.forEach(crit => {
+                    sumaPonderada += crit.notaCriterio * (crit.porcentajeMaximo / 100);
+                });
+                let notaFinal = parseFloat(Math.min(5.0, Math.max(0.0, sumaPonderada)).toFixed(1));
+
+                try {
+                    const payloadGuardar = {
+                        accion: 'guardarNota',
+                        asignaturaId: asignaturaId,
+                        corte: parseInt(corte),
+                        tipo: tipo,
+                        porcentaje: parseFloat(porcentaje) || 0,
+                        nota: notaFinal,
+                        estudianteId: est.id,
+                        integrantes: JSON.stringify([{ id: est.id, nombre: est.nombre }])
+                    };
+
+                    await fetch(URL_CONTROL_ESTUDIANTIL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(payloadGuardar)
+                    });
+                    console.log(`Guardado en cola (${i+1}/${estudiantesSeleccionadosGlobal.length}): ${est.nombre}`);
+                } catch (e) {
+                    console.error(`Error guardando a ${est.nombre}:`, e);
+                }
+            }
+
+            alert("✅ ¡Proceso de asentamiento en cola finalizado con éxito para todos los estudiantes!");
+        }
+
+        function generarReportesFinales() {
+            guardarDatosFormularioActual();
+            const contenedorReportes = document.getElementById('contenedorReportesFinales');
+            contenedorReportes.innerHTML = '';
+            const tematicaGlobal = document.getElementById('inputTematicaGlobal').value.trim() || "Exposición General";
+
+            estudiantesSeleccionadosGlobal.forEach(est => {
+                const dataEst = datosCalificacionesEstudiantes[est.id];
+                const criteriosEst = dataEst.criterios;
+                let sumaPonderada = 0;
+                let desgloseHtml = '';
+                let fortalezasArr = [];
+                let mejorasArr = [];
+
+                criteriosEst.forEach(crit => {
+                    sumaPonderada += crit.notaCriterio * (crit.porcentajeMaximo / 100);
+                    
+                    let descNivel = crit.nivelesTexto && crit.nivelesTexto[crit.nivelSeleccionado] 
+                        ? crit.nivelesTexto[crit.nivelSeleccionado] 
+                        : "Cumplimiento evaluado por rúbrica.";
+
+                    if (crit.notaCriterio >= 3.8) {
+                        fortalezasArr.push(`<strong>${crit.nombreCriterio}:</strong> Tuviste ${descNivel}`);
+                    } else {
+                        mejorasArr.push(`<strong>${crit.nombreCriterio}:</strong> ${descNivel}`);
+                    }
+
+                    desgloseHtml += `
+                        <tr>
+                            <td><strong>${crit.nombreCriterio}</strong></td>
+                            <td style="text-align: center;">${crit.porcentajeMaximo}%</td>
+                            <td style="text-align: center;"><strong>${crit.notaCriterio.toFixed(1)}</strong> (${crit.nivelSeleccionado})</td>
+                            <td>${crit.nombreCriterio}: Tuviste ${descNivel}</td>
+                        </tr>
+                    `;
+                });
+
+                let notaFinal = parseFloat(Math.min(5.0, Math.max(0.0, sumaPonderada)).toFixed(1));
+
+                let preguntasReporteHtml = '';
+                if (preguntasGlobalesGeneradas && preguntasGlobalesGeneradas.length > 0) {
+                    let pList = preguntasGlobalesGeneradas.map((p, i) => `<li><strong>P${i+1} (${p.dificultad}):</strong> ${p.enunciado}</li>`).join('');
+                    preguntasReporteHtml = `
+                        <h4 style="color: #b45309; font-size: 13px; margin-top: 10px;">❓ Preguntas de Defensa Asignadas (${tematicaGlobal}):</h4>
+                        <ul style="background: #fffbeb; color: #78350f; padding: 10px 20px; border-radius: 6px; font-size: 13px; margin-bottom: 10px;">
+                            ${pList}
+                        </ul>
+                    `;
+                }
+
+                contenedorReportes.innerHTML += `
+                    <div style="background: white; border: 1.5px solid #d8cae6; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 2px solid #f1ebf7; padding-bottom: 10px;">
+                            <div>
+                                <h4 style="color: #4A1C6B; font-size: 16px;">👤 Estudiante: ${est.nombre}</h4>
+                                <span style="font-size: 12px; color: #666;">Temática: <strong>${tematicaGlobal}</strong></span>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="font-size: 22px; font-weight: 800; color: #4A1C6B;">${notaFinal.toFixed(1)} / 5.0</span>
+                            </div>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Criterio de Evaluación</th>
+                                    <th style="text-align: center;">Peso</th>
+                                    <th style="text-align: center;">Calificación</th>
+                                    <th>Retroalimentación basada en Rúbrica</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${desgloseHtml}
+                            </tbody>
+                        </table>
+
+                        ${preguntasReporteHtml}
+
+                        <h4 style="color: #2e7d32; font-size: 13px; margin-top: 10px;">✅ Fortalezas:</h4>
+                        <ul style="background: #e8f5e9; color: #2e7d32; padding: 10px 20px; border-radius: 6px; font-size: 13px; margin-bottom: 10px;">
+                            ${fortalezasArr.map(f => `<li>• ${f}</li>`).join('')}
+                        </ul>
+
+                        <h4 style="color: #c62828; font-size: 13px; margin-top: 10px;">⚠️ Aspectos a Mejorar:</h4>
+                        <ul style="background: #ffebee; color: #c62828; padding: 10px 20px; border-radius: 6px; font-size: 13px; margin-bottom: 15px;">
+                            ${mejorasArr.map(m => `<li>• ${m}</li>`).join('')}
+                        </ul>
+
+                        <button class="btn btn-send" onclick="enviarCorreoReporteIndividual('${est.id}', '${est.nombre}', ${notaFinal})">
+                            📧 Enviar Reporte de Exposición al Correo del Estudiante
+                        </button>
+                    </div>
+                `;
+            });
+
+            document.getElementById('panelReportesFinales').style.display = 'block';
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        async function enviarCorreoReporteIndividual(estId, estNombre, notaFinal) {
+            const selectMat = document.getElementById('selectMateriaExpo');
+            const asignaturaId = selectMat.value;
+            const nombreAsignatura = selectMat.options[selectMat.selectedIndex]?.text || "Asignatura Unicaribe";
+            const tematicaGlobal = document.getElementById('inputTematicaGlobal').value.trim() || "Exposición General";
+            const dataEst = datosCalificacionesEstudiantes[estId];
+            const criteriosEst = dataEst.criterios;
+
+            let fortalezasArr = [];
+            let mejorasArr = [];
+            let desgloseArr = criteriosEst.map(crit => {
+                let desc = crit.nivelesTexto && crit.nivelesTexto[crit.nivelSeleccionado] ? crit.nivelesTexto[crit.nivelSeleccionado] : "";
+                let textoRetro = `${crit.nombreCriterio}: Tuviste ${desc}`;
+                if (crit.notaCriterio >= 3.8) fortalezasArr.push(textoRetro);
+                else mejorasArr.push(textoRetro);
+
+                return {
+                    ejercicio: crit.nombreCriterio,
+                    puntajeObtenido: crit.notaCriterio,
+                    puntajeMaximo: 5.0,
+                    comentario: `[${crit.nivelSeleccionado}] Tuviste ${desc}`
+                };
+            });
+
+            try {
+                const payloadData = {
+                    accion: 'enviarReporteCorreo',
+                    asignaturaId: asignaturaId,
+                    nombreAsignatura: nombreAsignatura,
+                    integrantes: JSON.stringify([{ id: estId, nombre: estNombre }]),
+                    actividad: `Exposición Oral (${tematicaGlobal})`,
+                    notaFinal: notaFinal,
+                    resumen: `Evaluación de exposición oral sobre "${tematicaGlobal}" completada bajo rúbrica institucional. Desempeño ponderado en nivel cuantitativo de ${notaFinal} / 5.0.`,
+                    desglose: JSON.stringify(desgloseArr),
+                    fortalezas: JSON.stringify(fortalezasArr),
+                    aspectosAMejorar: JSON.stringify(mejorasArr),
+                    urlDrive: "#"
+                };
+
+                const formData = new URLSearchParams();
+                formData.append('payload', JSON.stringify(payloadData));
+
+                const response = await fetch(URL_EVALUADOR_IA, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                return data.ok;
+            } catch (error) {
+                console.error(`Error enviando correo a ${estNombre}:`, error);
+                return false;
+            }
+        }
+
+        async function enviarTodosLosReportesEnCola() {
+            const confirmar = confirm(`¿Deseas enviar los correos de reporte a los ${estudiantesSeleccionadosGlobal.length} estudiantes en cola?`);
+            if (!confirmar) return;
+
+            let enviados = 0;
+            for (let i = 0; i < estudiantesSeleccionadosGlobal.length; i++) {
+                const est = estudiantesSeleccionadosGlobal[i];
+                const dataEst = datosCalificacionesEstudiantes[est.id];
+                let sumaPonderada = 0;
+                dataEst.criterios.forEach(crit => {
+                    sumaPonderada += crit.notaCriterio * (crit.porcentajeMaximo / 100);
+                });
+                let notaFinal = parseFloat(Math.min(5.0, Math.max(0.0, sumaPonderada)).toFixed(1));
+
+                const exito = await enviarCorreoReporteIndividual(est.id, est.nombre, notaFinal);
+                if (exito) enviados++;
+            }
+
+            alert(`✅ Proceso finalizado. Se enviaron ${enviados} de ${estudiantesSeleccionadosGlobal.length} correos exitosamente.`);
+        }
+    </script>
+</body>
+</html>
