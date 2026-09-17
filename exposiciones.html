@@ -3,99 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Evaluador de Exposiciones con IA | Unicaribe</title>
+    <title>Evaluador Avanzado de Exposiciones | Unicaribe</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
         body { background: #f4f6f9; min-height: 100vh; color: #333; }
         .header { background: #4A1C6B; color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
         .header .logo { font-size: 20px; font-weight: 700; }
         .header .logo span { color: #F4A300; }
-        .container { max-width: 1000px; margin: 25px auto; padding: 0 20px; }
+        .container { max-width: 1050px; margin: 25px auto; padding: 0 20px; display: grid; grid-template-columns: 1fr; gap: 20px; }
         .card { background: white; border-radius: 12px; padding: 22px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); margin-bottom: 20px; }
         .card h3 { font-size: 17px; color: #4A1C6B; margin-bottom: 16px; }
         label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #444; }
-        input[type="text"], input[type="number"], input[type="file"], select { width: 100%; padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 14px; outline: none; }
+        input[type="text"], input[type="file"], select { width: 100%; padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 14px; outline: none; }
         .btn { background: #4A1C6B; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; transition: background 0.2s; }
         .btn:hover { background: #3a1555; }
-        .btn-save { background: #0066cc; margin-top: 10px; }
+        .btn-success { background: #2E8B57; }
+        .btn-success:hover { background: #246b45; }
+        .btn-save { background: #0066cc; }
         .btn-save:hover { background: #004d99; }
-        .btn-ai { background: #2E8B57; margin-bottom: 15px; }
-        .btn-ai:hover { background: #246b45; }
+        .btn:disabled { background: #a38db5; cursor: not-allowed; }
         
-        /* Lista de estudiantes con checkboxes */
-        .estudiantes-checklist { max-height: 160px; overflow-y: auto; border: 1.5px solid #ddd; border-radius: 8px; padding: 10px; margin-bottom: 14px; background: #fafafa; }
-        .estudiante-item { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 4px 0; cursor: pointer; }
-        
-        .criterio-row { background: #faf8fc; border: 1px solid #e0d4ed; padding: 14px; border-radius: 8px; margin-bottom: 12px; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; align-items: center; }
-        @media (max-width: 650px) { .criterio-row { grid-template-columns: 1fr; } }
-        
+        /* Lista de selección múltiple de estudiantes */
+        .checkbox-container { max-height: 180px; overflow-y: auto; border: 1.5px solid #ddd; border-radius: 8px; padding: 10px; margin-bottom: 14px; background: #fafafa; }
+        .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 0; border-bottom: 1px solid #eee; cursor: pointer; }
+        .checkbox-item:last-child { border-bottom: none; }
+
+        /* Estilos de pestañas por estudiante */
+        .tabs-estudiantes { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+        .tab-estudiante { padding: 8px 16px; background: #f1ebf7; color: #4A1C6B; border-radius: 8px; font-size: 13px; font-weight: 650; cursor: pointer; border: 1px solid #d8cae6; white-space: nowrap; }
+        .tab-estudiante.active { background: #4A1C6B; color: white; border-color: #4A1C6B; }
+
+        .criterio-eval-box { background: #faf8fc; border: 1px solid #e0d4ed; padding: 14px; border-radius: 8px; margin-bottom: 12px; }
         .score-box { background: #f8f5fc; border: 2px solid #4A1C6B; border-radius: 10px; padding: 15px; text-align: center; margin: 20px 0; }
         .score-number { font-size: 38px; font-weight: 800; color: #4A1C6B; }
         .grid-parametros { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-        .loading-ia { text-align: center; color: #2E8B57; font-weight: 600; padding: 10px; display: none; }
+        .loading-spinner { text-align: center; padding: 25px 0; color: #666; font-size: 14px; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div class="logo">uni<span>caribe</span> | Evaluador de Exposiciones</div>
+        <div class="logo">uni<span>caribe</span> | Evaluador Avanzado de Exposiciones</div>
         <div>
             <a href="parciales.html" style="color: white; font-size: 13px; text-decoration: none; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 6px;">← Ir a Parciales</a>
         </div>
     </div>
 
     <div class="container">
+        <!-- PASO 1: CONFIGURACIÓN Y CARGA DE RÚBRICA -->
         <div class="card">
-            <h3>🎙️ Configuración de Evaluaciones en Lote</h3>
+            <h3>🎙️ 1. Configuración de la Exposición y Rúbrica con IA</h3>
 
             <label for="selectMateriaExpo">Asignatura:</label>
             <select id="selectMateriaExpo" onchange="cargarEstudiantesExposicion()">
                 <option value="">-- Cargando asignaturas... --</option>
             </select>
 
-            <label>Seleccionar Estudiantes Expositores (Múltiples):</label>
-            <div id="checklistEstudiantes" class="estudiantes-checklist">
-                <span style="color: #777; font-size: 13px;">Selecciona una asignatura primero...</span>
+            <label>Selecciona los Estudiantes Expositores (Múltiples):</label>
+            <div id="listaEstudiantesCheck" class="checkbox-container">
+                <p style="font-size: 13px; color: #777; text-align: center; padding: 10px;">Selecciona una asignatura primero</p>
             </div>
 
-            <label for="archivoRubricaExpo">Cargar Rúbrica de Exposición (PDF oficial):</label>
+            <label for="archivoRubricaExpo">Cargar Rúbrica de Exposición (PDF oficial institucional):</label>
             <input type="file" id="archivoRubricaExpo" accept="application/pdf">
 
-            <button type="button" class="btn btn-ai" onclick="analizarRubricaConIA()">🤖 Analizar Rúbrica y Extraer Criterios</button>
-            <div id="loadingIa" class="loading-ia">⏳ Analizando rúbrica ...</div>
+            <button class="btn btn-success" id="btnIniciarEval" onclick="analizarRubricaEIniciarEvaluacion()">
+                🤖 Extraer Criterios con IA e Iniciar Evaluación en Lote
+            </button>
+        </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 10px;">
-                <h4 style="color: #4A1C6B; font-size: 15px;">Criterios Extraídos / Editables:</h4>
-                <button type="button" class="btn" style="width: auto; padding: 6px 12px; font-size: 12px;" onclick="agregarCriterioManual()">➕ Agregar Criterio</button>
+        <!-- SPINNER DE CARGA DE IA -->
+        <div class="card" id="cargandoRubrica" style="display: none;">
+            <div class="loading-spinner">
+                <p>⏳ <strong>Analizando rúbrica institucional y extrayendo criterios y porcentajes con IA...</strong></p>
+                <p style="font-size: 12px; margin-top: 6px;">Esto tomará solo unos segundos.</p>
+            </div>
+        </div>
+
+        <!-- PASO 2: PANEL DE CALIFICACIÓN INDIVIDUAL POR CADA ESTUDIANTE SELECCIONADO -->
+        <div class="card" id="panelCalificacion" style="display: none;">
+            <h3>📊 2. Calificación Individual por Estudiante</h3>
+
+            <!-- Pestañas de Navegación entre Estudiantes Seleccionados -->
+            <div id="tabsEstudiantesContainer" class="tabs-estudiantes"></div>
+
+            <div id="contenidoCalificacionEstudiante">
+                <!-- Se llena dinámicamente con los criterios extraídos por la IA -->
             </div>
 
-            <!-- Contenedor dinámico de criterios -->
-            <div id="contenedorCriteriosExpo">
-                <div class="criterio-row">
-                    <div>
-                        <label>Criterio / Aspecto</label>
-                        <input type="text" class="crit-nombre" value="Dominio del Tema">
-                    </div>
-                    <div>
-                        <label>Nota (0 - 5.0)</label>
-                        <input type="number" class="crit-obt" value="5.0" min="0" max="5" step="0.1" oninput="calcularNotaExposicion()">
-                    </div>
-                    <div>
-                        <label>Ponderación (%)</label>
-                        <input type="number" class="crit-porc" value="100" min="1" max="100" oninput="calcularNotaExposicion()">
-                    </div>
-                </div>
-            </div>
-
-            <!-- RESULTADO Y CÁLCULO -->
             <div class="score-box">
-                <div style="font-size: 12px; color: #666; text-transform: uppercase;">Nota Calculada para el Estudiante Activo</div>
-                <div class="score-number" id="notaDefinitivaExpo">5.0</div>
+                <div style="font-size: 12px; color: #666; text-transform: uppercase;">Nota Calculada para el Estudiante Actual</div>
+                <div class="score-number" id="notaDefinitivaExpo">0.0</div>
             </div>
 
             <!-- PARÁMETROS PARA ASENTAR EN BASE DE DATOS -->
             <div style="background: #f0f7ff; border: 1.5px solid #b3d7ff; border-radius: 10px; padding: 16px; margin-top: 15px;">
-                <h4 style="font-size: 14px; color: #004d99; margin-bottom: 10px;">📋 Asentar Nota Individualmente</h4>
+                <h4 style="font-size: 14px; color: #004d99; margin-bottom: 10px;">📋 Asentar Nota Individual en Base de Datos</h4>
                 <div class="grid-parametros">
                     <div>
                         <label for="selectCorteExpo">Corte:</label>
@@ -110,13 +113,23 @@
                         <input type="text" id="inputTipoExpo" value="Exposición">
                     </div>
                     <div>
-                        <label for="inputPorcentajeExpo">Porcentaje General (%):</label>
+                        <label for="inputPorcentajeExpo">Porcentaje (%):</label>
                         <input type="number" id="inputPorcentajeExpo" value="15" min="1" max="100">
                     </div>
                 </div>
 
-                <button class="btn btn-save" onclick="guardarNotaExposicionIndividual()">💾 Guardar Nota para Estudiantes Seleccionados</button>
+                <button class="btn btn-save" onclick="guardarNotaEstudianteActualSistema()">💾 Guardar Nota de este Estudiante en el Sistema</button>
             </div>
+
+            <button class="btn btn-success" style="margin-top: 15px;" onclick="generarReportesFinales()">
+                📈 Generar y Visualizar Reportes de Todos los Estudiantes
+            </button>
+        </div>
+
+        <!-- PASO 3: VISUALIZACIÓN DE REPORTES FINALES -->
+        <div class="card" id="panelReportesFinales" style="display: none;">
+            <h3>📑 3. Reportes Generados por Estudiante</h3>
+            <div id="contenedorReportesFinales" style="display: flex; flex-direction: column; gap: 15px;"></div>
         </div>
     </div>
 
@@ -124,9 +137,14 @@
         const URL_CONTROL_ESTUDIANTIL = "https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec";
         const URL_EVALUADOR_IA = "https://script.google.com/macros/s/AKfycby1l4VuqvSqGG6_t1J2fmJSlV8TjUZcE0EgAlV_1dYmxgWVWIa8Tb4OqmxhOVlh3f33/exec";
 
+        let listaEstudiantesExpo = [];
+        let estudiantesSeleccionadosGlobal = [];
+        let criteriosRubricaGlobal = [];
+        let datosCalificacionesEstudiantes = {}; // Almacena las calificaciones de cada estudiante indexadas por su ID
+        let indiceEstudianteActivo = 0;
+
         document.addEventListener('DOMContentLoaded', function() {
             cargarAsignaturasExpo();
-            calcularNotaExposicion();
         });
 
         async function cargarAsignaturasExpo() {
@@ -152,11 +170,11 @@
 
         async function cargarEstudiantesExposicion() {
             const idAsignatura = document.getElementById('selectMateriaExpo').value;
-            const checklist = document.getElementById('checklistEstudiantes');
-            checklist.innerHTML = '<span style="color: #777; font-size: 13px;">Cargando estudiantes...</span>';
+            const contenedorCheck = document.getElementById('listaEstudiantesCheck');
+            contenedorCheck.innerHTML = '<p style="font-size: 13px; color: #777; text-align: center; padding: 10px;">Cargando estudiantes...</p>';
 
             if (!idAsignatura) {
-                checklist.innerHTML = '<span style="color: #777; font-size: 13px;">Selecciona una asignatura primero...</span>';
+                contenedorCheck.innerHTML = '<p style="font-size: 13px; color: #777; text-align: center; padding: 10px;">Selecciona una asignatura primero</p>';
                 return;
             }
 
@@ -168,97 +186,23 @@
                 });
 
                 const data = await response.json();
-                if (data.ok && data.estudiantes && data.estudiantes.length > 0) {
-                    checklist.innerHTML = '';
-                    data.estudiantes.forEach(e => {
-                        checklist.innerHTML += `
-                            <label class="estudiante-item">
-                                <input type="checkbox" name="estudianteCheckbox" value="${e.id}" data-nombre="${e.nombre}">
+                if (data.ok && data.estudiantes) {
+                    listaEstudiantesExpo = data.estudiantes;
+                    contenedorCheck.innerHTML = '';
+                    listaEstudiantesExpo.forEach(e => {
+                        contenedorCheck.innerHTML += `
+                            <label class="checkbox-item">
+                                <input type="checkbox" class="check-estudiante" value="${e.id}" data-nombre="${e.nombre}">
                                 <span>${e.nombre} (${e.documento})</span>
                             </label>
                         `;
                     });
                 } else {
-                    checklist.innerHTML = '<span style="color: #777; font-size: 13px;">No hay estudiantes matriculados.</span>';
+                    contenedorCheck.innerHTML = '<p style="font-size: 13px; color: #777; text-align: center; padding: 10px;">No hay estudiantes inscritos</p>';
                 }
             } catch (error) {
                 console.error('Error al cargar estudiantes:', error);
-                checklist.innerHTML = '<span style="color: #c62828; font-size: 13px;">Error al cargar lista.</span>';
-            }
-        }
-
-        async function analizarRubricaConIA() {
-            const inputRubrica = document.getElementById('archivoRubricaExpo');
-            if (!inputRubrica.files[0]) {
-                alert('Por favor adjunta primero el PDF de la rúbrica de exposición.');
-                return;
-            }
-
-            const loading = document.getElementById('loadingIa');
-            loading.style.display = 'block';
-
-            try {
-                const file = inputRubrica.files[0];
-                const base64Full = await convertirBase64(file);
-                const base64Clean = base64Full.replace(/^data:.*,/, '');
-
-                const prompt = `Analiza este documento de rúbrica para exposiciones académicas. Extrae todos los criterios de evaluación y sus porcentajes o ponderaciones asignadas. Responde ÚNICAMENTE en un JSON válido con esta estructura:
-                {
-                  "criterios": [
-                    { "nombre": "Nombre del criterio", "porcentaje": 30 }
-                  ]
-                }`;
-
-                const payloadData = {
-                    accion: 'evaluarParcial', // Reutilizamos el conector IA del backend
-                    nombreEstudiante: "Rubrica",
-                    actividadEvaluada: "Extracción de Rúbrica",
-                    fileNameEstudiante: file.name,
-                    fileTypeEstudiante: file.type || "application/pdf",
-                    fileBase64Estudiante: base64Clean,
-                    fileTypeSolucionario: file.type || "application/pdf",
-                    fileBase64Solucionario: base64Clean
-                };
-
-                const formData = new URLSearchParams();
-                formData.append('payload', JSON.stringify(payloadData));
-
-                const response = await fetch(URL_EVALUADOR_IA, { method: 'POST', body: formData });
-                const data = await response.json();
-
-                // Intentar interpretar la respuesta de la IA para armar los criterios
-                if (data.ok && data.evaluacion && data.evaluacion.desglose) {
-                    const contenedor = document.getElementById('contenedorCriteriosExpo');
-                    contenedor.innerHTML = '';
-
-                    data.evaluacion.desglose.forEach(item => {
-                        contenedor.innerHTML += `
-                            <div class="criterio-row">
-                                <div>
-                                    <label>Criterio / Aspecto</label>
-                                    <input type="text" class="crit-nombre" value="${item.ejercicio || 'Criterio'}">
-                                </div>
-                                <div>
-                                    <label>Nota (0 - 5.0)</label>
-                                    <input type="number" class="crit-obt" value="5.0" min="0" max="5" step="0.1" oninput="calcularNotaExposicion()">
-                                </div>
-                                <div>
-                                    <label>Ponderación (%)</label>
-                                    <input type="number" class="crit-porc" value="${item.puntajeMaximo || 20}" min="1" max="100" oninput="calcularNotaExposicion()">
-                                </div>
-                            </div>
-                        `;
-                    });
-                    calcularNotaExposicion();
-                    alert('✅ Rúbrica analizada y criterios extraídos con éxito.');
-                } else {
-                    alert('No se pudieron extraer los criterios automáticamente. Puedes agregarlos de forma manual.');
-                }
-            } catch (error) {
-                console.error('Error al analizar rúbrica:', error);
-                alert('Error al conectar con la IA para analizar la rúbrica.');
-            } finally {
-                loading.style.display = 'none';
+                contenedorCheck.innerHTML = '<p style="font-size: 13px; color: #777; text-align: center; padding: 10px;">Error al cargar la lista</p>';
             }
         }
 
@@ -271,41 +215,252 @@
             });
         }
 
-        function agregarCriterioManual() {
-            const contenedor = document.getElementById('contenedorCriteriosExpo');
-            const div = document.createElement('div');
-            div.className = 'criterio-row';
-            div.innerHTML = `
-                <div>
-                    <label>Criterio / Aspecto</label>
-                    <input type="text" class="crit-nombre" value="Nuevo Criterio">
-                </div>
-                <div>
-                    <label>Nota (0 - 5.0)</label>
-                    <input type="number" class="crit-obt" value="5.0" min="0" max="5" step="0.1" oninput="calcularNotaExposicion()">
-                </div>
-                <div>
-                    <label>Ponderación (%)</label>
-                    <input type="number" class="crit-porc" value="20" min="1" max="100" oninput="calcularNotaExposicion()">
-                </div>
-            `;
-            contenedor.appendChild(div);
-            calcularNotaExposicion();
+        function extractBase64(dataUrl) {
+            return dataUrl.replace(/^data:.*,/, '');
         }
 
-        function calcularNotaExposicion() {
-            const obts = document.querySelectorAll('.crit-obt');
-            const porcs = document.querySelectorAll('.crit-porc');
+        async  function analizarRubricaEIniciarEvaluacion() {
+            const checks = document.querySelectorAll('.check-estudiante:checked');
+            estudiantesSeleccionadosGlobal = [];
+
+            checks.forEach(chk => {
+                estudiantesSeleccionadosGlobal.push({
+                    id: chk.value,
+                    nombre: chk.getAttribute('data-nombre')
+                });
+            });
+
+            if (estudiantesSeleccionadosGlobal.length === 0) {
+                alert('Por favor selecciona al menos un estudiante expositor.');
+                return;
+            }
+
+            const inputRubrica = document.getElementById('archivoRubricaExpo');
+            if (!inputRubrica.files[0]) {
+                alert('Por favor carga el archivo PDF con la rúbrica institucional de exposiciones.');
+                return;
+            }
+
+            document.getElementById('cargandoRubrica').style.display = 'block';
+            document.getElementById('panelCalificacion').style.display = 'none';
+            document.getElementById('panelReportesFinales').style.display = 'none';
+
+            try {
+                const fileRubrica = inputRubrica.files[0];
+                const base64RubricaFull = await convertirBase64(fileRubrica);
+
+                const promptIA = `
+                Eres un docente experto en evaluación universitaria. Analiza esta rúbrica de exposiciones en PDF y extrae de forma estructurada:
+                1. Los criterios de evaluación oficiales.
+                2. El porcentaje o ponderación máxima de cada criterio (asegúrate de que los porcentajes sumen 100% o distribúyelos equitativamente si no se especifican exactos).
+                3. La descripción de los rangos cualitativos especificados en la rúbrica para cada nivel:
+                   - Insuficiente (0.0 - 2.9)
+                   - Aceptable (3.0 - 3.7)
+                   - Bueno (3.8 - 4.4)
+                   - Excelente (4.5 - 5.0)
+
+                RESPONDE ÚNICAMENTE EN FORMATO JSON PURO con esta estructura exacta:
+                {
+                  "criterios": [
+                    {
+                      "nombre": "Dominio temático",
+                      "porcentaje": 30,
+                      "descripcionNiveles": "Insuficiente: Lee diapositivas. Excelente: Domina sin leer y responde preguntas."
+                    }
+                  ]
+                }
+                `;
+
+                const payloadData = {
+                    accion: 'evaluarParcial',
+                    nombreEstudiante: 'AnalisisRubrica',
+                    actividadEvaluada: 'Rubrica Exposición',
+                    fileNameEstudiante: fileRubrica.name,
+                    fileTypeEstudiante: fileRubrica.type || "application/pdf",
+                    fileBase64Estudiante: extractBase64(base64RubricaFull),
+                    fileTypeSolucionario: fileRubrica.type || "application/pdf",
+                    fileBase64Solucionario: extractBase64(base64RubricaFull)
+                };
+
+                const formData = new URLSearchParams();
+                formData.append('payload', JSON.stringify(payloadData));
+
+                const response = await fetch(URL_EVALUADOR_IA, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.ok && data.evaluacion) {
+                    // Intentar extraer el JSON de los criterios devueltos por la IA
+                    let textoIA = data.evaluacion.resumen || JSON.stringify(data.evaluacion);
+                    if (data.evaluacion.desglose && data.evaluacion.desglose.length > 0) {
+                        criteriosRubricaGlobal = data.evaluacion.desglose.map(d => ({
+                            nombre: d.ejercicio || "Criterio",
+                            porcentaje: parseFloat(d.puntajeMaximo) || 20,
+                            descripcion: d.comentario || "Evaluar según desempeño."
+                        }));
+                    } else {
+                        // Criterios por defecto si la IA no estructuró el desglose
+                        criteriosRubricaGlobal = [
+                            { nombre: "Dominio Conceptual y Claridad", porcentaje: 40, descripcion: "Insuficiente (<3.0): Confuso. Excelente (4.5-5.0): Dominio impecable." },
+                            { nombre: "Recursos y Material de Apoyo", porcentaje: 30, descripcion: "Insuficiente (<3.0): Sin apoyo. Excelente (4.5-5.0): Material excelente." },
+                            { nombre: "Expresión Oral y Manejo de Tiempo", porcentaje: 30, descripcion: "Insuficiente (<3.0): Tono bajo. Excelente (4.5-5.0): Fluido y dinámico." }
+                        ];
+                    }
+
+                    // Inicializar estructura de calificaciones para cada estudiante seleccionado
+                    datosCalificacionesEstudiantes = {};
+                    estudiantesSeleccionadosGlobal.forEach(est => {
+                        datosCalificacionesEstudiantes[est.id] = criteriosRubricaGlobal.map(crit => ({
+                            nombreCriterio: crit.nombre,
+                            porcentajeMaximo: crit.porcentaje,
+                            notaCriterio: 4.5, // Nota por defecto inicial
+                            nivelSeleccionado: "Excelente"
+                        }));
+                    });
+
+                    indiceEstudianteActivo = 0;
+                    construirInterfazCalificacion();
+                    document.getElementById('panelCalificacion').style.display = 'block';
+                } else {
+                    alert('No se pudo extraer la rúbrica automáticamente. Usando criterios estándar.');
+                    cargarCriteriosEstandar();
+                }
+
+            } catch (error) {
+                console.error('Error al analizar rúbrica:', error);
+                alert('Error al conectar con la IA para la rúbrica. Usando criterios estándar.');
+                cargarCriteriosEstandar();
+            } finally {
+                document.getElementById('cargandoRubrica').style.display = 'none';
+            }
+        }
+
+        function cargarCriteriosEstandar() {
+            criteriosRubricaGlobal = [
+                { nombre: "Dominio Conceptual y Claridad", porcentaje: 40, descripcion: "Insuficiente (0.0-2.9): Débil. Excelente (4.5-5.0): Impecable." },
+                { nombre: "Recursos y Material de Apoyo", porcentaje: 30, descripcion: "Insuficiente (0.0-2.9): Deficiente. Excelente (4.5-5.0): Muy profesional." },
+                { nombre: "Expresión Oral y Tiempo", porcentaje: 30, descripcion: "Insuficiente (0.0-2.9): Inseguro. Excelente (4.5-5.0): Fluido y preciso." }
+            ];
+
+            datosCalificacionesEstudiantes = {};
+            estudiantesSeleccionadosGlobal.forEach(est => {
+                datosCalificacionesEstudiantes[est.id] = criteriosRubricaGlobal.map(crit => ({
+                    nombreCriterio: crit.nombre,
+                    porcentajeMaximo: crit.porcentaje,
+                    notaCriterio: 4.5,
+                    nivelSeleccionado: "Excelente"
+                }));
+            });
+
+            indiceEstudianteActivo = 0;
+            construirInterfazCalificacion();
+            document.getElementById('panelCalificacion').style.display = 'block';
+        }
+
+        function construirInterfazCalificacion() {
+            const containerTabs = document.getElementById('tabsEstudiantesContainer');
+            containerTabs.innerHTML = '';
+
+            estudiantesSeleccionadosGlobal.forEach((est, idx) => {
+                containerTabs.innerHTML += `
+                    <div class="tab-estudiante ${idx === indiceEstudianteActivo ? 'active' : ''}" onclick="cambiarEstudianteActivo(${idx})">
+                        👤 ${est.nombre}
+                    </div>
+                `;
+            });
+
+            renderizarFormularioCriteriosEstudianteActivo();
+        }
+
+        function cambiarEstudianteActivo(idx) {
+            guardarDatosFormularioActual();
+            indiceEstudianteActivo = idx;
+            construirInterfazCalificacion();
+        }
+
+        function guardarDatosFormularioActual() {
+            const estActual = estudiantesSeleccionadosGlobal[indiceEstudianteActivo];
+            if (!estActual) return;
+
+            const filas = document.querySelectorAll('.criterio-eval-box');
+            filas.forEach((fila, idx) => {
+                const selectNivel = fila.querySelector('.select-nivel-cualitativo');
+                const inputNota = fila.querySelector('.input-nota-criterio');
+                
+                if (datosCalificacionesEstudiantes[estActual.id][idx]) {
+                    datosCalificacionesEstudiantes[estActual.id][idx].nivelSeleccionado = selectNivel.value;
+                    datosCalificacionesEstudiantes[estActual.id][idx].notaCriterio = parseFloat(inputNota.value) || 0;
+                }
+            });
+        }
+
+        function renderizarFormularioCriteriosEstudianteActivo() {
+            const estActual = estudiantesSeleccionadosGlobal[indiceEstudianteActivo];
+            const contenedor = document.getElementById('contenidoCalificacionEstudiante');
+            contenedor.innerHTML = `<h4 style="color: #4A1C6B; margin-bottom: 12px;">Calificando a: <strong>${estActual.nombre}</strong></h4>`;
+
+            const criteriosEst = datosCalificacionesEstudiantes[estActual.id];
+
+            criteriosEst.forEach((crit, idx) => {
+                contenedor.innerHTML += `
+                    <div class="criterio-eval-box">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                            <strong style="font-size: 14px; color: #333;">${idx + 1}. ${crit.nombreCriterio}</strong>
+                            <span style="font-size: 12px; color: #666; background: #e8def8; padding: 2px 8px; border-radius: 4px;">Ponderación: ${crit.porcentajeMaximo}%</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; align-items: center;">
+                            <div>
+                                <label style="font-size: 11px; color: #555;">Nivel Cualitativo (Rúbrica):</label>
+                                <select class="select-nivel-cualitativo" onchange="actualizarNotaPorNivel(${idx}, this.value)">
+                                    <option value="Insuficiente" ${crit.nivelSeleccionado === 'Insuficiente' ? 'selected' : ''}>Insuficiente (0.0 - 2.9)</option>
+                                    <option value="Aceptable" ${crit.nivelSeleccionado === 'Aceptable' ? 'selected' : ''}>Aceptable (3.0 - 3.7)</option>
+                                    <option value="Bueno" ${crit.nivelSeleccionado === 'Bueno' ? 'selected' : ''}>Bueno (3.8 - 4.4)</option>
+                                    <option value="Excelente" ${crit.nivelSeleccionado === 'Excelente' ? 'selected' : ''}>Excelente (4.5 - 5.0)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; color: #555;">Nota Numérica (0.0 - 5.0):</label>
+                                <input type="number" class="input-nota-criterio" value="${crit.notaCriterio}" min="0" max="5" step="0.1" oninput="calcularNotaTotalEstudianteActivo()">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            calcularNotaTotalEstudianteActivo();
+        }
+
+        function actualizarNotaPorNivel(idxCrit, nivel) {
+            const estActual = estudiantesSeleccionadosGlobal[indiceEstudianteActivo];
+            const inputNota = document.querySelectorAll('.input-nota-criterio')[idxCrit];
+            
+            let notaSugerida = 4.5;
+            if (nivel === "Insuficiente") notaSugerida = 2.0;
+            else if (nivel === "Aceptable") notaSugerida = 3.4;
+            else if (nivel === "Bueno") notaSugerida = 4.1;
+            else if (nivel === "Excelente") notaSugerida = 4.8;
+
+            inputNota.value = notaSugerida;
+            datosCalificacionesEstudiantes[estActual.id][idxCrit].notaCriterio = notaSugerida;
+            datosCalificacionesEstudiantes[estActual.id][idxCrit].nivelSeleccionado = nivel;
+
+            calcularNotaTotalEstudianteActivo();
+        }
+
+        function calcularNotaTotalEstudianteActivo() {
+            guardarDatosFormularioActual();
+            const estActual = estudiantesSeleccionadosGlobal[indiceEstudianteActivo];
+            const criteriosEst = datosCalificacionesEstudiantes[estActual.id];
 
             let sumaPonderada = 0;
             let sumaPorcentajes = 0;
 
-            obts.forEach((inpObt, idx) => {
-                const ob = parseFloat(inpObt.value) || 0;
-                const po = parseFloat(porcs[idx].value) || 0;
-
-                sumaPonderada += ob * (po / 100);
-                sumaPorcentajes += po;
+            criteriosEst.forEach(crit => {
+                sumaPonderada += crit.notaCriterio * (crit.porcentajeMaximo / 100);
+                sumaPorcentajes += crit.porcentajeMaximo;
             });
 
             let notaFinal = sumaPonderada;
@@ -317,53 +472,100 @@
             document.getElementById('notaDefinitivaExpo').textContent = notaFinal.toFixed(1);
         }
 
-        async function guardarNotaExposicionIndividual() {
+        async function guardarNotaEstudianteActualSistema() {
+            guardarDatosFormularioActual();
             const asignaturaId = document.getElementById('selectMateriaExpo').value;
-            const checkboxes = document.querySelectorAll('input[name="estudianteCheckbox"]:checked');
-            const notaFinal = document.getElementById('notaDefinitivaExpo').textContent;
+            const estActual = estudiantesSeleccionadosGlobal[indiceEstudianteActivo];
             const corte = document.getElementById('selectCorteExpo').value;
             const tipo = document.getElementById('inputTipoExpo').value;
             const porcentaje = document.getElementById('inputPorcentajeExpo').value;
 
-            if (!asignaturaId || checkboxes.length === 0) {
-                alert('Por favor selecciona la asignatura y al menos un estudiante de la lista.');
+            // Calcular nota final actual
+            const criteriosEst = datosCalificacionesEstudiantes[estActual.id];
+            let sumaPonderada = 0, sumaPorcentajes = 0;
+            criteriosEst.forEach(crit => {
+                sumaPonderada += crit.notaCriterio * (crit.porcentajeMaximo / 100);
+                sumaPorcentajes += crit.porcentajeMaximo;
+            });
+            let notaFinal = sumaPorcentajes > 0 && sumaPorcentajes !== 100 ? (sumaPonderada / sumaPorcentajes) * 100 : sumaPonderada;
+            notaFinal = parseFloat(Math.min(5.0, Math.max(0.0, notaFinal)).toFixed(1));
+
+            if (!asignaturaId || !estActual) {
+                alert('Faltan datos obligatorios.');
                 return;
             }
 
-            const confirmar = confirm(`¿Deseas registrar la nota de exposición ${notaFinal} en Corte ${corte} para los ${checkboxes.length} estudiante(s) seleccionados?`);
+            const confirmar = confirm(`¿Deseas guardar la nota de exposición (${notaFinal}) para ${estActual.nombre} en Corte ${corte}?`);
             if (!confirmar) return;
 
-            let exitos = 0;
-            for (const cb of checkboxes) {
-                const estudianteId = cb.value;
-                const nombreEstudiante = cb.getAttribute('data-nombre');
+            try {
+                const payloadGuardar = {
+                    accion: 'guardarNota',
+                    asignaturaId: asignaturaId,
+                    corte: parseInt(corte),
+                    tipo: tipo,
+                    porcentaje: parseFloat(porcentaje) || 0,
+                    nota: notaFinal,
+                    estudianteId: estActual.id,
+                    integrantes: JSON.stringify([{ id: estActual.id, nombre: estActual.nombre }])
+                };
 
-                try {
-                    const payloadGuardar = {
-                        accion: 'guardarNota',
-                        asignaturaId: asignaturaId,
-                        corte: parseInt(corte),
-                        tipo: tipo,
-                        porcentaje: parseFloat(porcentaje) || 0,
-                        nota: parseFloat(notaFinal),
-                        estudianteId: estudianteId,
-                        integrantes: JSON.stringify([{ id: estudianteId, nombre: nombreEstudiante }])
-                    };
+                const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payloadGuardar)
+                });
 
-                    const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify(payloadGuardar)
-                    });
-
-                    const data = await response.json();
-                    if (data.ok) exitos++;
-                } catch (e) {
-                    console.error(`Error guardando para ${nombreEstudiante}:`, e);
+                const data = await response.json();
+                if (data.ok) {
+                    alert(`✅ Nota guardada con éxito para ${estActual.nombre}.`);
+                } else {
+                    alert('⚠️ Error al guardar: ' + data.mensaje);
                 }
+            } catch (error) {
+                console.error('Error al guardar nota:', error);
+                alert('Error de conexión con el servidor.');
             }
+        }
 
-            alert(`✅ Proceso finalizado: Nota registrada con éxito para ${exitos} de ${checkboxes.length} estudiantes.`);
+        function generarReportesFinales() {
+            guardarDatosFormularioActual();
+            const contenedorReportes = document.getElementById('contenedorReportesFinales');
+            contenedorReportes.innerHTML = '';
+
+            estudiantesSeleccionadosGlobal.forEach(est => {
+                const criteriosEst = datosCalificacionesEstudiantes[est.id];
+                let sumaPonderada = 0, sumaPorcentajes = 0;
+
+                let desgloseHtml = '';
+                criteriosEst.forEach(crit => {
+                    sumaPonderada += crit.notaCriterio * (crit.porcentajeMaximo / 100);
+                    sumaPorcentajes += crit.porcentajeMaximo;
+
+                    desgloseHtml += `
+                        <div style="font-size: 13px; padding: 6px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;">
+                            <span><strong>${crit.nombreCriterio} (${crit.porcentajeMaximo}%):</strong> Nivel [${crit.nivelSeleccionado}]</span>
+                            <span style="font-weight: bold; color: #4A1C6B;">${crit.notaCriterio.toFixed(1)} / 5.0</span>
+                        </div>
+                    `;
+                });
+
+                let notaFinal = sumaPorcentajes > 0 && sumaPorcentajes !== 100 ? (sumaPonderada / sumaPorcentajes) * 100 : sumaPonderada;
+                notaFinal = parseFloat(Math.min(5.0, Math.max(0.0, notaFinal)).toFixed(1));
+
+                contenedorReportes.innerHTML += `
+                    <div style="background: #faf8fc; border: 1.5px solid #d8cae6; border-radius: 10px; padding: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h4 style="color: #4A1C6B; font-size: 16px;">👤 ${est.nombre}</h4>
+                            <span style="font-size: 18px; font-weight: 800; background: #4A1C6B; color: white; padding: 4px 12px; border-radius: 8px;">Nota: ${notaFinal.toFixed(1)}</span>
+                        </div>
+                        <div style="margin-bottom: 10px;">${desgloseHtml}</div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('panelReportesFinales').style.display = 'block';
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
     </script>
 </body>
