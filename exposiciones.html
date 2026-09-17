@@ -21,14 +21,14 @@
         .btn-success:hover { background: #246b45; }
         .btn-save { background: #0066cc; }
         .btn-save:hover { background: #004d99; }
+        .btn-send { background: #4A1C6B; margin-top: 10px; }
+        .btn-send:hover { background: #3a1555; }
         .btn:disabled { background: #a38db5; cursor: not-allowed; }
         
-        /* Lista de selección múltiple de estudiantes */
         .checkbox-container { max-height: 180px; overflow-y: auto; border: 1.5px solid #ddd; border-radius: 8px; padding: 10px; margin-bottom: 14px; background: #fafafa; }
         .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 0; border-bottom: 1px solid #eee; cursor: pointer; }
         .checkbox-item:last-child { border-bottom: none; }
 
-        /* Estilos de pestañas por estudiante */
         .tabs-estudiantes { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; border-bottom: 2px solid #eee; padding-bottom: 8px; }
         .tab-estudiante { padding: 8px 16px; background: #f1ebf7; color: #4A1C6B; border-radius: 8px; font-size: 13px; font-weight: 650; cursor: pointer; border: 1px solid #d8cae6; white-space: nowrap; }
         .tab-estudiante.active { background: #4A1C6B; color: white; border-color: #4A1C6B; }
@@ -38,6 +38,10 @@
         .score-number { font-size: 38px; font-weight: 800; color: #4A1C6B; }
         .grid-parametros { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
         .loading-spinner { text-align: center; padding: 25px 0; color: #666; font-size: 14px; }
+        
+        table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 14px; }
+        th { background: #f1ebf7; color: #4A1C6B; padding: 8px; text-align: left; }
+        td { padding: 8px; border-bottom: 1px solid #eee; vertical-align: middle; }
     </style>
 </head>
 <body>
@@ -75,7 +79,7 @@
         <!-- SPINNER DE CARGA DE IA -->
         <div class="card" id="cargandoRubrica" style="display: none;">
             <div class="loading-spinner">
-                <p>⏳ <strong>Analizando rúbrica institucional y extrayendo criterios y porcentajes con IA...</strong></p>
+                <p>⏳ <strong>Analizando rúbrica institucional y extrayendo criterios con IA...</strong></p>
                 <p style="font-size: 12px; margin-top: 6px;">Esto tomará solo unos segundos.</p>
             </div>
         </div>
@@ -84,19 +88,15 @@
         <div class="card" id="panelCalificacion" style="display: none;">
             <h3>📊 2. Calificación Individual por Estudiante</h3>
 
-            <!-- Pestañas de Navegación entre Estudiantes Seleccionados -->
             <div id="tabsEstudiantesContainer" class="tabs-estudiantes"></div>
 
-            <div id="contenidoCalificacionEstudiante">
-                <!-- Se llena dinámicamente con los criterios extraídos por la IA -->
-            </div>
+            <div id="contenidoCalificacionEstudiante"></div>
 
             <div class="score-box">
                 <div style="font-size: 12px; color: #666; text-transform: uppercase;">Nota Calculada para el Estudiante Actual</div>
                 <div class="score-number" id="notaDefinitivaExpo">0.0</div>
             </div>
 
-            <!-- PARÁMETROS PARA ASENTAR EN BASE DE DATOS -->
             <div style="background: #f0f7ff; border: 1.5px solid #b3d7ff; border-radius: 10px; padding: 16px; margin-top: 15px;">
                 <h4 style="font-size: 14px; color: #004d99; margin-bottom: 10px;">📋 Asentar Nota Individual en Base de Datos</h4>
                 <div class="grid-parametros">
@@ -128,8 +128,8 @@
 
         <!-- PASO 3: VISUALIZACIÓN DE REPORTES FINALES -->
         <div class="card" id="panelReportesFinales" style="display: none;">
-            <h3>📑 3. Reportes Generados por Estudiante</h3>
-            <div id="contenedorReportesFinales" style="display: flex; flex-direction: column; gap: 15px;"></div>
+            <h3>📑 3. Reportes Individuales Generados</h3>
+            <div id="contenedorReportesFinales" style="display: flex; flex-direction: column; gap: 20px;"></div>
         </div>
     </div>
 
@@ -140,7 +140,7 @@
         let listaEstudiantesExpo = [];
         let estudiantesSeleccionadosGlobal = [];
         let criteriosRubricaGlobal = [];
-        let datosCalificacionesEstudiantes = {}; // Almacena las calificaciones de cada estudiante indexadas por su ID
+        let datosCalificacionesEstudiantes = {};
         let indiceEstudianteActivo = 0;
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -219,7 +219,7 @@
             return dataUrl.replace(/^data:.*,/, '');
         }
 
-        async  function analizarRubricaEIniciarEvaluacion() {
+        async function analizarRubricaEIniciarEvaluacion() {
             const checks = document.querySelectorAll('.check-estudiante:checked');
             estudiantesSeleccionadosGlobal = [];
 
@@ -237,7 +237,7 @@
 
             const inputRubrica = document.getElementById('archivoRubricaExpo');
             if (!inputRubrica.files[0]) {
-                alert('Por favor carga el archivo PDF con la rúbrica institucional de exposiciones.');
+                alert('Por favor carga el archivo PDF con la rúbrica oficial institucional.');
                 return;
             }
 
@@ -251,21 +251,20 @@
 
                 const promptIA = `
                 Eres un docente experto en evaluación universitaria. Analiza esta rúbrica de exposiciones en PDF y extrae de forma estructurada:
-                1. Los criterios de evaluación oficiales.
-                2. El porcentaje o ponderación máxima de cada criterio (asegúrate de que los porcentajes sumen 100% o distribúyelos equitativamente si no se especifican exactos).
-                3. La descripción de los rangos cualitativos especificados en la rúbrica para cada nivel:
-                   - Insuficiente (0.0 - 2.9)
-                   - Aceptable (3.0 - 3.7)
-                   - Bueno (3.8 - 4.4)
-                   - Excelente (4.5 - 5.0)
+                1. Los criterios de evaluación oficiales exactos.
+                2. El porcentaje o ponderación exacta indicada para cada criterio (ej: 35%, 25%, 20%, etc.). ASEGÚRATE de que los porcentajes sumen estrictamente el 100%. Si suman más o menos, ajústalos proporcionalmente para que la suma total sea exactamente 100%.
+                3. La descripción textual para cada nivel: Insuficiente (0.0 - 2.9), Aceptable (3.0 - 3.7), Bueno (3.8 - 4.4), Excelente (4.5 - 5.0).
 
                 RESPONDE ÚNICAMENTE EN FORMATO JSON PURO con esta estructura exacta:
                 {
                   "criterios": [
                     {
-                      "nombre": "Dominio temático",
-                      "porcentaje": 30,
-                      "descripcionNiveles": "Insuficiente: Lee diapositivas. Excelente: Domina sin leer y responde preguntas."
+                      "nombre": "Dominio Conceptual y Rigor Matemático",
+                      "porcentaje": 35,
+                      "insuficiente": "Descripción textual...",
+                      "aceptable": "Descripción textual...",
+                      "bueno": "Descripción textual...",
+                      "excelente": "Descripción textual..."
                     }
                   ]
                 }
@@ -274,7 +273,7 @@
                 const payloadData = {
                     accion: 'evaluarParcial',
                     nombreEstudiante: 'AnalisisRubrica',
-                    actividadEvaluada: 'Rubrica Exposición',
+                    actividadEvaluada: promptIA,
                     fileNameEstudiante: fileRubrica.name,
                     fileTypeEstudiante: fileRubrica.type || "application/pdf",
                     fileBase64Estudiante: extractBase64(base64RubricaFull),
@@ -293,30 +292,33 @@
                 const data = await response.json();
 
                 if (data.ok && data.evaluacion) {
-                    // Intentar extraer el JSON de los criterios devueltos por la IA
-                    let textoIA = data.evaluacion.resumen || JSON.stringify(data.evaluacion);
-                    if (data.evaluacion.desglose && data.evaluacion.desglose.length > 0) {
-                        criteriosRubricaGlobal = data.evaluacion.desglose.map(d => ({
-                            nombre: d.ejercicio || "Criterio",
-                            porcentaje: parseFloat(d.puntajeMaximo) || 20,
-                            descripcion: d.comentario || "Evaluar según desempeño."
+                    let rawCriterios = data.evaluacion.criterios || data.evaluacion.desglose;
+                    
+                    if (Array.isArray(rawCriterios) && rawCriterios.length > 0) {
+                        criteriosRubricaGlobal = rawCriterios.map(d => ({
+                            nombre: d.nombre || d.ejercicio || "Criterio",
+                            porcentaje: parseFloat(d.porcentaje || d.puntajeMaximo) || 25,
+                            niveles: {
+                                Insuficiente: d.insuficiente || d.comentario || "Desempeño deficiente según rúbrica.",
+                                Aceptable: d.aceptable || "Desempeño básico.",
+                                Bueno: d.bueno || "Desempeño destacado.",
+                                Excelente: d.excelente || "Desempeño sobresaliente e impecable."
+                            }
                         }));
                     } else {
-                        // Criterios por defecto si la IA no estructuró el desglose
-                        criteriosRubricaGlobal = [
-                            { nombre: "Dominio Conceptual y Claridad", porcentaje: 40, descripcion: "Insuficiente (<3.0): Confuso. Excelente (4.5-5.0): Dominio impecable." },
-                            { nombre: "Recursos y Material de Apoyo", porcentaje: 30, descripcion: "Insuficiente (<3.0): Sin apoyo. Excelente (4.5-5.0): Material excelente." },
-                            { nombre: "Expresión Oral y Manejo de Tiempo", porcentaje: 30, descripcion: "Insuficiente (<3.0): Tono bajo. Excelente (4.5-5.0): Fluido y dinámico." }
-                        ];
+                        cargarCriteriosEstandarPorDefecto();
                     }
 
-                    // Inicializar estructura de calificaciones para cada estudiante seleccionado
+                    // Normalizar estrictamente los porcentajes para que sumen 100% exacto
+                    normalizarPorcentajesRubrica();
+
                     datosCalificacionesEstudiantes = {};
                     estudiantesSeleccionadosGlobal.forEach(est => {
                         datosCalificacionesEstudiantes[est.id] = criteriosRubricaGlobal.map(crit => ({
                             nombreCriterio: crit.nombre,
                             porcentajeMaximo: crit.porcentaje,
-                            notaCriterio: 4.5, // Nota por defecto inicial
+                            nivelesTexto: crit.niveles,
+                            notaCriterio: 4.5,
                             nivelSeleccionado: "Excelente"
                         }));
                     });
@@ -325,24 +327,32 @@
                     construirInterfazCalificacion();
                     document.getElementById('panelCalificacion').style.display = 'block';
                 } else {
-                    alert('No se pudo extraer la rúbrica automáticamente. Usando criterios estándar.');
-                    cargarCriteriosEstandar();
+                    cargarCriteriosEstandarPorDefecto();
                 }
 
             } catch (error) {
-                console.error('Error al analizar rúbrica:', error);
-                alert('Error al conectar con la IA para la rúbrica. Usando criterios estándar.');
-                cargarCriteriosEstandar();
+                console.error('Error al analizar rúbrica con IA:', error);
+                cargarCriteriosEstandarPorDefecto();
             } finally {
                 document.getElementById('cargandoRubrica').style.display = 'none';
             }
         }
 
-        function cargarCriteriosEstandar() {
+        function normalizarPorcentajesRubrica() {
+            let suma = criteriosRubricaGlobal.reduce((acc, c) => acc + c.porcentaje, 0);
+            if (suma !== 100 && suma > 0) {
+                criteriosRubricaGlobal.forEach(c => {
+                    c.porcentaje = parseFloat(((c.porcentaje / suma) * 100).toFixed(1));
+                });
+            }
+        }
+
+        function cargarCriteriosEstandarPorDefecto() {
             criteriosRubricaGlobal = [
-                { nombre: "Dominio Conceptual y Claridad", porcentaje: 40, descripcion: "Insuficiente (0.0-2.9): Débil. Excelente (4.5-5.0): Impecable." },
-                { nombre: "Recursos y Material de Apoyo", porcentaje: 30, descripcion: "Insuficiente (0.0-2.9): Deficiente. Excelente (4.5-5.0): Muy profesional." },
-                { nombre: "Expresión Oral y Tiempo", porcentaje: 30, descripcion: "Insuficiente (0.0-2.9): Inseguro. Excelente (4.5-5.0): Fluido y preciso." }
+                { nombre: "Dominio Conceptual y Rigor", porcentaje: 35, niveles: { Insuficiente: "Errores graves.", Aceptable: "Básico.", Bueno: "Comprende fundamentos.", Excelente: "Dominio impecable." } },
+                { nombre: "Estructura y Claridad Pedagógica", porcentaje: 25, niveles: { Insuficiente: "Desordenado.", Aceptable: "Básico.", Bueno: "Buena secuencia.", Excelente: "Exposición fluida y profesional." } },
+                { nombre: "Aplicación Práctica y Casos", porcentaje: 20, niveles: { Insuficiente: "Ausente.", Aceptable: "Mecánico.", Bueno: "Acorde a ingeniería.", Excelente: "Caso contextualizado riguroso." } },
+                { nombre: "Defensa y Manejo de Preguntas", porcentaje: 20, niveles: { Insuficiente: "Dependencia total.", Aceptable: "Vago.", Bueno: "Con solvencia.", Excelente: "Defensa brillante." } }
             ];
 
             datosCalificacionesEstudiantes = {};
@@ -350,6 +360,7 @@
                 datosCalificacionesEstudiantes[est.id] = criteriosRubricaGlobal.map(crit => ({
                     nombreCriterio: crit.nombre,
                     porcentajeMaximo: crit.porcentaje,
+                    nivelesTexto: crit.niveles,
                     notaCriterio: 4.5,
                     nivelSeleccionado: "Excelente"
                 }));
@@ -405,13 +416,17 @@
             const criteriosEst = datosCalificacionesEstudiantes[estActual.id];
 
             criteriosEst.forEach((crit, idx) => {
+                let textoDescripcionNivel = crit.nivelesTexto && crit.nivelesTexto[crit.nivelSeleccionado] 
+                    ? crit.nivelesTexto[crit.nivelSeleccionado] 
+                    : "Evaluación según rúbrica institucional.";
+
                 contenedor.innerHTML += `
                     <div class="criterio-eval-box">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
                             <strong style="font-size: 14px; color: #333;">${idx + 1}. ${crit.nombreCriterio}</strong>
                             <span style="font-size: 12px; color: #666; background: #e8def8; padding: 2px 8px; border-radius: 4px;">Ponderación: ${crit.porcentajeMaximo}%</span>
                         </div>
-                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; align-items: center;">
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; align-items: center; margin-bottom: 8px;">
                             <div>
                                 <label style="font-size: 11px; color: #555;">Nivel Cualitativo (Rúbrica):</label>
                                 <select class="select-nivel-cualitativo" onchange="actualizarNotaPorNivel(${idx}, this.value)">
@@ -426,6 +441,9 @@
                                 <input type="number" class="input-nota-criterio" value="${crit.notaCriterio}" min="0" max="5" step="0.1" oninput="calcularNotaTotalEstudianteActivo()">
                             </div>
                         </div>
+                        <div style="font-size: 12px; color: #555; background: #fff; padding: 6px 10px; border-radius: 6px; border: 1px dashed #d8cae6;" id="descNivel_${idx}">
+                            📝 <em>${textoDescripcionNivel}</em>
+                        </div>
                     </div>
                 `;
             });
@@ -436,6 +454,7 @@
         function actualizarNotaPorNivel(idxCrit, nivel) {
             const estActual = estudiantesSeleccionadosGlobal[indiceEstudianteActivo];
             const inputNota = document.querySelectorAll('.input-nota-criterio')[idxCrit];
+            const descDiv = document.getElementById(`descNivel_${idxCrit}`);
             
             let notaSugerida = 4.5;
             if (nivel === "Insuficiente") notaSugerida = 2.0;
@@ -447,6 +466,11 @@
             datosCalificacionesEstudiantes[estActual.id][idxCrit].notaCriterio = notaSugerida;
             datosCalificacionesEstudiantes[estActual.id][idxCrit].nivelSeleccionado = nivel;
 
+            const crit = datosCalificacionesEstudiantes[estActual.id][idxCrit];
+            if (crit.nivelesTexto && crit.nivelesTexto[nivel]) {
+                descDiv.innerHTML = `📝 <em>${crit.nivelesTexto[nivel]}</em>`;
+            }
+
             calcularNotaTotalEstudianteActivo();
         }
 
@@ -456,19 +480,11 @@
             const criteriosEst = datosCalificacionesEstudiantes[estActual.id];
 
             let sumaPonderada = 0;
-            let sumaPorcentajes = 0;
-
             criteriosEst.forEach(crit => {
                 sumaPonderada += crit.notaCriterio * (crit.porcentajeMaximo / 100);
-                sumaPorcentajes += crit.porcentajeMaximo;
             });
 
-            let notaFinal = sumaPonderada;
-            if (sumaPorcentajes > 0 && sumaPorcentajes !== 100) {
-                notaFinal = (sumaPonderada / sumaPorcentajes) * 100;
-            }
-
-            notaFinal = Math.min(5.0, Math.max(0.0, notaFinal));
+            let notaFinal = Math.min(5.0, Math.max(0.0, sumaPonderada));
             document.getElementById('notaDefinitivaExpo').textContent = notaFinal.toFixed(1);
         }
 
@@ -480,22 +496,19 @@
             const tipo = document.getElementById('inputTipoExpo').value;
             const porcentaje = document.getElementById('inputPorcentajeExpo').value;
 
-            // Calcular nota final actual
             const criteriosEst = datosCalificacionesEstudiantes[estActual.id];
-            let sumaPonderada = 0, sumaPorcentajes = 0;
+            let sumaPonderada = 0;
             criteriosEst.forEach(crit => {
                 sumaPonderada += crit.notaCriterio * (crit.porcentajeMaximo / 100);
-                sumaPorcentajes += crit.porcentajeMaximo;
             });
-            let notaFinal = sumaPorcentajes > 0 && sumaPorcentajes !== 100 ? (sumaPonderada / sumaPorcentajes) * 100 : sumaPonderada;
-            notaFinal = parseFloat(Math.min(5.0, Math.max(0.0, notaFinal)).toFixed(1));
+            let notaFinal = parseFloat(Math.min(5.0, Math.max(0.0, sumaPonderada)).toFixed(1));
 
             if (!asignaturaId || !estActual) {
                 alert('Faltan datos obligatorios.');
                 return;
             }
 
-            const confirmar = confirm(`¿Deseas guardar la nota de exposición (${notaFinal}) para ${estActual.nombre} en Corte ${corte}?`);
+            const confirmar = confirm(`¿Deseas guardar la nota de exposición (${notaFinal}) para ${estActual.nombre} en el Corte ${corte}?`);
             if (!confirmar) return;
 
             try {
@@ -535,37 +548,136 @@
 
             estudiantesSeleccionadosGlobal.forEach(est => {
                 const criteriosEst = datosCalificacionesEstudiantes[est.id];
-                let sumaPonderada = 0, sumaPorcentajes = 0;
-
+                let sumaPonderada = 0;
                 let desgloseHtml = '';
+                let fortalezasArr = [];
+                let mejorasArr = [];
+
                 criteriosEst.forEach(crit => {
                     sumaPonderada += crit.notaCriterio * (crit.porcentajeMaximo / 100);
-                    sumaPorcentajes += crit.porcentajeMaximo;
+                    
+                    let descNivel = crit.nivelesTexto && crit.nivelesTexto[crit.nivelSeleccionado] 
+                        ? crit.nivelesTexto[crit.nivelSeleccionado] 
+                        : "Cumplimiento evaluado por rúbrica.";
+
+                    if (crit.notaCriterio >= 3.8) {
+                        fortalezasArr.push(`${crit.nombreCriterio}: Destacado en nivel [${crit.nivelSeleccionado}] - ${descNivel}`);
+                    } else {
+                        mejorasArr.push(`${crit.nombreCriterio}: Requiere atención en nivel [${crit.nivelSeleccionado}] - ${descNivel}`);
+                    }
 
                     desgloseHtml += `
-                        <div style="font-size: 13px; padding: 6px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;">
-                            <span><strong>${crit.nombreCriterio} (${crit.porcentajeMaximo}%):</strong> Nivel [${crit.nivelSeleccionado}]</span>
-                            <span style="font-weight: bold; color: #4A1C6B;">${crit.notaCriterio.toFixed(1)} / 5.0</span>
-                        </div>
+                        <tr>
+                            <td><strong>${crit.nombreCriterio}</strong></td>
+                            <td style="text-align: center;">${crit.porcentajeMaximo}%</td>
+                            <td style="text-align: center;"><strong>${crit.notaCriterio.toFixed(1)}</strong> (${crit.nivelSeleccionado})</td>
+                            <td>${descNivel}</td>
+                        </tr>
                     `;
                 });
 
-                let notaFinal = sumaPorcentajes > 0 && sumaPorcentajes !== 100 ? (sumaPonderada / sumaPorcentajes) * 100 : sumaPonderada;
-                notaFinal = parseFloat(Math.min(5.0, Math.max(0.0, notaFinal)).toFixed(1));
+                let notaFinal = parseFloat(Math.min(5.0, Math.max(0.0, sumaPonderada)).toFixed(1));
 
                 contenedorReportes.innerHTML += `
-                    <div style="background: #faf8fc; border: 1.5px solid #d8cae6; border-radius: 10px; padding: 16px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <h4 style="color: #4A1C6B; font-size: 16px;">👤 ${est.nombre}</h4>
-                            <span style="font-size: 18px; font-weight: 800; background: #4A1C6B; color: white; padding: 4px 12px; border-radius: 8px;">Nota: ${notaFinal.toFixed(1)}</span>
+                    <div style="background: white; border: 1.5px solid #d8cae6; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 2px solid #f1ebf7; padding-bottom: 10px;">
+                            <div>
+                                <h4 style="color: #4A1C6B; font-size: 16px;">👤 Estudiante: ${est.nombre}</h4>
+                                <span style="font-size: 12px; color: #666;">Actividad: Exposición Oral</span>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="font-size: 22px; font-weight: 800; color: #4A1C6B;">${notaFinal.toFixed(1)} / 5.0</span>
+                            </div>
                         </div>
-                        <div style="margin-bottom: 10px;">${desgloseHtml}</div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Criterio de Evaluación</th>
+                                    <th style="text-align: center;">Peso</th>
+                                    <th style="text-align: center;">Calificación</th>
+                                    <th>Descripción / Observación de Rúbrica</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${desgloseHtml}
+                            </tbody>
+                        </table>
+
+                        <h4 style="color: #2e7d32; font-size: 13px; margin-top: 10px;">✅ Fortalezas Identificadas:</h4>
+                        <ul style="background: #e8f5e9; color: #2e7d32; padding: 10px 20px; border-radius: 6px; font-size: 13px; margin-bottom: 10px;">
+                            ${fortalezasArr.map(f => `<li>• ${f}</li>`).join('')}
+                        </ul>
+
+                        <h4 style="color: #c62828; font-size: 13px; margin-top: 10px;">⚠️ Aspectos a Mejorar:</h4>
+                        <ul style="background: #ffebee; color: #c62828; padding: 10px 20px; border-radius: 6px; font-size: 13px; margin-bottom: 15px;">
+                            ${mejorasArr.map(m => `<li>• ${m}</li>`).join('')}
+                        </ul>
+
+                        <button class="btn btn-send" onclick="enviarCorreoReporteIndividual('${est.id}', '${est.nombre}', ${notaFinal})">
+                            📧 Enviar Reporte de Exposición al Correo del Estudiante
+                        </button>
                     </div>
                 `;
             });
 
             document.getElementById('panelReportesFinales').style.display = 'block';
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        async function enviarCorreoReporteIndividual(estId, estNombre, notaFinal) {
+            const selectMat = document.getElementById('selectMateriaExpo');
+            const asignaturaId = selectMat.value;
+            const nombreAsignatura = selectMat.options[selectMat.selectedIndex]?.text || "Asignatura Unicaribe";
+            const criteriosEst = datosCalificacionesEstudiantes[estId];
+
+            let fortalezasArr = [];
+            let mejorasArr = [];
+            let desgloseArr = criteriosEst.map(crit => {
+                let desc = crit.nivelesTexto && crit.nivelesTexto[crit.nivelSeleccionado] ? crit.nivelesTexto[crit.nivelSeleccionado] : "";
+                if (crit.notaCriterio >= 3.8) fortalezasArr.push(`${crit.nombreCriterio}: Destacado (${crit.nivelSeleccionado})`);
+                else mejorasArr.push(`${crit.nombreCriterio}: Oportunidad de mejora (${crit.nivelSeleccionado})`);
+
+                return {
+                    ejercicio: crit.nombreCriterio,
+                    puntajeObtenido: crit.notaCriterio,
+                    puntajeMaximo: 5.0,
+                    comentario: `[${crit.nivelSeleccionado}] ${desc}`
+                };
+            });
+
+            const confirmar = confirm(`¿Deseas enviar el reporte de exposición por correo electrónico a ${estNombre}?`);
+            if (!confirmar) return;
+
+            try {
+                const payloadData = {
+                    accion: 'enviarReporteCorreo',
+                    asignaturaId: asignaturaId,
+                    nombreAsignatura: nombreAsignatura,
+                    integrantes: JSON.stringify([{ id: estId, nombre: estNombre }]),
+                    actividad: 'Exposición Oral',
+                    notaFinal: notaFinal,
+                    resumen: `Evaluación de exposición oral completada bajo rúbrica institucional. Desempeño general ponderado en nivel cuantitativo de ${notaFinal} / 5.0.`,
+                    desglose: JSON.stringify(desgloseArr),
+                    fortalezas: JSON.stringify(fortalezasArr),
+                    aspectosAMejorar: JSON.stringify(mejorasArr),
+                    urlDrive: "#"
+                };
+
+                const formData = new URLSearchParams();
+                formData.append('payload', JSON.stringify(payloadData));
+
+                const response = await fetch(URL_EVALUADOR_IA, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                alert(data.mensaje || "Reporte enviado exitosamente.");
+            } catch (error) {
+                console.error('Error al enviar correo:', error);
+                alert('Error al intentar enviar el correo: ' + error.message);
+            }
         }
     </script>
 </body>
