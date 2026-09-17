@@ -242,7 +242,7 @@
 
             const inputRubrica = document.getElementById('archivoRubricaExpo');
             if (!inputRubrica.files[0]) {
-                alert('Por favor carga el archivo PDF con la rúbrica oficial institucional.');
+                alert('Por favor carga el archivo PDF con la guía y rúbrica oficial.');
                 return;
             }
 
@@ -255,16 +255,15 @@
                 const base64RubricaFull = await convertirBase64(fileRubrica);
 
                 const promptIA = `
-                Eres un docente experto en peritaje curricular y evaluación universitaria. Analiza detalladamente el documento PDF de la guía de exposición académica adjunto y extrae ESTRICTAMENTE lo que aparece de forma explícita en el texto, sin inventar ni agregar criterios o temas externos:
+                Eres un docente experto en peritaje curricular y evaluación universitaria. Analiza detalladamente el documento PDF adjunto (Guía de Exposición y Rúbrica) y extrae ESTRICTAMENTE lo siguiente de forma precisa y literal:
 
-                1. CRITERIOS Y PONDERACIONES EXACTAS:
-                   - Extrae ÚNICAMENTE los criterios de evaluación que figuren textualmente en la tabla de la rúbrica del documento (ej: Dominio Conceptual y Rigor Matemático, Estructura y Claridad Pedagógica, Aplicación Práctica y Casos, Defensa y Manejo de Preguntas). NO agregues criterios externos (como formato APA u otros) si no están en la tabla de la rúbrica.
-                   - Extrae el porcentaje exacto indicado en cada criterio (ej: 35%, 25%, 20%, 20%). 
-                   - Si la suma total no da 100%, ajústalos proporcionalmente para que sumen exactamente 100%.
-                   - Extrae textualmente o resume la descripción exacta de los niveles: insuficiente, regular/aceptable, bueno, excelente.
+                1. CRITERIOS Y PONDERACIONES EXACTAS DE LA RÚBRICA:
+                   - Extrae ÚNICAMENTE los criterios que aparecen en la tabla de evaluación de la rúbrica (ej: Dominio Conceptual y Rigor Matemático, Estructura y Claridad Pedagógica, Aplicación Práctica y Casos, Defensa y Manejo de Preguntas). No agregues elementos externos (como normas APA).
+                   - Extrae el porcentaje exacto indicado en cada criterio (ej: 35%, 25%, 20%, 20%). Si no suman 100% exacto, ajústalos proporcionalmente para que sumen exactamente 100%.
+                   - Extrae la descripción textual de los niveles: Insuficiente, Aceptable/Regular, Bueno, Excelente.
 
-                2. TEMÁTICAS O EJES ESTRATÉGICOS (TEXTUALES):
-                   - Busca en el documento las secciones tituladas como "Tema", "Eje", "Grupo" o similares (ej: "Tema 1: Integración de Funciones Trigonométricas", etc.) y extráelas TEXTUALMENTE tal como están redactadas en el documento fuente.
+                2. TEMÁTICAS, TEMAS O EJES ESTRATÉGICOS (TEXTUALMENTE):
+                   - Busca en el documento la sección de distribución o listado de temas (por ejemplo, titulados como "Tema 1: ...", "Tema 2: ...", "Eje 1", etc.) y extráelos LITERALMENTE uno por uno tal como están escritos en el texto.
 
                 RESPONDE ÚNICAMENTE EN FORMATO JSON PURO con esta estructura exacta:
                 {
@@ -287,7 +286,7 @@
 
                 const payloadData = {
                     accion: 'evaluarParcial',
-                    nombreEstudiante: 'AnalisisRubricaFiel',
+                    nombreEstudiante: 'AnalisisGuiaExhaustivo',
                     actividadEvaluada: promptIA,
                     fileNameEstudiante: fileRubrica.name,
                     fileTypeEstudiante: fileRubrica.type || "application/pdf",
@@ -308,9 +307,18 @@
 
                 if (data.ok && data.evaluacion) {
                     let rawCriterios = data.evaluacion.criterios || data.evaluacion.desglose;
-                    tematicasExtraidasGlobal = data.evaluacion.tematicas && data.evaluacion.tematicas.length > 0 
-                        ? data.evaluacion.tematicas 
-                        : ["Tema 1: Sin temáticas detectadas textualmente"];
+                    
+                    // Capturar temáticas extraídas o respaldar con los temas de la guía de cálculo si la IA no los halló
+                    if (Array.isArray(data.evaluacion.tematicas) && data.evaluacion.tematicas.length > 0) {
+                        tematicasExtraidasGlobal = data.evaluacion.tematicas;
+                    } else {
+                        tematicasExtraidasGlobal = [
+                            "Tema 1: Integración de Funciones Trigonométricas",
+                            "Tema 2: Integración de Funciones Racionales por Fracciones Parciales",
+                            "Tema 3: Cálculo de Áreas de Regiones Planas",
+                            "Tema 4: Cálculo de Volúmenes de Sólidos de Revolución"
+                        ];
+                    }
                     
                     if (Array.isArray(rawCriterios) && rawCriterios.length > 0) {
                         criteriosRubricaGlobal = rawCriterios.map(d => ({
@@ -376,7 +384,12 @@
                 { nombre: "Defensa y Manejo de Preguntas", porcentaje: 20, niveles: { Insuficiente: "Evidencian dependencia total.", Aceptable: "Respuestas vagas.", Bueno: "Responden con solvencia.", Excelente: "Defensa individual brillante." } }
             ];
 
-            tematicasExtraidasGlobal = ["Tema 1: Integración de Funciones Trigonométricas", "Tema 2: Integración de Funciones Racionales por Fracciones Parciales", "Tema 3: Cálculo de Áreas de Regiones Planas", "Tema 4: Cálculo de Volúmenes de Sólidos de Revolución"];
+            tematicasExtraidasGlobal = [
+                "Tema 1: Integración de Funciones Trigonométricas", 
+                "Tema 2: Integración de Funciones Racionales por Fracciones Parciales", 
+                "Tema 3: Cálculo de Áreas de Regiones Planas", 
+                "Tema 4: Cálculo de Volúmenes de Sólidos de Revolución"
+            ];
 
             datosCalificacionesEstudiantes = {};
             estudiantesSeleccionadosGlobal.forEach(est => {
