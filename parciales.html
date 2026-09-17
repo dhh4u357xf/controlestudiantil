@@ -95,7 +95,7 @@
 
         <!-- PANEL IZQUIERDO: FORMULARIO DE CARGA -->
         <div class="card">
-            <h3>📝 Cargar Documentos</h3>
+            <h3>📝 Cargar Documentos y Cola de Exámenes</h3>
 
             <label for="selectMateria">Asignatura:</label>
             <select id="selectMateria" onchange="cargarEstudiantesPorMateria()">
@@ -175,10 +175,10 @@
             <label for="archivoSolucionario">Solucionario Oficial (PDF con el parcial resuelto y %):</label>
             <input type="file" id="archivoSolucionario" accept="application/pdf">
 
-            <label for="archivoEstudiante">Parcial(es) del Estudiante (Puedes seleccionar uno o varios PDFs):</label>
+            <label for="archivoEstudiante">Exámenes de Estudiantes (Puedes seleccionar varios PDFs a la vez):</label>
             <input type="file" id="archivoEstudiante" accept="application/pdf" multiple>
 
-            <button class="btn" id="btnEvaluar" onclick="procesarEvaluacion()">🤖 Evaluar y Trazar Errores (Soporta Cola)</button>
+            <button class="btn" id="btnEvaluar" onclick="procesarEvaluacion()">🤖 Evaluar Cola en Lote y Trazar Errores </button>
         </div>
 
         <!-- PANEL DERECHO -->
@@ -186,12 +186,12 @@
             <h3>📊 Resultado de la Calificación</h3>
 
             <div id="contenidoInicial" style="text-align: center; color: #888; padding: 40px 0;">
-                <p>Carga el solucionario y uno o varios exámenes para generar la evaluación cualitativa y el marcado gráfico de errores en cola.</p>
+                <p>Carga el solucionario y uno o varios exámenes para procesar la cola de evaluación automática.</p>
             </div>
 
             <div id="cargando" class="loading-spinner" style="display: none;">
-                <p>⏳ <strong id="textoCestadoCola">Analizando respuesta y superponiendo correcciones en el PDF...</strong></p>
-                <p style="font-size: 12px; margin-top: 8px;">Por favor espera, procesando lote en cola.</p>
+                <p id="textoCargandoCola">⏳ <strong>Procesando examen en cola...</strong></p>
+                <p style="font-size: 12px; margin-top: 8px;">Por favor espera, evaluando secuencialmente sin interrumpir.</p>
             </div>
 
             <div id="detalleEvaluacion" style="display: none;">
@@ -326,13 +326,13 @@
         let evaluacionActual = null;
         let urlDriveActual = "";
         let listaEstudiantesGlobalEvaluador = [];
-        let colaResultadosLote = []; // Almacena el reporte completo del procesamiento en lote
 
         document.addEventListener('DOMContentLoaded', function() {
             cargarAsignaturas();
             sincronizarParametrosDocente();
         });
 
+        // Sincroniza automáticamente los campos del panel docente según la actividad seleccionada
         function sincronizarParametrosDocente() {
             const act = document.getElementById('selectActividad').value;
             const selectCorte = document.getElementById('selectCorteDocente');
@@ -513,9 +513,7 @@
             });
         }
 
-        // =========================================================================
-        // NUEVA FUNCIÓN DE PROCESAMIENTO EN COLA (MÚLTIPLES EXÁMENES)
-        // =========================================================================
+        // FUNCIÓN ACTUALIZADA: PROCESAMIENTO EN COLA PARA MÚLTIPLES ARCHIVOS
         async function procesarEvaluacion() {
             const integrantes = obtenerIntegrantesSeleccionados();
             const actividad = document.getElementById('selectActividad').value;
@@ -524,54 +522,41 @@
             const btn = document.getElementById('btnEvaluar');
 
             if (!inputSolucion.files[0] || inputEstudiantes.files.length === 0) {
-                alert('Por favor adjunta el solucionario oficial y al menos un archivo PDF de examen del estudiante.');
+                alert('Por favor adjunta el solucionario oficial y al menos un archivo PDF de examen de estudiante.');
                 return;
             }
 
             const fileSol = inputSolucion.files[0];
             const archivosEstudiantes = Array.from(inputEstudiantes.files);
 
-            let nombresRotulo = integrantes.length > 1
-                ? `Grupo: ${integrantes.map(i => i.nombre).join(' | ')}`
-                : (integrantes.length === 1 ? integrantes[0].nombre : "Estudiante(s) por nombre de archivo");
-
             btn.disabled = true;
             document.getElementById('contenidoInicial').style.display = 'none';
             document.getElementById('detalleEvaluacion').style.display = 'none';
             document.getElementById('cargando').style.display = 'block';
 
-            colaResultadosLote = [];
-
             try {
-                console.log("1. Leyendo solucionario a Base64...");
+                console.log("Leyendo solucionario...");
                 const base64SolFull = await convertirBase64(fileSol);
-                const fileTypeSol = fileSol.type || "application/pdf";
-                const base64SolData = extractBase64(base64SolFull);
 
-                // Bucle de procesamiento secuencial en cola para cada archivo de estudiante
+                // Bucle secuencial para procesar cada examen en la cola
                 for (let i = 0; i < archivosEstudiantes.length; i++) {
                     const fileEst = archivosEstudiantes[i];
-                    const etiquetaProgreso = `Procesando examen ${i + 1} de ${archivosEstudiantes.length}: ${fileEst.name}`;
-                    document.getElementById('textoCestadoCola').textContent = etiquetaProgreso;
-                    console.log(etiquetaProgreso);
+                    const nombreIteracion = integrantes.length > 0 ? integrantes[0].nombre : fileEst.name;
+                    
+                    document.getElementById('textoCargandoCola').innerHTML = `⏳ <strong>Procesando examen (${i + 1} de ${archivosEstudiantes.length}): ${fileEst.name}</strong>`;
+                    console.log(`Evaluando ${i + 1}/${archivosEstudiantes.length}: ${fileEst.name}`);
 
                     const base64EstFull = await convertirBase64(fileEst);
-                    const fileTypeEst = fileEst.type || "application/pdf";
-                    const base64EstData = extractBase64(base64EstFull);
-
-                    const nombreActualItem = archivosEstudiantes.length === 1 && integrantes.length > 0 
-                        ? nombresRotulo 
-                        : fileEst.name.replace(/\.[^/.]+$/, "");
 
                     const payloadData = {
                         accion: 'evaluarParcial',
-                        nombreEstudiante: nombreActualItem,
+                        nombreEstudiante: nombreIteracion,
                         actividadEvaluada: actividad,
-                        fileNameEstudiante: fileEst.name,
-                        fileTypeEstudiante: fileTypeEst,
-                        fileBase64Estudiante: base64EstData,
-                        fileTypeSolucionario: fileTypeSol,
-                        fileBase64Solucionario: base64SolData
+                        fileNameEstudiante: `${nombreIteracion}_${fileEst.name}`,
+                        fileTypeEstudiante: fileEst.type || "application/pdf",
+                        fileBase64Estudiante: extractBase64(base64EstFull),
+                        fileTypeSolucionario: fileSol.type || "application/pdf",
+                        fileBase64Solucionario: extractBase64(base64SolFull)
                     };
 
                     const formData = new URLSearchParams();
@@ -598,7 +583,8 @@
                             }
                         }
 
-                        // Estampar marcas en PDF
+                        evaluacionActual = data.evaluacion;
+
                         const pdfArrayBuffer = await fileEst.arrayBuffer();
                         const pdfBase64Anotado = await estamparErroresEnPDF(
                             pdfArrayBuffer, 
@@ -607,10 +593,9 @@
                             data.evaluacion.desglose || []
                         );
 
-                        // Guardar en Drive
                         const payloadSave = {
                             accion: 'guardarPdfAnotado',
-                            fileName: `CORREGIDO_${nombreActualItem}_${fileEst.name}`,
+                            fileName: `CORREGIDO_${nombreIteracion}_${fileEst.name}`,
                             fileBase64Anotado: pdfBase64Anotado
                         };
 
@@ -620,39 +605,20 @@
                         const resSave = await fetch(URL_EVALUADOR_IA, { method: 'POST', body: formDataSave });
                         const dataSave = await resSave.json();
 
-                        const linkDriveItem = dataSave.urlDrive || data.urlDrive || "#";
-
-                        colaResultadosLote.push({
-                            archivo: fileEst.name,
-                            estudiante: nombreActualItem,
-                            evaluacion: data.evaluacion,
-                            urlDrive: linkDriveItem,
-                            exito: true
-                        });
-
-                        // Si es el último o el único archivo, se muestra en pantalla de inmediato
-                        if (i === archivosEstudiantes.length - 1) {
-                            evaluacionActual = data.evaluacion;
-                            urlDriveActual = linkDriveItem;
-                            mostrarResultado(data.evaluacion, urlDriveActual, nombreActualItem);
-                        }
+                        urlDriveActual = dataSave.urlDrive || data.urlDrive || "#";
+                        
+                        // Muestra el reporte correspondiente al último procesado (y lo mantiene en pantalla)
+                        mostrarResultado(data.evaluacion, urlDriveActual, nombreIteracion);
                     } else {
-                        colaResultadosLote.push({
-                            archivo: fileEst.name,
-                            estudiante: nombreActualItem,
-                            error: data.mensaje || 'Error desconocido',
-                            exito: false
-                        });
+                        console.error(`Error en archivo ${fileEst.name}:`, data.mensaje);
                     }
                 }
 
-                if (archivosEstudiantes.length > 1) {
-                    alert(`✅ ¡Cola de evaluación finalizada!\nSe procesaron ${archivosEstudiantes.length} exámenes exitosamente. Mostrando el último resultado en pantalla.`);
-                }
+                alert(`✅ ¡Cola de evaluaciones finalizada con éxito! Se procesaron ${archivosEstudiantes.length} documento(s).`);
 
             } catch (error) {
-                console.error('Error detallado en procesarEvaluacion (Cola):', error);
-                alert('Error al procesar el lote: ' + error.message);
+                console.error('Error detallado en cola de evaluación:', error);
+                alert('Error al procesar la cola: ' + error.message);
             } finally {
                 btn.disabled = false;
                 document.getElementById('cargando').style.display = 'none';
@@ -832,12 +798,11 @@
                 return await pdfDoc.saveAsBase64();
             } catch (e) {
                 console.error("CRÍTICO - Error en estamparErroresEnPDF:", e);
-                alert("Atención: Ocurrió un fallo técnico al dibujar sobre el PDF: " + e.message);
                 throw e; 
             }
         }
 
-        function mostrarResultado(eval, urlDrive, estudiante) {
+        function mostrarResultado(evalu, urlDrive, estudiante) {
             const tbody = document.getElementById('tablaDesglose');
             tbody.innerHTML = '';
             
