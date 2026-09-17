@@ -73,7 +73,7 @@
             </div>
 
             <label for="inputTematicaGlobal">Temática o Tema Global de la Exposición (para todos los estudiantes):</label>
-            <input type="text" id="inputTematicaGlobal" value="Tema 1: Fundamentos Teóricos y Aplicados" placeholder="Ej: Tema 1: Análisis de Procesos Industriales">
+            <input type="text" id="inputTematicaGlobal" value="Tema 1: Integración de Funciones Trigonométricas" placeholder="Ej: Tema 1: Integración de Funciones Trigonométricas">
 
             <label for="archivoRubricaExpo">Cargar Rúbrica de Exposición (PDF oficial):</label>
             <input type="file" id="archivoRubricaExpo" accept="application/pdf">
@@ -176,14 +176,6 @@
         let datosCalificacionesEstudiantes = {};
         let indiceEstudianteActivo = 0;
 
-        // Banco general amplio adaptable a cualquier asignatura
-        const DESCRIPCIONES_GENERALES_AMPLIAS = {
-            Insuficiente: "Se evidenciaron vacíos conceptuales críticos, omisión de fundamentos teóricos esenciales, presentación desordenada sin hilo conductor, problemas operativos graves en los casos prácticos y dependencia absoluta de un solo expositor durante la defensa.",
-            Aceptable: "Se enunciaron los conceptos básicos pero con limitada solvencia en los supuestos de partida; la presentación se apoyó en lectura reiterada de diapositivas con resolución mecánica de ejercicios y respuestas vagas ante los cuestionamientos.",
-            Bueno: "Se demostró una comprensión sólida de los fundamentos teóricos; aplicó y dedujo adecuadamente los modelos con imprecisiones menores, manejo correcto del tiempo, adecuada secuencia visual y respuestas resolutivas ante el auditorio.",
-            Excelente: "Dominio absoluto, impecable y riguroso de la temática; exposición fluida con gestión óptima del tiempo, recursos didácticos de alta calidad, casos prácticos rigurosamente contextualizados y una defensa individual sobresaliente con propiedad conceptual total."
-        };
-
         document.addEventListener('DOMContentLoaded', function() {
             cargarAsignaturasExpo();
         });
@@ -260,6 +252,7 @@
             return dataUrl.replace(/^data:.*,/, '');
         }
 
+        // PROMPT 1: Extracción detallada de criterios, porcentajes y descripciones celda por celda
         async function analizarRubricaEIniciarEvaluacion() {
             const checks = document.querySelectorAll('.check-estudiante:checked');
             estudiantesSeleccionadosGlobal = [];
@@ -290,17 +283,26 @@
                 const fileRubrica = inputRubrica.files[0];
                 const base64RubricaFull = await convertirBase64(fileRubrica);
 
-                const promptIA = `
-                Eres un experto en evaluación educativa. Analiza la tabla de rúbrica en este documento PDF y extrae ESTRICTAMENTE:
-                1. Los nombres exactos de los criterios de evaluación.
-                2. El porcentaje exacto de cada criterio. Si la suma no da 100%, ajústalos proporcionalmente para que sumen exactamente 100%.
+                const promptCriterios = `
+                Eres un experto en evaluación educativa universitaria. Analiza la rúbrica en este documento PDF y extrae ESTRICTAMENTE para cada criterio de evaluación:
+                1. El nombre exacto del criterio.
+                2. El porcentaje exacto (asegúrate de que sumen 100% exacto normalizándolos si es necesario).
+                3. La descripción textual específica que aparece en la rúbrica para cada nivel:
+                   - "insuficiente"
+                   - "aceptable"
+                   - "bueno"
+                   - "excelente"
 
                 RESPONDE ÚNICAMENTE EN FORMATO JSON PURO con esta estructura exacta:
                 {
                   "criterios": [
                     {
-                      "nombre": "Nombre del criterio",
-                      "porcentaje": 25
+                      "nombre": "Nombre exacto del criterio",
+                      "porcentaje": 35,
+                      "insuficiente": "Descripción textual...",
+                      "aceptable": "Descripción textual...",
+                      "bueno": "Descripción textual...",
+                      "excelente": "Descripción textual..."
                     }
                   ]
                 }
@@ -308,8 +310,8 @@
 
                 const payloadData = {
                     accion: 'evaluarParcial',
-                    nombreEstudiante: 'ExtraccionCriteriosAmplios',
-                    actividadEvaluada: promptIA,
+                    nombreEstudiante: 'ExtraccionDetalladaRubrica',
+                    actividadEvaluada: promptCriterios,
                     fileNameEstudiante: fileRubrica.name,
                     fileTypeEstudiante: fileRubrica.type || "application/pdf",
                     fileBase64Estudiante: extractBase64(base64RubricaFull),
@@ -334,7 +336,12 @@
                         criteriosRubricaGlobal = rawCriterios.map(d => ({
                             nombre: d.nombre || d.ejercicio || "Criterio",
                             porcentaje: parseFloat(d.porcentaje || d.puntajeMaximo) || 25,
-                            niveles: DESCRIPCIONES_GENERALES_AMPLIAS
+                            niveles: {
+                                Insuficiente: d.insuficiente || d.comentario || "Desempeño deficiente según rúbrica.",
+                                Aceptable: d.aceptable || "Desempeño básico.",
+                                Bueno: d.bueno || "Desempeño destacado.",
+                                Excelente: d.excelente || "Desempeño sobresaliente e impecable."
+                            }
                         }));
                     } else {
                         cargarCriteriosEstandarPorDefecto();
@@ -381,10 +388,46 @@
 
         function cargarCriteriosEstandarPorDefecto() {
             criteriosRubricaGlobal = [
-                { nombre: "Dominio Conceptual y Rigor Técnico", porcentaje: 35, niveles: DESCRIPCIONES_GENERALES_AMPLIAS },
-                { nombre: "Estructura y Claridad Pedagógica", porcentaje: 25, niveles: DESCRIPCIONES_GENERALES_AMPLIAS },
-                { nombre: "Aplicación Práctica y Casos", porcentaje: 20, niveles: DESCRIPCIONES_GENERALES_AMPLIAS },
-                { nombre: "Defensa y Manejo de Preguntas", porcentaje: 20, niveles: DESCRIPCIONES_GENERALES_AMPLIAS }
+                { 
+                    nombre: "Dominio Conceptual y Rigor Matemático", 
+                    porcentaje: 35, 
+                    niveles: { 
+                        Insuficiente: "Omite supuestos teóricos, confunde parámetros con estadísticos o comete errores graves en la deducción de fórmulas y ecuaciones.", 
+                        Aceptable: "Enuncia las fórmulas pero no demuestra solvencia en los supuestos de partida (normalidad, TCL, grados de libertad).", 
+                        Bueno: "Demuestra comprensión de los fundamentos teóricos; aplica y deduce adecuadamente los modelos con imprecisiones menores.", 
+                        Excelente: "Dominio impecable de la teoría matemática, justificación rigurosa de cada hipótesis, pivote, parámetro y grado de libertad." 
+                    } 
+                },
+                { 
+                    nombre: "Estructura y Claridad Pedagógica", 
+                    porcentaje: 25, 
+                    niveles: { 
+                        Insuficiente: "Presentación desordenada, saturada de texto, sin hilo conductor. Incumple los tiempos estipulados de forma crítica.", 
+                        Aceptable: "Presentación básica con lectura reiterada de diapositivas. Transición deficiente entre las fases de la exposición.", 
+                        Bueno: "Buena organización secuencial y visual. Manejo adecuado del tiempo asignado y discurso técnico entendible.", 
+                        Excelente: "Exposición fluida, diseño visual profesional y diagramas claros. Gestión óptima del tiempo (25 min) y excelente capacidad de síntesis." 
+                    } 
+                },
+                { 
+                    nombre: "Aplicación Práctica y Casos", 
+                    porcentaje: 20, 
+                    niveles: { 
+                        Insuficiente: "Ejercicio ausente, copiado sin contextualizar o con errores aritméticos graves en los cálculos finales.", 
+                        Aceptable: "Ejercicio numérico básico resuelto mecánicamente, sin interpretación ingenieril de los resultados.", 
+                        Bueno: "Problema práctico acorde a la ingeniería, cálculos correctos e interpretación analítica coherente del intervalo o contraste.", 
+                        Excelente: "Caso industrial contextualizado y riguroso. Resolución analítica paso a paso, contraste gráfico claro y dictamen técnico contundente." 
+                    } 
+                },
+                { 
+                    nombre: "Defensa y Manejo de Preguntas", 
+                    porcentaje: 20, 
+                    niveles: { 
+                        Insuficiente: "Los integrantes no logran responder a los cuestionamientos o evidencian dependencia de un único expositor.", 
+                        Aceptable: "Respuestas vagas, circulares o con evidente inseguridad conceptual ante las preguntas del auditorio.", 
+                        Bueno: "Responden con solvencia a la mayoría de las preguntas formuladas, mostrando cohesión y dominio del tema.", 
+                        Excelente: "Defensa individual brillante, capacidad analítica inmediata, argumentación basada en teoremas y propiedad técnica total." 
+                    } 
+                }
             ];
 
             datosCalificacionesEstudiantes = {};
@@ -469,7 +512,7 @@
             dataEst.criterios.forEach((crit, idx) => {
                 let textoDescripcionNivel = crit.nivelesTexto && crit.nivelesTexto[crit.nivelSeleccionado] 
                     ? crit.nivelesTexto[crit.nivelSeleccionado] 
-                    : DESCRIPCIONES_GENERALES_AMPLIAS[crit.nivelSeleccionado];
+                    : "Evaluación según rúbrica.";
 
                 criteriosHtml += `
                     <div class="criterio-eval-box">
@@ -507,6 +550,7 @@
             calcularNotaTotalEstudianteActivo();
         }
 
+        // PROMPT 2: Generación específica del banco de preguntas por nivel de dificultad
         async function generarPreguntasAleatoriasIA() {
             const tematica = document.getElementById('inputTematicaGlobal').value.trim() || "Exposición General";
             const dificultad = document.getElementById('selectDificultadPregunta').value;
@@ -605,8 +649,9 @@
             datosCalificacionesEstudiantes[estActual.id].criterios[idxCrit].notaCriterio = notaSugerida;
             datosCalificacionesEstudiantes[estActual.id].criterios[idxCrit].nivelSeleccionado = nivel;
 
-            const descAmplia = DESCRIPCIONES_GENERALES_AMPLIAS[nivel];
-            descDiv.innerHTML = `📝 <em>${descAmplia}</em>`;
+            const crit = datosCalificacionesEstudiantes[estActual.id].criterios[idxCrit];
+            const descCriterioNivel = crit.nivelesTexto[nivel] || "Cumplimiento evaluado por rúbrica.";
+            descDiv.innerHTML = `📝 <em>${descCriterioNivel}</em>`;
 
             calcularNotaTotalEstudianteActivo();
         }
@@ -728,6 +773,7 @@
             alert("✅ ¡Proceso de asentamiento en cola finalizado con éxito para todos los estudiantes!");
         }
 
+        // PROMPT 3: Generación del reporte detallado basado en las descripciones independientes de cada criterio según su nota
         function generarReportesFinales() {
             guardarDatosFormularioActual();
             const contenedorReportes = document.getElementById('contenedorReportesFinales');
@@ -745,12 +791,14 @@
                 criteriosEst.forEach(crit => {
                     sumaPonderada += crit.notaCriterio * (crit.porcentajeMaximo / 100);
                     
-                    let descAmpliaNivel = DESCRIPCIONES_GENERALES_AMPLIAS[crit.nivelSeleccionado];
+                    let descNivelCriterio = crit.nivelesTexto && crit.nivelesTexto[crit.nivelSeleccionado] 
+                        ? crit.nivelesTexto[crit.nivelSeleccionado] 
+                        : "Cumplimiento evaluado por rúbrica.";
 
                     if (crit.notaCriterio >= 3.8) {
-                        fortalezasArr.push(`<strong>${crit.nombreCriterio}:</strong> ${descAmpliaNivel}`);
+                        fortalezasArr.push(`<strong>${crit.nombreCriterio}:</strong> ${descNivelCriterio}`);
                     } else {
-                        mejorasArr.push(`<strong>${crit.nombreCriterio}:</strong> ${descAmpliaNivel}`);
+                        mejorasArr.push(`<strong>${crit.nombreCriterio}:</strong> ${descNivelCriterio}`);
                     }
 
                     desgloseHtml += `
@@ -758,7 +806,7 @@
                             <td><strong>${crit.nombreCriterio}</strong></td>
                             <td style="text-align: center;">${crit.porcentajeMaximo}%</td>
                             <td style="text-align: center;"><strong>${crit.notaCriterio.toFixed(1)}</strong> (${crit.nivelSeleccionado})</td>
-                            <td>${descAmpliaNivel}</td>
+                            <td>${descNivelCriterio}</td>
                         </tr>
                     `;
                 });
@@ -836,15 +884,15 @@
             let fortalezasArr = [];
             let mejorasArr = [];
             let desgloseArr = criteriosEst.map(crit => {
-                let descAmpliaNivel = DESCRIPCIONES_GENERALES_AMPLIAS[crit.nivelSeleccionado];
-                if (crit.notaCriterio >= 3.8) fortalezasArr.push(`${crit.nombreCriterio}: ${descAmpliaNivel}`);
-                else mejorasArr.push(`${crit.nombreCriterio}: ${descAmpliaNivel}`);
+                let descNivelCriterio = crit.nivelesTexto && crit.nivelesTexto[crit.nivelSeleccionado] ? crit.nivelesTexto[crit.nivelSeleccionado] : "";
+                if (crit.notaCriterio >= 3.8) fortalezasArr.push(`${crit.nombreCriterio}: ${descNivelCriterio}`);
+                else mejorasArr.push(`${crit.nombreCriterio}: ${descNivelCriterio}`);
 
                 return {
                     ejercicio: crit.nombreCriterio,
                     puntajeObtenido: crit.notaCriterio,
                     puntajeMaximo: 5.0,
-                    comentario: `[${crit.nivelSeleccionado}] ${descAmpliaNivel}`
+                    comentario: `[${crit.nivelSeleccionado}] ${descNivelCriterio}`
                 };
             });
 
