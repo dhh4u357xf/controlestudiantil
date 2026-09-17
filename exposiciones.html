@@ -254,31 +254,38 @@
                 const fileRubrica = inputRubrica.files[0];
                 const base64RubricaFull = await convertirBase64(fileRubrica);
 
-                const promptIA = `
-                Eres un docente experto en evaluación universitaria. Analiza esta rúbrica de exposiciones en PDF y extrae de forma estructurada:
-                1. Los criterios de evaluación oficiales exactos.
-                2. El porcentaje o ponderación exacta indicada para cada criterio. Asegúrate de que los porcentajes sumen estrictamente el 100% (si no suman exacto, normalízalos proporcionalmente).
-                3. La descripción textual para cada nivel: Insuficiente (0.0 - 2.9), Aceptable (3.0 - 3.7), Bueno (3.8 - 4.4), Excelente (4.5 - 5.0).
-                4. Las distintas temáticas, temas, unidades o grupos de exposición que aparezcan detallados o listados dentro del documento de la rúbrica (ej: Tema 1, Tema 2, Grupo 1, etc.). Si no hay temas explícitos, extrae 3 temas generales inferidos del contenido.
+const promptIA = `
+Eres un docente experto en peritaje curricular y evaluación universitaria. Analiza el documento PDF de la guía de exposición académica adjunto y extrae estrictamente lo siguiente:
 
-                RESPONDE ÚNICAMENTE EN FORMATO JSON PURO con esta estructura exacta:
-                {
-                  "criterios": [
-                    {
-                      "nombre": "Dominio Conceptual y Rigor",
-                      "porcentaje": 35,
-                      "insuficiente": "...",
-                      "aceptable": "...",
-                      "bueno": "...",
-                      "excelente": "..."
-                    }
-                  ],
-                  "tematicas": [
-                    "Tema 1: Cinemática de Rotación",
-                    "Tema 2: Dinámica de Sistemas de Partículas"
-                  ]
-                }
-                `;
+1. CRITERIOS Y PONDERACIONES EXACTAS:
+   - Extrae todos los criterios de evaluación de la rúbrica (ej: Dominio Conceptual, Estructura Pedagógica, Aplicación Práctica, Defensa, etc.).
+   - Extrae el porcentaje exacto indicado entre paréntesis (ej: 35%, 25%, 20%, 20%).
+   - CONDICIÓN MATEMÁTICA ESTRICTA: Los porcentajes extraídos deben sumar exactamente el 100%. Si en la rúbrica suman más o menos (por ejemplo 105%), normalízalos proporcionalmente de forma matemática exacta para que su suma total sea estrictamente 100%.
+   - Extrae la descripción textual para los niveles de desempeño si están presentes (Insuficiente, Regular/Aceptable, Bueno, Excelente).
+
+2. TEMÁTICAS O EJES ESTRATÉGICOS:
+   - Extrae todas las temáticas, temas, unidades o grupos de exposición detallados en el documento (ej: "Tema 1: Integración de Funciones Trigonométricas", "Tema 2: Integración de Funciones Racionales por Fracciones Parciales", etc.).
+
+RESPONDE ÚNICAMENTE EN FORMATO JSON PURO, sin bloques de texto adicionales, utilizando esta estructura exacta:
+{
+  "criterios": [
+    {
+      "nombre": "Dominio Conceptual y Rigor Matemático",
+      "porcentaje": 35,
+      "insuficiente": "Presenta errores conceptuales graves...",
+      "aceptable": "Explica la teoría básica, pero muestra vacíos...",
+      "bueno": "Domina la temática central con precisión...",
+      "excelente": "Dominio absoluto y riguroso de la teoría..."
+    }
+  ],
+  "tematicas": [
+    "Tema 1: Integración de Funciones Trigonométricas",
+    "Tema 2: Integración de Funciones Racionales por Fracciones Parciales",
+    "Tema 3: Cálculo de Áreas de Regiones Planas",
+    "Tema 4: Cálculo de Volúmenes de Sólidos de Revolución"
+  ]
+}
+`;
 
                 const payloadData = {
                     accion: 'evaluarParcial',
