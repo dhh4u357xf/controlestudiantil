@@ -14,7 +14,7 @@
         .card { background: white; border-radius: 12px; padding: 22px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); margin-bottom: 20px; }
         .card h3 { font-size: 17px; color: #4A1C6B; margin-bottom: 16px; }
         label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #444; }
-        input[type="text"], input[type="file"], select, textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 14px; outline: none; }
+        input[type="text"], input[type="file"], select { width: 100%; padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 14px; outline: none; }
         .btn { background: #4A1C6B; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; transition: background 0.2s; }
         .btn:hover { background: #3a1555; }
         .btn-success { background: #2E8B57; }
@@ -23,8 +23,8 @@
         .btn-save:hover { background: #004d99; }
         .btn-send { background: #4A1C6B; margin-top: 10px; }
         .btn-send:hover { background: #3a1555; }
-        .btn-ai { background: #F4A300; color: #333; }
-        .btn-ai:hover { background: #d98f00; }
+        .btn-preguntas { background: #d97706; margin-top: 12px; }
+        .btn-preguntas:hover { background: #b45309; }
         .btn:disabled { background: #a38db5; cursor: not-allowed; }
         
         .checkbox-container { max-height: 180px; overflow-y: auto; border: 1.5px solid #ddd; border-radius: 8px; padding: 10px; margin-bottom: 14px; background: #fafafa; }
@@ -44,7 +44,8 @@
         table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 14px; }
         th { background: #f1ebf7; color: #4A1C6B; padding: 8px; text-align: left; }
         td { padding: 8px; border-bottom: 1px solid #eee; vertical-align: middle; }
-        .pregunta-card { background: #fdfcf7; border: 1px solid #f3e5ab; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 13px; }
+        
+        .pregunta-card { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -57,7 +58,7 @@
     </div>
 
     <div class="container">
-        <!-- PASO 1: CONFIGURACIÓN Y CARGA DE RÚBRICA Y TEMÁTICA -->
+        <!-- PASO 1: CONFIGURACIÓN Y CARGA DE RÚBRICA Y TEMÁTICAS -->
         <div class="card">
             <h3>🎙️ 1. Configuración de la Exposición y Rúbrica con IA</h3>
 
@@ -71,54 +72,25 @@
                 <p style="font-size: 13px; color: #777; text-align: center; padding: 10px;">Selecciona una asignatura primero</p>
             </div>
 
-            <label for="archivoRubricaExpo">Cargar Rúbrica de Exposición (PDF oficial institucional):</label>
+            <label for="archivoRubricaExpo">Cargar Rúbrica de Exposición (PDF oficial con temáticas y criterios):</label>
             <input type="file" id="archivoRubricaExpo" accept="application/pdf">
 
             <button class="btn btn-success" id="btnIniciarEval" onclick="analizarRubricaEIniciarEvaluacion()">
-                🤖 Extraer Criterios y Temáticas con IA
+                🤖 Extraer Criterios y Temáticas con IA e Iniciar Evaluación
             </button>
         </div>
 
         <!-- SPINNER DE CARGA DE IA -->
         <div class="card" id="cargandoRubrica" style="display: none;">
             <div class="loading-spinner">
-                <p>⏳ <strong>Analizando rúbrica institucional y extrayendo criterios y temáticas con IA...</strong></p>
+                <p>⏳ <strong>Analizando rúbrica institucional, criterios y temáticas/grupos con IA...</strong></p>
                 <p style="font-size: 12px; margin-top: 6px;">Esto tomará solo unos segundos.</p>
             </div>
         </div>
 
-        <!-- PASO 2: SELECCIÓN DE TEMÁTICA Y GENERADOR DE PREGUNTAS -->
-        <div class="card" id="panelTematicaYPreguntas" style="display: none;">
-            <h3>🎯 2. Temática Expuesta y Banco de Preguntas Aleatorias</h3>
-
-            <label for="selectTematicaExpo">Selecciona la temática específica expuesta por el grupo:</label>
-            <select id="selectTematicaExpo">
-                <option value="">-- Temáticas detectadas en la rúbrica --</option>
-            </select>
-
-            <div style="background: #f8f5fc; border: 1.5px solid #d8cae6; border-radius: 10px; padding: 15px; margin-top: 15px;">
-                <label for="selectNivelDificultad">Nivel de Dificultad para Preguntas de Sustentación:</label>
-                <select id="selectNivelDificultad">
-                    <option value="Básico">Básico</option>
-                    <option value="Medio" selected>Medio</option>
-                    <option value="Avanzado">Avanzado</option>
-                </select>
-
-                <button class="btn btn-ai" onclick="generarPreguntasSustentacionIA()">
-                    🎲 Generar 3 Preguntas de Sustentación con IA
-                </button>
-
-                <div id="contenedorPreguntasIA" style="margin-top: 15px; display: none;"></div>
-            </div>
-
-            <button class="btn btn-success" style="margin-top: 20px;" onclick="habilitarPanelCalificacion()">
-                ➡️ Continuar a Calificación Individual de Estudiantes
-            </button>
-        </div>
-
-        <!-- PASO 3: PANEL DE CALIFICACIÓN INDIVIDUAL POR CADA ESTUDIANTE SELECCIONADO -->
+        <!-- PASO 2: PANEL DE CALIFICACIÓN INDIVIDUAL POR CADA ESTUDIANTE SELECCIONADO -->
         <div class="card" id="panelCalificacion" style="display: none;">
-            <h3>📊 3. Calificación Individual por Estudiante</h3>
+            <h3>📊 2. Calificación Individual y Asignación de Temática</h3>
 
             <div id="tabsEstudiantesContainer" class="tabs-estudiantes"></div>
 
@@ -158,9 +130,9 @@
             </button>
         </div>
 
-        <!-- PASO 4: VISUALIZACIÓN DE REPORTES FINALES -->
+        <!-- PASO 3: VISUALIZACIÓN DE REPORTES FINALES -->
         <div class="card" id="panelReportesFinales" style="display: none;">
-            <h3>📑 4. Reportes Individuales Generados</h3>
+            <h3>📑 3. Reportes Individuales Generados</h3>
             <div id="contenedorReportesFinales" style="display: flex; flex-direction: column; gap: 20px;"></div>
         </div>
     </div>
@@ -172,10 +144,9 @@
         let listaEstudiantesExpo = [];
         let estudiantesSeleccionadosGlobal = [];
         let criteriosRubricaGlobal = [];
-        let tematicasDetectadasGlobal = [];
+        let tematicasExtraidasGlobal = [];
         let datosCalificacionesEstudiantes = {};
         let indiceEstudianteActivo = 0;
-        let base64RubricaGlobal = "";
 
         document.addEventListener('DOMContentLoaded', function() {
             cargarAsignaturasExpo();
@@ -276,27 +247,25 @@
             }
 
             document.getElementById('cargandoRubrica').style.display = 'block';
-            document.getElementById('panelTematicaYPreguntas').style.display = 'none';
             document.getElementById('panelCalificacion').style.display = 'none';
             document.getElementById('panelReportesFinales').style.display = 'none';
 
             try {
                 const fileRubrica = inputRubrica.files[0];
                 const base64RubricaFull = await convertirBase64(fileRubrica);
-                base64RubricaGlobal = extractBase64(base64RubricaFull);
 
                 const promptIA = `
                 Eres un docente experto en evaluación universitaria. Analiza esta rúbrica de exposiciones en PDF y extrae de forma estructurada:
                 1. Los criterios de evaluación oficiales exactos.
-                2. El porcentaje exacto indicado para cada criterio, asegurando que la suma total sea estrictamente el 100% (si no suma 100%, ajústalos proporcionalmente).
+                2. El porcentaje o ponderación exacta indicada para cada criterio. Asegúrate de que los porcentajes sumen estrictamente el 100% (si no suman exacto, normalízalos proporcionalmente).
                 3. La descripción textual para cada nivel: Insuficiente (0.0 - 2.9), Aceptable (3.0 - 3.7), Bueno (3.8 - 4.4), Excelente (4.5 - 5.0).
-                4. Las temáticas, unidades o tópicos académicos expuestos o evaluados según el contenido de la rúbrica (extrae una lista de 4 a 6 temáticas coherentes).
+                4. Las distintas temáticas, temas, unidades o grupos de exposición que aparezcan detallados o listados dentro del documento de la rúbrica (ej: Tema 1, Tema 2, Grupo 1, etc.). Si no hay temas explícitos, extrae 3 temas generales inferidos del contenido.
 
                 RESPONDE ÚNICAMENTE EN FORMATO JSON PURO con esta estructura exacta:
                 {
                   "criterios": [
                     {
-                      "nombre": "Dominio Conceptual",
+                      "nombre": "Dominio Conceptual y Rigor",
                       "porcentaje": 35,
                       "insuficiente": "...",
                       "aceptable": "...",
@@ -305,21 +274,21 @@
                     }
                   ],
                   "tematicas": [
-                    "Modelos Matemáticos y Deducción de Fórmulas",
-                    "Aplicaciones Prácticas y Casos de Ingeniería"
+                    "Tema 1: Cinemática de Rotación",
+                    "Tema 2: Dinámica de Sistemas de Partículas"
                   ]
                 }
                 `;
 
                 const payloadData = {
                     accion: 'evaluarParcial',
-                    nombreEstudiante: 'AnalisisRubrica',
+                    nombreEstudiante: 'AnalisisRubricaTemas',
                     actividadEvaluada: promptIA,
                     fileNameEstudiante: fileRubrica.name,
                     fileTypeEstudiante: fileRubrica.type || "application/pdf",
-                    fileBase64Estudiante: base64RubricaGlobal,
+                    fileBase64Estudiante: extractBase64(base64RubricaFull),
                     fileTypeSolucionario: fileRubrica.type || "application/pdf",
-                    fileBase64Solucionario: base64RubricaGlobal
+                    fileBase64Solucionario: extractBase64(base64RubricaFull)
                 };
 
                 const formData = new URLSearchParams();
@@ -334,8 +303,8 @@
 
                 if (data.ok && data.evaluacion) {
                     let rawCriterios = data.evaluacion.criterios || data.evaluacion.desglose;
-                    tematicasDetectadasGlobal = data.evaluacion.tematicas || ["Exposición de Ingeniería General", "Análisis de Modelos y Casos"];
-
+                    tematicasExtraidasGlobal = data.evaluacion.tematicas || ["Tema 1: Fundamentos Teóricos", "Tema 2: Aplicaciones Prácticas"];
+                    
                     if (Array.isArray(rawCriterios) && rawCriterios.length > 0) {
                         criteriosRubricaGlobal = rawCriterios.map(d => ({
                             nombre: d.nombre || d.ejercicio || "Criterio",
@@ -352,19 +321,32 @@
                     }
 
                     normalizarPorcentajesRubrica();
-                    poblarSelectTematicas();
-                    document.getElementById('panelTematicaYPreguntas').style.display = 'block';
+
+                    datosCalificacionesEstudiantes = {};
+                    estudiantesSeleccionadosGlobal.forEach(est => {
+                        datosCalificacionesEstudiantes[est.id] = {
+                            tematicaSeleccionada: tematicasExtraidasGlobal[0] || "Tema General",
+                            preguntasGeneradas: [],
+                            criterios: criteriosRubricaGlobal.map(crit => ({
+                                nombreCriterio: crit.nombre,
+                                porcentajeMaximo: crit.porcentaje,
+                                nivelesTexto: crit.niveles,
+                                notaCriterio: 4.5,
+                                nivelSeleccionado: "Excelente"
+                            }))
+                        };
+                    });
+
+                    indiceEstudianteActivo = 0;
+                    construirInterfazCalificacion();
+                    document.getElementById('panelCalificacion').style.display = 'block';
                 } else {
                     cargarCriteriosEstandarPorDefecto();
-                    poblarSelectTematicas();
-                    document.getElementById('panelTematicaYPreguntas').style.display = 'block';
                 }
 
             } catch (error) {
                 console.error('Error al analizar rúbrica con IA:', error);
                 cargarCriteriosEstandarPorDefecto();
-                poblarSelectTematicas();
-                document.getElementById('panelTematicaYPreguntas').style.display = 'block';
             } finally {
                 document.getElementById('cargandoRubrica').style.display = 'none';
             }
@@ -379,115 +361,34 @@
             }
         }
 
-        function poblarSelectTematicas() {
-            const select = document.getElementById('selectTematicaExpo');
-            select.innerHTML = '<option value="">-- Selecciona la temática expuesta --</option>';
-            tematicasDetectadasGlobal.forEach(t => {
-                select.innerHTML += `<option value="${t}">${t}</option>`;
-            });
-        }
-
         function cargarCriteriosEstandarPorDefecto() {
             criteriosRubricaGlobal = [
-                { nombre: "Dominio Conceptual y Rigor Matemático", porcentaje: 35, niveles: { Insuficiente: "Omite supuestos teóricos, confunde parámetros o comete errores graves en deducciones.", Aceptable: "Enuncia fórmulas pero no demuestra solvencia.", Bueno: "Demuestra comprensión de los fundamentos teóricos.", Excelente: "Dominio impecable de la teoría, justificación rigurosa de cada hipótesis, pivote o parámetro." } },
-                { nombre: "Estructura y Claridad Pedagógica", porcentaje: 25, niveles: { Insuficiente: "Presentación desordenada, saturada de texto, sin hilo conductor.", Aceptable: "Presentación básica con lectura reiterada de diapositivas.", Bueno: "Buena organización secuencial y visual. Manejo adecuado del tiempo.", Excelente: "Exposición fluida, diseño visual profesional y gestión óptima del tiempo." } },
-                { nombre: "Aplicación Práctica y Casos", porcentaje: 20, niveles: { Insuficiente: "Ejercicio ausente o con errores aritméticos graves.", Aceptable: "Ejercicio numérico básico resuelto mecánicamente.", Bueno: "Problema práctico acorde a la ingeniería, cálculos correctos.", Excelente: "Caso industrial contextualizado y riguroso con dictamen contundente." } },
-                { nombre: "Defensa y Manejo de Preguntas", porcentaje: 20, niveles: { Insuficiente: "No logran responder cuestionamientos o evidencian dependencia de un único expositor.", Aceptable: "Respuestas vagas ante preguntas del auditorio.", Bueno: "Responden con solvencia a la mayoría de preguntas.", Excelente: "Defensa individual brillante, capacidad analítica y argumentación total." } }
+                { nombre: "Dominio Conceptual y Rigor", porcentaje: 35, niveles: { Insuficiente: "Errores graves en la deducción.", Aceptable: "Fórmulas básicas sin solidez.", Bueno: "Comprende fundamentos teóricos.", Excelente: "Dominio impecable de la teoría." } },
+                { nombre: "Estructura y Claridad Pedagógica", porcentaje: 25, niveles: { Insuficiente: "Presentación desordenada.", Aceptable: "Lectura reiterada de diapositivas.", Bueno: "Buena organización secuencial.", Excelente: "Exposición fluida y profesional." } },
+                { nombre: "Aplicación Práctica y Casos", porcentaje: 20, niveles: { Insuficiente: "Ejercicio ausente o erróneo.", Aceptable: "Resuelto mecánicamente.", Bueno: "Acorde a la ingeniería.", Excelente: "Caso contextualizado y riguroso." } },
+                { nombre: "Defensa y Manejo de Preguntas", porcentaje: 20, niveles: { Insuficiente: "Evidencian dependencia total.", Aceptable: "Respuestas vagas.", Bueno: "Responden con solvencia.", Excelente: "Defensa individual brillante." } }
             ];
-            tematicasDetectadasGlobal = ["Fundamentos Teóricos y Modelos", "Aplicaciones Prácticas de Ingeniería"];
-        }
 
-        async function generarPreguntasSustentacionIA() {
-            const tematicaSel = document.getElementById('selectTematicaExpo').value;
-            const dificultad = document.getElementById('selectNivelDificultad').value;
-            const contenedor = document.getElementById('contenedorPreguntasIA');
+            tematicasExtraidasGlobal = ["Tema 1: Fundamentos de Ingeniería", "Tema 2: Sistemas y Aplicaciones Prácticas", "Tema 3: Análisis y Modelado Avanzado"];
 
-            if (!tematicaSel) {
-                alert('Por favor selecciona primero una temática expuesta.');
-                return;
-            }
-
-            contenedor.style.display = 'block';
-            contenedor.innerHTML = '<p style="font-size:13px; color:#666;">🎲 Generando preguntas de sustentación con IA...</p>';
-
-            try {
-                const promptPreguntas = `
-                Actúa como profesor universitario. Basado en la temática "${tematicaSel}" y nivel de dificultad "${dificultad}", genera exactamente 3 preguntas técnicas de sustentación para una exposición universitaria, cada una con su respectiva respuesta esperada de alta calidad técnica.
-                RESPONDE ÚNICAMENTE EN FORMATO JSON PURO:
-                {
-                  "preguntas": [
-                    {
-                      "pregunta": "¿Cómo se deduce...?",
-                      "respuesta": "La respuesta esperada es..."
-                    }
-                  ]
-                }
-                `;
-
-                const payloadData = {
-                    accion: 'evaluarParcial',
-                    nombreEstudiante: 'GeneradorPreguntas',
-                    actividadEvaluada: promptPreguntas,
-                    fileNameEstudiante: 'tematica.pdf',
-                    fileTypeEstudiante: 'application/pdf',
-                    fileBase64Estudiante: base64RubricaGlobal || "JVBERi0xLjQK...",
-                    fileTypeSolucionario: 'application/pdf',
-                    fileBase64Solucionario: base64RubricaGlobal || "JVBERi0xLjQK..."
-                };
-
-                const formData = new URLSearchParams();
-                formData.append('payload', JSON.stringify(payloadData));
-
-                const response = await fetch(URL_EVALUADOR_IA, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-                let listaPreguntas = [];
-
-                if (data.ok && data.evaluacion && data.evaluacion.preguntas) {
-                    listaPreguntas = data.evaluacion.preguntas;
-                } else {
-                    listaPreguntas = [
-                        { pregunta: `¿Cuál es el fundamento principal al aplicar ${tematicaSel}?`, respuesta: "Se fundamenta en la consistencia matemática y el rigor físico." },
-                        { pregunta: `¿Qué limitaciones técnicas presenta este modelo en la práctica?`, respuesta: "Depende de las condiciones de contorno y la linealidad de los parámetros." },
-                        { pregunta: `¿Cómo interpretaría usted los resultados obtenidos en el caso de estudio?`, respuesta: "Mediante el análisis de sensibilidad y la validación cruzada." }
-                    ];
-                }
-
-                contenedor.innerHTML = `<h5 style="color:#4A1C6B; margin-bottom:8px;">Preguntas Generadas (${dificultad}):</h5>`;
-                listaPreguntas.forEach((p, i) => {
-                    contenedor.innerHTML += `
-                        <div class="pregunta-card">
-                            <strong>P${i+1}: ${p.pregunta}</strong><br>
-                            <span style="color:#2e7d32;"><strong>Respuesta sugerida:</strong> ${p.respuesta}</span>
-                        </div>
-                    `;
-                });
-
-            } catch (error) {
-                console.error('Error al generar preguntas:', error);
-                contenedor.innerHTML = '<p style="color:red; font-size:12px;">Error al conectar con la IA para generar preguntas.</p>';
-            }
-        }
-
-        function habilitarPanelCalificacion() {
             datosCalificacionesEstudiantes = {};
             estudiantesSeleccionadosGlobal.forEach(est => {
-                datosCalificacionesEstudiantes[est.id] = criteriosRubricaGlobal.map(crit => ({
-                    nombreCriterio: crit.nombre,
-                    porcentajeMaximo: crit.porcentaje,
-                    nivelesTexto: crit.niveles,
-                    notaCriterio: 4.5,
-                    nivelSeleccionado: "Excelente"
-                }));
+                datosCalificacionesEstudiantes[est.id] = {
+                    tematicaSeleccionada: tematicasExtraidasGlobal[0],
+                    preguntasGeneradas: [],
+                    criterios: criteriosRubricaGlobal.map(crit => ({
+                        nombreCriterio: crit.nombre,
+                        porcentajeMaximo: crit.porcentaje,
+                        nivelesTexto: crit.niveles,
+                        notaCriterio: 4.5,
+                        nivelSeleccionado: "Excelente"
+                    }))
+                };
             });
 
             indiceEstudianteActivo = 0;
             construirInterfazCalificacion();
             document.getElementById('panelCalificacion').style.display = 'block';
-            window.scrollTo({ top: document.getElementById('panelCalificacion').offsetTop, behavior: 'smooth' });
         }
 
         function construirInterfazCalificacion() {
@@ -515,14 +416,19 @@
             const estActual = estudiantesSeleccionadosGlobal[indiceEstudianteActivo];
             if (!estActual) return;
 
+            const selectTematica = document.getElementById('selectTematicaEstudiante');
+            if (selectTematica) {
+                datosCalificacionesEstudiantes[estActual.id].tematicaSeleccionada = selectTematica.value;
+            }
+
             const filas = document.querySelectorAll('.criterio-eval-box');
             filas.forEach((fila, idx) => {
                 const selectNivel = fila.querySelector('.select-nivel-cualitativo');
                 const inputNota = fila.querySelector('.input-nota-criterio');
                 
-                if (datosCalificacionesEstudiantes[estActual.id][idx]) {
-                    datosCalificacionesEstudiantes[estActual.id][idx].nivelSeleccionado = selectNivel.value;
-                    datosCalificacionesEstudiantes[estActual.id][idx].notaCriterio = parseFloat(inputNota.value) || 0;
+                if (datosCalificacionesEstudiantes[estActual.id].criterios[idx]) {
+                    datosCalificacionesEstudiantes[estActual.id].criterios[idx].nivelSeleccionado = selectNivel.value;
+                    datosCalificacionesEstudiantes[estActual.id].criterios[idx].notaCriterio = parseFloat(inputNota.value) || 0;
                 }
             });
         }
@@ -530,16 +436,33 @@
         function renderizarFormularioCriteriosEstudianteActivo() {
             const estActual = estudiantesSeleccionadosGlobal[indiceEstudianteActivo];
             const contenedor = document.getElementById('contenidoCalificacionEstudiante');
-            contenedor.innerHTML = `<h4 style="color: #4A1C6B; margin-bottom: 12px;">Calificando a: <strong>${estActual.nombre}</strong></h4>`;
+            const dataEst = datosCalificacionesEstudiantes[estActual.id];
 
-            const criteriosEst = datosCalificacionesEstudiantes[estActual.id];
+            let optionsTemasHtml = '';
+            tematicasExtraidasGlobal.forEach(tema => {
+                optionsTemasHtml += `<option value="${tema}" ${dataEst.tematicaSeleccionada === tema ? 'selected' : ''}>${tema}</option>`;
+            });
 
-            criteriosEst.forEach((crit, idx) => {
+            let preguntasHtml = '';
+            if (dataEst.preguntasGeneradas && dataEst.preguntasGeneradas.length > 0) {
+                dataEst.preguntasGeneradas.forEach((p, pIdx) => {
+                    preguntasHtml += `
+                        <div class="pregunta-card">
+                            <strong style="font-size: 13px; color: #b45309;">Pregunta ${pIdx + 1} (${p.dificultad}):</strong>
+                            <p style="font-size: 13px; margin: 4px 0;">${p.enunciado}</p>
+                            <p style="font-size: 12px; color: #4b5563;"><strong>Respuesta Modelo:</strong> ${p.respuesta}</p>
+                        </div>
+                    `;
+                });
+            }
+
+            let criteriosHtml = '';
+            dataEst.criterios.forEach((crit, idx) => {
                 let textoDescripcionNivel = crit.nivelesTexto && crit.nivelesTexto[crit.nivelSeleccionado] 
                     ? crit.nivelesTexto[crit.nivelSeleccionado] 
                     : "Evaluación según rúbrica institucional.";
 
-                contenedor.innerHTML += `
+                criteriosHtml += `
                     <div class="criterio-eval-box">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
                             <strong style="font-size: 14px; color: #333;">${idx + 1}. ${crit.nombreCriterio}</strong>
@@ -567,7 +490,103 @@
                 `;
             });
 
+            contenedor.innerHTML = `
+                <h4 style="color: #4A1C6B; margin-bottom: 12px;">Calificando a: <strong>${estActual.nombre}</strong></h4>
+                
+                <div style="background: #f8f5fc; border: 1px solid #d8cae6; padding: 14px; border-radius: 8px; margin-bottom: 16px;">
+                    <label for="selectTematicaEstudiante">Temática o Grupo Asignado para la Exposición:</label>
+                    <select id="selectTematicaEstudiante" style="margin-bottom: 10px;">
+                        ${optionsTemasHtml}
+                    </select>
+
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; align-items: end;">
+                        <div>
+                            <label for="selectDificultadPregunta">Nivel de Dificultad para Banco de Preguntas:</label>
+                            <select id="selectDificultadPregunta" style="margin-bottom: 0;">
+                                <option value="Básico">Básico</option>
+                                <option value="Medio">Medio</option>
+                                <option value="Avanzado">Avanzado</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-preguntas" onclick="generarPreguntasAleatoriasIA()">❓ Generar 3 Preguntas</button>
+                        </div>
+                    </div>
+                    <div id="contenedorPreguntasGeneradas">${preguntasHtml}</div>
+                </div>
+
+                ${criteriosHtml}
+            `;
+
             calcularNotaTotalEstudianteActivo();
+        }
+
+        async function generarPreguntasAleatoriasIA() {
+            guardarDatosFormularioActual();
+            const estActual = estudiantesSeleccionadosGlobal[indiceEstudianteActivo];
+            const dataEst = datosCalificacionesEstudiantes[estActual.id];
+            const dificultad = document.getElementById('selectDificultadPregunta').value;
+            const tematica = dataEst.tematicaSeleccionada;
+
+            const contenedorP = document.getElementById('contenedorPreguntasGeneradas');
+            contenedorP.innerHTML = `<div class="loading-spinner" style="padding: 10px 0;">⏳ Generando 3 preguntas de nivel ${dificultad} sobre "${tematica}"...</div>`;
+
+            try {
+                const promptPreguntas = `
+                Actúa como un profesor universitario exigente. Genera exactamente 3 preguntas de defensa y sustentación oral con su respectiva respuesta modelo, basadas en la siguiente temática de exposición: "${tematica}".
+                El nivel de dificultad debe ser estrictamente: ${dificultad}.
+
+                RESPONDE ÚNICAMENTE EN FORMATO JSON PURO con esta estructura exacta:
+                {
+                  "preguntas": [
+                    {
+                      "enunciado": "Explique cómo...",
+                      "respuesta": "La respuesta correcta implica..."
+                    }
+                  ]
+                }
+                `;
+
+                const payloadData = {
+                    accion: 'evaluarParcial',
+                    nombreEstudiante: 'GeneradorPreguntas',
+                    actividadEvaluada: promptPreguntas,
+                    fileNameEstudiante: 'tematica.txt',
+                    fileTypeEstudiante: 'text/plain',
+                    fileBase64Estudiante: btoa(unescape(encodeURIComponent(tematica))),
+                    fileTypeSolucionario: 'text/plain',
+                    fileBase64Solucionario: btoa(unescape(encodeURIComponent(tematica)))
+                };
+
+                const formData = new URLSearchParams();
+                formData.append('payload', JSON.stringify(payloadData));
+
+                const response = await fetch(URL_EVALUADOR_IA, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const resJson = await response.json();
+                if (resJson.ok && resJson.evaluacion && resJson.evaluacion.preguntas) {
+                    dataEst.preguntasGeneradas = resJson.evaluacion.preguntas.map(p => ({
+                        dificultad: dificultad,
+                        enunciado: p.enunciado,
+                        respuesta: p.respuesta
+                    }));
+                } else {
+                    dataEst.preguntasGeneradas = [
+                        { dificultad: dificultad, enunciado: `¿Cuáles son los principios fundamentales aplicados en ${tematica}?`, respuesta: "Se fundamenta en la teoría analítica y su correcta deducción." },
+                        { dificultad: dificultad, enunciado: `Explique un caso práctico donde se evidencie ${tematica}.`, respuesta: "Mediante la resolución paso a paso del modelo propuesto." },
+                        { dificultad: dificultad, enunciado: `¿Qué limitaciones o restricciones presenta ${tematica}?`, respuesta: "Depende de las hipótesis de partida y los grados de libertad." }
+                    ];
+                }
+
+                renderizarFormularioCriteriosEstudianteActivo();
+            } catch (e) {
+                console.error("Error generando preguntas:", e);
+                alert("Error al generar preguntas con IA.");
+                contenedorP.innerHTML = '';
+            }
         }
 
         function actualizarNotaPorNivel(idxCrit, nivel) {
@@ -582,10 +601,10 @@
             else if (nivel === "Excelente") notaSugerida = 4.8;
 
             inputNota.value = notaSugerida;
-            datosCalificacionesEstudiantes[estActual.id][idxCrit].notaCriterio = notaSugerida;
-            datosCalificacionesEstudiantes[estActual.id][idxCrit].nivelSeleccionado = nivel;
+            datosCalificacionesEstudiantes[estActual.id].criterios[idxCrit].notaCriterio = notaSugerida;
+            datosCalificacionesEstudiantes[estActual.id].criterios[idxCrit].nivelSeleccionado = nivel;
 
-            const crit = datosCalificacionesEstudiantes[estActual.id][idxCrit];
+            const crit = datosCalificacionesEstudiantes[estActual.id].criterios[idxCrit];
             if (crit.nivelesTexto && crit.nivelesTexto[nivel]) {
                 descDiv.innerHTML = `📝 <em>${crit.nivelesTexto[nivel]}</em>`;
             }
@@ -596,7 +615,7 @@
         function calcularNotaTotalEstudianteActivo() {
             guardarDatosFormularioActual();
             const estActual = estudiantesSeleccionadosGlobal[indiceEstudianteActivo];
-            const criteriosEst = datosCalificacionesEstudiantes[estActual.id];
+            const criteriosEst = datosCalificacionesEstudiantes[estActual.id].criterios;
 
             let sumaPonderada = 0;
             criteriosEst.forEach(crit => {
@@ -615,7 +634,7 @@
             const tipo = document.getElementById('inputTipoExpo').value;
             const porcentaje = document.getElementById('inputPorcentajeExpo').value;
 
-            const criteriosEst = datosCalificacionesEstudiantes[estActual.id];
+            const criteriosEst = datosCalificacionesEstudiantes[estActual.id].criterios;
             let sumaPonderada = 0;
             criteriosEst.forEach(crit => {
                 sumaPonderada += crit.notaCriterio * (crit.porcentajeMaximo / 100);
@@ -664,10 +683,10 @@
             guardarDatosFormularioActual();
             const contenedorReportes = document.getElementById('contenedorReportesFinales');
             contenedorReportes.innerHTML = '';
-            const tematicaSeleccionada = document.getElementById('selectTematicaExpo').value || "Exposición Académica";
 
             estudiantesSeleccionadosGlobal.forEach(est => {
-                const criteriosEst = datosCalificacionesEstudiantes[est.id];
+                const dataEst = datosCalificacionesEstudiantes[est.id];
+                const criteriosEst = dataEst.criterios;
                 let sumaPonderada = 0;
                 let desgloseHtml = '';
                 let fortalezasArr = [];
@@ -680,7 +699,6 @@
                         ? crit.nivelesTexto[crit.nivelSeleccionado] 
                         : "Cumplimiento evaluado por rúbrica.";
 
-                    // Redacción personalizada solicitada: "[Criterio]: [Descripción exacta de la rúbrica]"
                     if (crit.notaCriterio >= 3.8) {
                         fortalezasArr.push(`<strong>${crit.nombreCriterio}:</strong> ${descNivel}`);
                     } else {
@@ -692,19 +710,30 @@
                             <td><strong>${crit.nombreCriterio}</strong></td>
                             <td style="text-align: center;">${crit.porcentajeMaximo}%</td>
                             <td style="text-align: center;"><strong>${crit.notaCriterio.toFixed(1)}</strong> (${crit.nivelSeleccionado})</td>
-                            <td>${descNivel}</td>
+                            <td>${crit.nombreCriterio}: ${descNivel}</td>
                         </tr>
                     `;
                 });
 
                 let notaFinal = parseFloat(Math.min(5.0, Math.max(0.0, sumaPonderada)).toFixed(1));
 
+                let preguntasReporteHtml = '';
+                if (dataEst.preguntasGeneradas && dataEst.preguntasGeneradas.length > 0) {
+                    let pList = dataEst.preguntasGeneradas.map((p, i) => `<li><strong>P${i+1} (${p.dificultad}):</strong> ${p.enunciado}</li>`).join('');
+                    preguntasReporteHtml = `
+                        <h4 style="color: #b45309; font-size: 13px; margin-top: 10px;">❓ Preguntas de Defensa Asignadas (${dataEst.tematicaSeleccionada}):</h4>
+                        <ul style="background: #fffbeb; color: #78350f; padding: 10px 20px; border-radius: 6px; font-size: 13px; margin-bottom: 10px;">
+                            ${pList}
+                        </ul>
+                    `;
+                }
+
                 contenedorReportes.innerHTML += `
                     <div style="background: white; border: 1.5px solid #d8cae6; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 2px solid #f1ebf7; padding-bottom: 10px;">
                             <div>
                                 <h4 style="color: #4A1C6B; font-size: 16px;">👤 Estudiante: ${est.nombre}</h4>
-                                <span style="font-size: 12px; color: #666;">Temática: <strong>${tematicaSeleccionada}</strong></span>
+                                <span style="font-size: 12px; color: #666;">Temática: <strong>${dataEst.tematicaSeleccionada}</strong></span>
                             </div>
                             <div style="text-align: right;">
                                 <span style="font-size: 22px; font-weight: 800; color: #4A1C6B;">${notaFinal.toFixed(1)} / 5.0</span>
@@ -717,7 +746,7 @@
                                     <th>Criterio de Evaluación</th>
                                     <th style="text-align: center;">Peso</th>
                                     <th style="text-align: center;">Calificación</th>
-                                    <th>Descripción de Rúbrica Asignada</th>
+                                    <th>Retroalimentación basada en Rúbrica</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -725,17 +754,19 @@
                             </tbody>
                         </table>
 
-                        <h4 style="color: #2e7d32; font-size: 13px; margin-top: 10px;">✅ Detalle de Logros por Criterio:</h4>
+                        ${preguntasReporteHtml}
+
+                        <h4 style="color: #2e7d32; font-size: 13px; margin-top: 10px;">✅ Fortalezas:</h4>
                         <ul style="background: #e8f5e9; color: #2e7d32; padding: 10px 20px; border-radius: 6px; font-size: 13px; margin-bottom: 10px;">
-                            ${fortalezasArr.map(f => `<li style="margin-bottom:6px;">• ${f}</li>`).join('')}
+                            ${fortalezasArr.map(f => `<li>• ${f}</li>`).join('')}
                         </ul>
 
-                        <h4 style="color: #c62828; font-size: 13px; margin-top: 10px;">⚠️ Aspectos a Atender según Rúbrica:</h4>
+                        <h4 style="color: #c62828; font-size: 13px; margin-top: 10px;">⚠️ Aspectos a Mejorar:</h4>
                         <ul style="background: #ffebee; color: #c62828; padding: 10px 20px; border-radius: 6px; font-size: 13px; margin-bottom: 15px;">
-                            ${mejorasArr.map(m => `<li style="margin-bottom:6px;">• ${m}</li>`).join('')}
+                            ${mejorasArr.map(m => `<li>• ${m}</li>`).join('')}
                         </ul>
 
-                        <button class="btn btn-send" onclick="enviarCorreoReporteIndividual('${est.id}', '${est.nombre}', ${notaFinal}, '${tematicaSeleccionada}')">
+                        <button class="btn btn-send" onclick="enviarCorreoReporteIndividual('${est.id}', '${est.nombre}', ${notaFinal})">
                             📧 Enviar Reporte de Exposición al Correo del Estudiante
                         </button>
                     </div>
@@ -746,19 +777,20 @@
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
-        async function enviarCorreoReporteIndividual(estId, estNombre, notaFinal, tematica) {
+        async function enviarCorreoReporteIndividual(estId, estNombre, notaFinal) {
             const selectMat = document.getElementById('selectMateriaExpo');
             const asignaturaId = selectMat.value;
             const nombreAsignatura = selectMat.options[selectMat.selectedIndex]?.text || "Asignatura Unicaribe";
-            const criteriosEst = datosCalificacionesEstudiantes[estId];
+            const dataEst = datosCalificacionesEstudiantes[estId];
+            const criteriosEst = dataEst.criterios;
 
             let fortalezasArr = [];
             let mejorasArr = [];
             let desgloseArr = criteriosEst.map(crit => {
                 let desc = crit.nivelesTexto && crit.nivelesTexto[crit.nivelSeleccionado] ? crit.nivelesTexto[crit.nivelSeleccionado] : "";
-                let textoItem = `${crit.nombreCriterio}: ${desc}`;
-                if (crit.notaCriterio >= 3.8) fortalezasArr.push(textoItem);
-                else mejorasArr.push(textoItem);
+                let textoRetro = `${crit.nombreCriterio}: ${desc}`;
+                if (crit.notaCriterio >= 3.8) fortalezasArr.push(textoRetro);
+                else mejorasArr.push(textoRetro);
 
                 return {
                     ejercicio: crit.nombreCriterio,
@@ -777,9 +809,9 @@
                     asignaturaId: asignaturaId,
                     nombreAsignatura: nombreAsignatura,
                     integrantes: JSON.stringify([{ id: estId, nombre: estNombre }]),
-                    actividad: `Exposición Oral (${tematica})`,
+                    actividad: `Exposición Oral (${dataEst.tematicaSeleccionada})`,
                     notaFinal: notaFinal,
-                    resumen: `Evaluación de exposición oral sobre la temática "${tematica}" bajo rúbrica institucional. Desempeño ponderado con nota final de ${notaFinal} / 5.0.`,
+                    resumen: `Evaluación de exposición oral sobre "${dataEst.tematicaSeleccionada}" completada bajo rúbrica institucional. Desempeño ponderado en nivel cuantitativo de ${notaFinal} / 5.0.`,
                     desglose: JSON.stringify(desgloseArr),
                     fortalezas: JSON.stringify(fortalezasArr),
                     aspectosAMejorar: JSON.stringify(mejorasArr),
