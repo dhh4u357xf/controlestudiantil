@@ -175,10 +175,10 @@
             <label for="archivoSolucionario">Solucionario Oficial (PDF con el parcial resuelto y %):</label>
             <input type="file" id="archivoSolucionario" accept="application/pdf">
 
-            <label for="archivoEstudiante">Parcial del Estudiante (PDF):</label>
-            <input type="file" id="archivoEstudiante" accept="application/pdf">
+            <label for="archivoEstudiante">Parcial(es) del Estudiante (Puedes seleccionar uno o varios PDFs):</label>
+            <input type="file" id="archivoEstudiante" accept="application/pdf" multiple>
 
-            <button class="btn" id="btnEvaluar" onclick="procesarEvaluacion()">🤖 Evaluar y Trazar Errores </button>
+            <button class="btn" id="btnEvaluar" onclick="procesarEvaluacion()">🤖 Evaluar y Trazar Errores (Soporta Cola)</button>
         </div>
 
         <!-- PANEL DERECHO -->
@@ -186,12 +186,12 @@
             <h3>📊 Resultado de la Calificación</h3>
 
             <div id="contenidoInicial" style="text-align: center; color: #888; padding: 40px 0;">
-                <p>Carga el solucionario y el examen para generar la evaluación cualitativa y el marcado gráfico de errores.</p>
+                <p>Carga el solucionario y uno o varios exámenes para generar la evaluación cualitativa y el marcado gráfico de errores en cola.</p>
             </div>
 
             <div id="cargando" class="loading-spinner" style="display: none;">
-                <p>⏳ <strong>Analizando respuesta y superponiendo correcciones en el PDF...</strong></p>
-                <p style="font-size: 12px; margin-top: 8px;">Por favor espera unos segundos.</p>
+                <p>⏳ <strong id="textoCestadoCola">Analizando respuesta y superponiendo correcciones en el PDF...</strong></p>
+                <p style="font-size: 12px; margin-top: 8px;">Por favor espera, procesando lote en cola.</p>
             </div>
 
             <div id="detalleEvaluacion" style="display: none;">
@@ -326,13 +326,13 @@
         let evaluacionActual = null;
         let urlDriveActual = "";
         let listaEstudiantesGlobalEvaluador = [];
+        let colaResultadosLote = []; // Almacena el reporte completo del procesamiento en lote
 
         document.addEventListener('DOMContentLoaded', function() {
             cargarAsignaturas();
             sincronizarParametrosDocente();
         });
 
-        // Sincroniza automáticamente los campos del panel docente según la actividad seleccionada
         function sincronizarParametrosDocente() {
             const act = document.getElementById('selectActividad').value;
             const selectCorte = document.getElementById('selectCorteDocente');
@@ -467,7 +467,6 @@
             });
         }
 
-        // Filtra en vivo las opciones del desplegable al escribir
         function filtrarSelectEstudiantes(num) {
             const filtro = (document.getElementById(`filtroEstudiante${num}`)?.value || "").trim().toLowerCase();
             const filtrados = listaEstudiantesGlobalEvaluador.filter(e => {
@@ -514,111 +513,146 @@
             });
         }
 
+        // =========================================================================
+        // NUEVA FUNCIÓN DE PROCESAMIENTO EN COLA (MÚLTIPLES EXÁMENES)
+        // =========================================================================
         async function procesarEvaluacion() {
             const integrantes = obtenerIntegrantesSeleccionados();
             const actividad = document.getElementById('selectActividad').value;
             const inputSolucion = document.getElementById('archivoSolucionario');
-            const inputEstudiante = document.getElementById('archivoEstudiante');
+            const inputEstudiantes = document.getElementById('archivoEstudiante');
             const btn = document.getElementById('btnEvaluar');
 
-            if (integrantes.length === 0) {
-                alert('Por favor selecciona la asignatura y al menos al estudiante principal.');
-                return;
-            }
-
-            if (!inputSolucion.files[0] || !inputEstudiante.files[0]) {
-                alert('Por favor adjunta ambos archivos PDF (Solucionario y Examen/Trabajo).');
+            if (!inputSolucion.files[0] || inputEstudiantes.files.length === 0) {
+                alert('Por favor adjunta el solucionario oficial y al menos un archivo PDF de examen del estudiante.');
                 return;
             }
 
             const fileSol = inputSolucion.files[0];
-            const fileEst = inputEstudiante.files[0];
+            const archivosEstudiantes = Array.from(inputEstudiantes.files);
 
-            const nombresRotulo = integrantes.length > 1
+            let nombresRotulo = integrantes.length > 1
                 ? `Grupo: ${integrantes.map(i => i.nombre).join(' | ')}`
-                : integrantes[0].nombre;
+                : (integrantes.length === 1 ? integrantes[0].nombre : "Estudiante(s) por nombre de archivo");
 
             btn.disabled = true;
             document.getElementById('contenidoInicial').style.display = 'none';
             document.getElementById('detalleEvaluacion').style.display = 'none';
             document.getElementById('cargando').style.display = 'block';
 
+            colaResultadosLote = [];
+
             try {
-                console.log("1. Leyendo y convirtiendo archivos a Base64...");
+                console.log("1. Leyendo solucionario a Base64...");
                 const base64SolFull = await convertirBase64(fileSol);
-                const base64EstFull = await convertirBase64(fileEst);
+                const fileTypeSol = fileSol.type || "application/pdf";
+                const base64SolData = extractBase64(base64SolFull);
 
-                const payloadData = {
-                    accion: 'evaluarParcial',
-                    nombreEstudiante: nombresRotulo,
-                    actividadEvaluada: actividad,
-                    fileNameEstudiante: `${integrantes[0].nombre}_${fileEst.name}`,
-                    fileTypeEstudiante: fileEst.type || "application/pdf",
-                    fileBase64Estudiante: extractBase64(base64EstFull),
-                    fileTypeSolucionario: fileSol.type || "application/pdf",
-                    fileBase64Solucionario: extractBase64(base64SolFull)
-                };
+                // Bucle de procesamiento secuencial en cola para cada archivo de estudiante
+                for (let i = 0; i < archivosEstudiantes.length; i++) {
+                    const fileEst = archivosEstudiantes[i];
+                    const etiquetaProgreso = `Procesando examen ${i + 1} de ${archivosEstudiantes.length}: ${fileEst.name}`;
+                    document.getElementById('textoCestadoCola').textContent = etiquetaProgreso;
+                    console.log(etiquetaProgreso);
 
-                console.log("2. Enviando a la API de Evaluación...");
-                const formData = new URLSearchParams();
-                formData.append('payload', JSON.stringify(payloadData));
+                    const base64EstFull = await convertirBase64(fileEst);
+                    const fileTypeEst = fileEst.type || "application/pdf";
+                    const base64EstData = extractBase64(base64EstFull);
 
-                const response = await fetch(URL_EVALUADOR_IA, {
-                    method: 'POST',
-                    body: formData
-                });
+                    const nombreActualItem = archivosEstudiantes.length === 1 && integrantes.length > 0 
+                        ? nombresRotulo 
+                        : fileEst.name.replace(/\.[^/.]+$/, "");
 
-                const data = await response.json();
-                console.log("3. Respuesta recibida del servidor:", data);
-
-                if (data.ok && data.evaluacion) {
-                    if (data.evaluacion.desglose && Array.isArray(data.evaluacion.desglose) && data.evaluacion.desglose.length > 0) {
-                        let totalObt = 0;
-                        let totalMax = 0;
-                        data.evaluacion.desglose.forEach(item => {
-                            totalObt += parseFloat(item.puntajeObtenido) || 0;
-                            totalMax += parseFloat(item.puntajeMaximo) || 0;
-                        });
-                        if (totalMax > 0) {
-                            const notaCalculada = (5.0 * totalObt) / totalMax;
-                            data.evaluacion.nota = parseFloat(Math.min(5.0, Math.max(0.0, notaCalculada)).toFixed(1));
-                        }
-                    }
-
-                    evaluacionActual = data.evaluacion;
-
-                    console.log("4. Estampando marcas gráficas en el PDF con PDF-LIB...");
-                    const pdfArrayBuffer = await fileEst.arrayBuffer();
-
-                    const pdfBase64Anotado = await estamparErroresEnPDF(
-                        pdfArrayBuffer, 
-                        data.evaluacion.anotacionesGraficas || [], 
-                        data.evaluacion.aspectosAMejorar || [],
-                        data.evaluacion.desglose || []
-                    );
-
-                    console.log("5. Guardando versión marcada en Google Drive...");
-                    const payloadSave = {
-                        accion: 'guardarPdfAnotado',
-                        fileName: `CORREGIDO_${integrantes[0].nombre}_${fileEst.name}`,
-                        fileBase64Anotado: pdfBase64Anotado
+                    const payloadData = {
+                        accion: 'evaluarParcial',
+                        nombreEstudiante: nombreActualItem,
+                        actividadEvaluada: actividad,
+                        fileNameEstudiante: fileEst.name,
+                        fileTypeEstudiante: fileTypeEst,
+                        fileBase64Estudiante: base64EstData,
+                        fileTypeSolucionario: fileTypeSol,
+                        fileBase64Solucionario: base64SolData
                     };
 
-                    const formDataSave = new URLSearchParams();
-                    formDataSave.append('payload', JSON.stringify(payloadSave));
+                    const formData = new URLSearchParams();
+                    formData.append('payload', JSON.stringify(payloadData));
 
-                    const resSave = await fetch(URL_EVALUADOR_IA, { method: 'POST', body: formDataSave });
-                    const dataSave = await resSave.json();
+                    const response = await fetch(URL_EVALUADOR_IA, {
+                        method: 'POST',
+                        body: formData
+                    });
 
-                    urlDriveActual = dataSave.urlDrive || data.urlDrive || "#";
-                    mostrarResultado(data.evaluacion, urlDriveActual, nombresRotulo);
-                } else {
-                    alert('Error reportado por el servidor: ' + (data.mensaje || 'Respuesta no válida'));
+                    const data = await response.json();
+
+                    if (data.ok && data.evaluacion) {
+                        if (data.evaluacion.desglose && Array.isArray(data.evaluacion.desglose) && data.evaluacion.desglose.length > 0) {
+                            let totalObt = 0;
+                            let totalMax = 0;
+                            data.evaluacion.desglose.forEach(item => {
+                                totalObt += parseFloat(item.puntajeObtenido) || 0;
+                                totalMax += parseFloat(item.puntajeMaximo) || 0;
+                            });
+                            if (totalMax > 0) {
+                                const notaCalculada = (5.0 * totalObt) / totalMax;
+                                data.evaluacion.nota = parseFloat(Math.min(5.0, Math.max(0.0, notaCalculada)).toFixed(1));
+                            }
+                        }
+
+                        // Estampar marcas en PDF
+                        const pdfArrayBuffer = await fileEst.arrayBuffer();
+                        const pdfBase64Anotado = await estamparErroresEnPDF(
+                            pdfArrayBuffer, 
+                            data.evaluacion.anotacionesGraficas || [], 
+                            data.evaluacion.aspectosAMejorar || [],
+                            data.evaluacion.desglose || []
+                        );
+
+                        // Guardar en Drive
+                        const payloadSave = {
+                            accion: 'guardarPdfAnotado',
+                            fileName: `CORREGIDO_${nombreActualItem}_${fileEst.name}`,
+                            fileBase64Anotado: pdfBase64Anotado
+                        };
+
+                        const formDataSave = new URLSearchParams();
+                        formDataSave.append('payload', JSON.stringify(payloadSave));
+
+                        const resSave = await fetch(URL_EVALUADOR_IA, { method: 'POST', body: formDataSave });
+                        const dataSave = await resSave.json();
+
+                        const linkDriveItem = dataSave.urlDrive || data.urlDrive || "#";
+
+                        colaResultadosLote.push({
+                            archivo: fileEst.name,
+                            estudiante: nombreActualItem,
+                            evaluacion: data.evaluacion,
+                            urlDrive: linkDriveItem,
+                            exito: true
+                        });
+
+                        // Si es el último o el único archivo, se muestra en pantalla de inmediato
+                        if (i === archivosEstudiantes.length - 1) {
+                            evaluacionActual = data.evaluacion;
+                            urlDriveActual = linkDriveItem;
+                            mostrarResultado(data.evaluacion, urlDriveActual, nombreActualItem);
+                        }
+                    } else {
+                        colaResultadosLote.push({
+                            archivo: fileEst.name,
+                            estudiante: nombreActualItem,
+                            error: data.mensaje || 'Error desconocido',
+                            exito: false
+                        });
+                    }
+                }
+
+                if (archivosEstudiantes.length > 1) {
+                    alert(`✅ ¡Cola de evaluación finalizada!\nSe procesaron ${archivosEstudiantes.length} exámenes exitosamente. Mostrando el último resultado en pantalla.`);
                 }
 
             } catch (error) {
-                console.error('Error detallado en procesarEvaluacion:', error);
-                alert('Error al procesar: ' + error.message);
+                console.error('Error detallado en procesarEvaluacion (Cola):', error);
+                alert('Error al procesar el lote: ' + error.message);
             } finally {
                 btn.disabled = false;
                 document.getElementById('cargando').style.display = 'none';
@@ -704,7 +738,6 @@
 
                     let [yMin, xMin, yMax, xMax] = box.map(v => parseFloat(v) || 0);
 
-                    // Normalización de escala decimal
                     if (yMax <= 1.0 && xMax <= 1.0 && (yMax > 0 || xMax > 0)) {
                         yMin *= 1000; xMin *= 1000; yMax *= 1000; xMax *= 1000;
                     }
@@ -712,7 +745,6 @@
                     if (yMin > yMax) [yMin, yMax] = [yMax, yMin];
                     if (xMin > xMax) [xMin, xMax] = [xMax, xMin];
 
-                    // Conversión cartesiana proporcional exacta (IA Top-Left -> PDF Bottom-Left)
                     const rawX = (xMin / 1000) * width;
                     const rawW = ((xMax - xMin) / 1000) * width;
                     const rawH = ((yMax - yMin) / 1000) * height;
