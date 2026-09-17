@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluador de Exposiciones | Unicaribe</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+        body { background: #f4f6f9; min-height: 100vh; color: #333; }
+        .header { background: #4A1C6B; color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
+        .header .logo { font-size: 20px; font-weight: 700; }
+        .header .logo span { color: #F4A300; }
+        .container { max-width: 900px; margin: 25px auto; padding: 0 20px; }
+        .card { background: white; border-radius: 12px; padding: 22px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); margin-bottom: 20px; }
+        .card h3 { font-size: 17px; color: #4A1C6B; margin-bottom: 16px; }
+        label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #444; }
+        input[type="text"], input[type="number"], input[type="file"], select { width: 100%; padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 14px; outline: none; }
+        .btn { background: #4A1C6B; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; transition: background 0.2s; }
+        .btn:hover { background: #3a1555; }
+        .btn-save { background: #0066cc; margin-top: 15px; }
+        .btn-save:hover { background: #004d99; }
+        .criterio-row { background: #faf8fc; border: 1px solid #e0d4ed; padding: 14px; border-radius: 8px; margin-bottom: 12px; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; align-items: center; }
+        @media (max-width: 650px) { .criterio-row { grid-template-columns: 1fr; } }
+        .score-box { background: #f8f5fc; border: 2px solid #4A1C6B; border-radius: 10px; padding: 15px; text-align: center; margin: 20px 0; }
+        .score-number { font-size: 38px; font-weight: 800; color: #4A1C6B; }
+        .grid-parametros { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="logo">uni<span>caribe</span> | Evaluador de Exposiciones</div>
+        <div>
+            <a href="parciales.html" style="color: white; font-size: 13px; text-decoration: none; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 6px;">← Ir a Parciales</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h3>🎙️ Configuración de la Exposición</h3>
+
+            <label for="selectMateriaExpo">Asignatura:</label>
+            <select id="selectMateriaExpo" onchange="cargarEstudiantesExposicion()">
+                <option value="">-- Cargando asignaturas... --</option>
+            </select>
+
+            <label for="selectEstudianteExpo">Estudiante o Grupo Expositor:</label>
+            <select id="selectEstudianteExpo">
+                <option value="">-- Selecciona una asignatura primero --</option>
+            </select>
+
+            <label for="archivoRubricaExpo">Cargar Rúbrica de Exposición (PDF opcional de guía):</label>
+            <input type="file" id="archivoRubricaExpo" accept="application/pdf">
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 10px;">
+                <h4 style="color: #4A1C6B; font-size: 15px;">Criterios de Evaluación:</h4>
+                <button type="button" class="btn" style="width: auto; padding: 6px 12px; font-size: 12px;" onclick="agregarCriterioManual()">➕ Agregar Criterio</button>
+            </div>
+
+            <!-- Contenedor dinámico de criterios -->
+            <div id="contenedorCriteriosExpo">
+                <!-- Criterios predeterminados editables -->
+                <div class="criterio-row">
+                    <div>
+                        <label>Nombre del Criterio / Aspecto</label>
+                        <input type="text" class="crit-nombre" value="Dominio del Tema y Claridad Conceptual">
+                    </div>
+                    <div>
+                        <label>Puntaje Obtenido</label>
+                        <input type="number" class="crit-obt" value="5.0" min="0" max="5" step="0.1" oninput="calcularNotaExposicion()">
+                    </div>
+                    <div>
+                        <label>Ponderación (%)</label>
+                        <input type="number" class="crit-porc" value="30" min="1" max="100" oninput="calcularNotaExposicion()">
+                    </div>
+                </div>
+
+                <div class="criterio-row">
+                    <div>
+                        <label>Nombre del Criterio / Aspecto</label>
+                        <input type="text" class="crit-nombre" value="Material de Apoyo y Ayudas Visuales">
+                    </div>
+                    <div>
+                        <label>Puntaje Obtenido</label>
+                        <input type="number" class="crit-obt" value="4.5" min="0" max="5" step="0.1" oninput="calcularNotaExposicion()">
+                    </div>
+                    <div>
+                        <label>Ponderación (%)</label>
+                        <input type="number" class="crit-porc" value="30" min="1" max="100" oninput="calcularNotaExposicion()">
+                    </div>
+                </div>
+
+                <div class="criterio-row">
+                    <div>
+                        <label>Nombre del Criterio / Aspecto</label>
+                        <input type="text" class="crit-nombre" value="Postura, Tono de Voz y Manejo del Tiempo">
+                    </div>
+                    <div>
+                        <label>Puntaje Obtenido</label>
+                        <input type="number" class="crit-obt" value="5.0" min="0" max="5" step="0.1" oninput="calcularNotaExposicion()">
+                    </div>
+                    <div>
+                        <label>Ponderación (%)</label>
+                        <input type="number" class="crit-porc" value="40" min="1" max="100" oninput="calcularNotaExposicion()">
+                    </div>
+                </div>
+            </div>
+
+            <!-- RESULTADO Y CÁLKULO -->
+            <div class="score-box">
+                <div style="font-size: 12px; color: #666; text-transform: uppercase;">Nota Definitiva de Exposición</div>
+                <div class="score-number" id="notaDefinitivaExpo">4.8</div>
+            </div>
+
+            <!-- PARÁMETROS PARA ASENTAR EN BASE DE DATOS -->
+            <div style="background: #f0f7ff; border: 1.5px solid #b3d7ff; border-radius: 10px; padding: 16px; margin-top: 15px;">
+                <h4 style="font-size: 14px; color: #004d99; margin-bottom: 10px;">📋 Asentar Nota en el Sistema</h4>
+                <div class="grid-parametros">
+                    <div>
+                        <label for="selectCorteExpo">Corte:</label>
+                        <select id="selectCorteExpo">
+                            <option value="1">Corte 1</option>
+                            <option value="2">Corte 2</option>
+                            <option value="3">Corte 3</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="inputTipoExpo">Tipo de Nota:</label>
+                        <input type="text" id="inputTipoExpo" value="Exposición">
+                    </div>
+                    <div>
+                        <label for="inputPorcentajeExpo">Porcentaje General (%):</label>
+                        <input type="number" id="inputPorcentajeExpo" value="15" min="1" max="100">
+                    </div>
+                </div>
+
+                <button class="btn btn-save" onclick="guardarNotaExposicionSistema()">💾 Guardar Calificación de Exposición</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const URL_CONTROL_ESTUDIANTIL = "https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec";
+        let listaEstudiantesExpo = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarAsignaturasExpo();
+            calcularNotaExposicion();
+        });
+
+        async function cargarAsignaturasExpo() {
+            const selectMat = document.getElementById('selectMateriaExpo');
+            try {
+                const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ accion: 'obtenerAsignaturas' })
+                });
+
+                const data = await response.json();
+                if (data.ok && data.asignaturas) {
+                    selectMat.innerHTML = '<option value="">-- Selecciona Asignatura --</option>';
+                    data.asignaturas.forEach(a => {
+                        selectMat.innerHTML += `<option value="${a.id}">${a.asignatura} (Grupo ${a.grupo || 'G1'})</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Error al cargar asignaturas:', error);
+            }
+        }
+
+        async function cargarEstudiantesExposicion() {
+            const idAsignatura = document.getElementById('selectMateriaExpo').value;
+            const selectEst = document.getElementById('selectEstudianteExpo');
+            selectEst.innerHTML = '<option value="">Cargando estudiantes...</option>';
+
+            if (!idAsignatura) {
+                selectEst.innerHTML = '<option value="">-- Selecciona una asignatura primero --</option>';
+                return;
+            }
+
+            try {
+                const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ accion: 'obtenerEstudiantesPorAsignatura', asignaturaId: idAsignatura })
+                });
+
+                const data = await response.json();
+                if (data.ok && data.estudiantes) {
+                    listaEstudiantesExpo = data.estudiantes;
+                    selectEst.innerHTML = '<option value="">-- Selecciona el Expositor --</option>';
+                    listaEstudiantesExpo.forEach(e => {
+                        selectEst.innerHTML += `<option value="${e.id}" data-nombre="${e.nombre}">${e.nombre} (${e.documento})</option>`;
+                    });
+                } else {
+                    selectEst.innerHTML = '<option value="">No hay estudiantes inscritos</option>';
+                }
+            } catch (error) {
+                console.error('Error al cargar estudiantes:', error);
+                selectEst.innerHTML = '<option value="">Error al cargar la lista</option>';
+            }
+        }
+
+        function agregarCriterioManual() {
+            const contenedor = document.getElementById('contenedorCriteriosExpo');
+            const div = document.createElement('div');
+            div.className = 'criterio-row';
+            div.innerHTML = `
+                <div>
+                    <label>Nombre del Criterio / Aspecto</label>
+                    <input type="text" class="crit-nombre" value="Nuevo Criterio">
+                </div>
+                <div>
+                    <label>Puntaje Obtenido</label>
+                    <input type="number" class="crit-obt" value="5.0" min="0" max="5" step="0.1" oninput="calcularNotaExposicion()">
+                </div>
+                <div>
+                    <label>Ponderación (%)</label>
+                    <input type="number" class="crit-porc" value="20" min="1" max="100" oninput="calcularNotaExposicion()">
+                </div>
+            `;
+            contenedor.appendChild(div);
+            calcularNotaExposicion();
+        }
+
+        function calcularNotaExposicion() {
+            const obts = document.querySelectorAll('.crit-obt');
+            const porcs = document.querySelectorAll('.crit-porc');
+
+            let sumaPonderada = 0;
+            let sumaPorcentajes = 0;
+
+            obts.forEach((inpObt, idx) => {
+                const ob = parseFloat(inpObt.value) || 0;
+                const po = parseFloat(porcs[idx].value) || 0;
+
+                sumaPonderada += ob * (po / 100);
+                sumaPorcentajes += po;
+            });
+
+            // Si los porcentajes suman distinto de 100%, normalizamos proporcionalmente
+            let notaFinal = sumaPonderada;
+            if (sumaPorcentajes > 0 && sumaPorcentajes !== 100) {
+                notaFinal = (sumaPonderada / sumaPorcentajes) * 100;
+            }
+
+            notaFinal = Math.min(5.0, Math.max(0.0, notaFinal));
+            document.getElementById('notaDefinitivaExpo').textContent = notaFinal.toFixed(1);
+        }
+
+        async function guardarNotaExposicionSistema() {
+            const asignaturaId = document.getElementById('selectMateriaExpo').value;
+            const selectEst = document.getElementById('selectEstudianteExpo');
+            const estudianteId = selectEst.value;
+            const notaFinal = document.getElementById('notaDefinitivaExpo').textContent;
+            const corte = document.getElementById('selectCorteExpo').value;
+            const tipo = document.getElementById('inputTipoExpo').value;
+            const porcentaje = document.getElementById('inputPorcentajeExpo').value;
+
+            if (!asignaturaId || !estudianteId) {
+                alert('Por favor selecciona la asignatura y el estudiante expositor.');
+                return;
+            }
+
+            const opt = selectEst.options[selectEst.selectedIndex];
+            const nombreEstudiante = opt.getAttribute('data-nombre') || opt.text;
+
+            const confirmar = confirm(`¿Deseas guardar la nota de exposición ${notaFinal} para ${nombreEstudiante} en el Corte ${corte}?`);
+            if (!confirmar) return;
+
+            try {
+                const payloadGuardar = {
+                    accion: 'guardarNota',
+                    asignaturaId: asignaturaId,
+                    corte: parseInt(corte),
+                    tipo: tipo,
+                    porcentaje: parseFloat(porcentaje) || 0,
+                    nota: parseFloat(notaFinal),
+                    estudianteId: estudianteId,
+                    integrantes: JSON.stringify([{ id: estudianteId, nombre: nombreEstudiante }])
+                };
+
+                const response = await fetch(URL_CONTROL_ESTUDIANTIL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payloadGuardar)
+                });
+
+                const data = await response.json();
+                if (data.ok) {
+                    alert('✅ Calificación de exposición guardada exitosamente en el sistema.');
+                } else {
+                    alert('⚠️ Error al guardar: ' + data.mensaje);
+                }
+            } catch (error) {
+                console.error('Error al guardar nota de exposición:', error);
+                alert('Error de conexión con el servidor.');
+            }
+        }
+    </script>
+</body>
+</html>
