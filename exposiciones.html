@@ -252,7 +252,6 @@
             return dataUrl.replace(/^data:.*,/, '');
         }
 
-        // Llamado al script backend para extraer criterios y descripciones detalladas con IA
         async function analizarRubricaEIniciarEvaluacion() {
             const checks = document.querySelectorAll('.check-estudiante:checked');
             estudiantesSeleccionadosGlobal = [];
@@ -506,7 +505,6 @@
             calcularNotaTotalEstudianteActivo();
         }
 
-        // Llamado al script backend para generar preguntas de defensa mediante IA
         async function generarPreguntasAleatoriasIA() {
             const tematica = document.getElementById('inputTematicaGlobal').value.trim() || "Exposición General";
             const dificultad = document.getElementById('selectDificultadPregunta').value;
@@ -565,7 +563,7 @@
             datosCalificacionesEstudiantes[estActual.id].criterios[idxCrit].nivelSeleccionado = nivel;
 
             const crit = datosCalificacionesEstudiantes[estActual.id].criterios[idxCrit];
-            const descCriterioNivel = crit.nivelesTexto[nivel] || "Cumplimiento evaluado por rúbrica.";
+            const descCriterioNivel = (crit.nivelesTexto && crit.nivelesTexto[nivel]) ? crit.nivelesTexto[nivel] : "Cumplimiento evaluado por rúbrica.";
             descDiv.innerHTML = `📝 <em>${descCriterioNivel}</em>`;
 
             calcularNotaTotalEstudianteActivo();
@@ -841,63 +839,6 @@
                 console.error('Error al enviar correo:', error);
                 alert('Error al intentar enviar el correo: ' + error.message);
             }
-        }
-
-        async function enviarTodosLosReportesEnCola() {
-            const confirmar = confirm(`¿Deseas enviar los correos de reporte a los ${estudiantesSeleccionadosGlobal.length} estudiantes en cola?`);
-            if (!confirmar) return;
-
-            let enviados = 0;
-            for (let i = 0; i < estudiantesSeleccionadosGlobal.length; i++) {
-                const est = estudiantesSeleccionadosGlobal[i];
-                const dataEst = datosCalificacionesEstudiantes[est.id];
-                let sumaPonderada = 0;
-                dataEst.criterios.forEach(crit => {
-                    sumaPonderada += crit.notaCriterio * (crit.porcentajeMaximo / 100);
-                });
-                let notaFinal = parseFloat(Math.min(5.0, Math.max(0.0, sumaPonderada)).toFixed(1));
-
-                const selectMat = document.getElementById('selectMateriaExpo');
-                const asignaturaId = selectMat.value;
-                const nombreAsignatura = selectMat.options[selectMat.selectedIndex]?.text || "Asignatura Unicaribe";
-                const tematicaGlobal = document.getElementById('inputTematicaGlobal').value.trim() || "Exposición General";
-                const criteriosEst = dataEst.criterios;
-
-                let fortalezasArr = [];
-                let mejorasArr = [];
-                let desgloseArr = criteriosEst.map(crit => {
-                    let descNivelCriterio = crit.nivelesTexto && crit.nivelesTexto[crit.nivelSeleccionado] ? crit.nivelesTexto[crit.nivelSeleccionado] : "";
-                    if (crit.notaCriterio >= 3.8) fortalezasArr.push(`${crit.nombreCriterio}: ${descNivelCriterio}`);
-                    else mejorasArr.push(`${crit.nombreCriterio}: ${descNivelCriterio}`);
-                    return { ejercicio: crit.nombreCriterio, puntajeObtenido: crit.notaCriterio, puntajeMaximo: 5.0, comentario: `[${crit.nivelSeleccionado}] ${descNivelCriterio}` };
-                });
-
-                try {
-                    const payloadData = {
-                        accion: 'enviarReporteCorreo',
-                        asignaturaId: asignaturaId,
-                        nombreAsignatura: nombreAsignatura,
-                        integrantes: JSON.stringify([{ id: est.id, nombre: est.nombre }]),
-                        actividad: `Exposición Oral (${tematicaGlobal})`,
-                        notaFinal: notaFinal,
-                        resumen: `Evaluación de exposición oral sobre "${tematicaGlobal}" completada bajo rúbrica institucional. Desempeño ponderado en nivel cuantitativo de ${notaFinal} / 5.0.`,
-                        desglose: JSON.stringify(desgloseArr),
-                        fortalezas: JSON.stringify(fortalezasArr),
-                        aspectosAMejorar: JSON.stringify(mejorasArr),
-                        urlDrive: "#"
-                    };
-
-                    const formData = new URLSearchParams();
-                    formData.append('payload', JSON.stringify(payloadData));
-                    const res = await fetch(URL_EVALUADOR_IA, { method: 'POST', body: formData });
-                    const resData = await res.json();
-                    if (resData.ok) enviados++;
-                } catch (e) {
-                    console.error("Error en cola de correo:", e);
-                }
-            }
-
-            alert(`✅ Proceso finalizado. Se enviaron ${enviados} de ${estudiantesSeleccionadosGlobal.length} correos exitosamente.`);
         }
     </script>
 </body>
