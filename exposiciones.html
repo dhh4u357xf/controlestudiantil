@@ -14,7 +14,7 @@
         .card { background: white; border-radius: 12px; padding: 22px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); margin-bottom: 20px; }
         .card h3 { font-size: 17px; color: #4A1C6B; margin-bottom: 16px; }
         label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #444; }
-        input[type="text"], input[type="file"], select { width: 100%; padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 14px; outline: none; }
+        input[type="text"], input[type="number"], input[type="file"], select { width: 100%; padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 14px; outline: none; }
         .btn { background: #4A1C6B; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; transition: background 0.2s; }
         .btn:hover { background: #3a1555; }
         .btn-success { background: #2E8B57; }
@@ -46,6 +46,7 @@
         td { padding: 8px; border-bottom: 1px solid #eee; vertical-align: middle; }
         
         .pregunta-card { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px; margin-top: 10px; }
+        .input-porcentaje-editable { width: 65px !important; display: inline-block; padding: 2px 6px !important; text-align: center; font-weight: bold; margin-bottom: 0 !important; }
     </style>
 </head>
 <body>
@@ -73,7 +74,7 @@
             </div>
 
             <label for="inputTematicaGlobal">Temática o Tema Global de la Exposición (para todos los estudiantes):</label>
-            <input type="text" id="inputTematicaGlobal" value="Tema 1: Fundamentos Teóricos y Aplicaciones" placeholder="Ej: Tema 1: Análisis de Procesos Industriales">
+            <input type="text" id="inputTematicaGlobal" value="Tema 1: Integración de Funciones Trigonométricas" placeholder="Ej: Tema 1: Integración de Funciones Trigonométricas">
 
             <label for="archivoRubricaExpo">Cargar Rúbrica de Exposición (PDF oficial):</label>
             <input type="file" id="archivoRubricaExpo" accept="application/pdf">
@@ -86,7 +87,7 @@
         <!-- SPINNER DE CARGA DE IA -->
         <div class="card" id="cargandoRubrica" style="display: none;">
             <div class="loading-spinner">
-                <p>⏳ <strong>Analizando rúbrica institucional y extrayendo criterios con IA...</strong></p>
+                <p>⏳ <strong>Analizando rúbrica institucional y extrayendo descripciones profundas con IA...</strong></p>
                 <p style="font-size: 12px; margin-top: 6px;">Esto tomará solo unos segundos.</p>
             </div>
         </div>
@@ -344,13 +345,13 @@
         function cargarCriteriosEstandarPorDefecto() {
             criteriosRubricaGlobal = [
                 { 
-                    nombre: "Dominio Conceptual y Rigor Técnico", 
+                    nombre: "Dominio Conceptual y Rigor Matemático", 
                     porcentaje: 35, 
                     niveles: { 
-                        Insuficiente: "Omite supuestos teóricos esenciales, confunde parámetros clave o comete errores graves en la deducción y formulación analítica.", 
-                        Aceptable: "Enuncia los fundamentos teóricos pero no demuestra plena solvencia ni rigor en los supuestos de partida.", 
-                        Bueno: "Demuestra comprensión clara de los fundamentos teóricos; aplica y deduce adecuadamente los modelos con imprecisiones menores.", 
-                        Excelente: "Dominio impecable de la teoría, justificación rigurosa de cada hipótesis, parámetro y rigor técnico absoluto." 
+                        Insuficiente: "Omite supuestos teóricos, confunde parámetros con estadísticos o comete errores graves en la deducción de fórmulas y ecuaciones.", 
+                        Aceptable: "Enuncia las fórmulas pero no demuestra solvencia en los supuestos de partida (normalidad, TCL, grados de libertad).", 
+                        Bueno: "Demuestra comprensión de los fundamentos teóricos; aplica y deduce adecuadamente los modelos con imprecisiones menores.", 
+                        Excelente: "Dominio impecable de la teoría matemática, justificación rigurosa de cada hipótesis, pivote, parámetro y grado de libertad." 
                     } 
                 },
                 { 
@@ -358,29 +359,29 @@
                     porcentaje: 25, 
                     niveles: { 
                         Insuficiente: "Presentación desordenada, saturada de texto, sin hilo conductor. Incumple los tiempos estipulados de forma crítica.", 
-                        Aceptable: "Presentación básica con lectura reiterada de apoyos visuales y transición deficiente entre las fases de la exposición.", 
+                        Aceptable: "Presentación básica con lectura reiterada de diapositivas. Transición deficiente entre las fases de la exposición.", 
                         Bueno: "Buena organización secuencial y visual. Manejo adecuado del tiempo asignado y discurso técnico entendible.", 
-                        Excelente: "Exposición fluida, diseño visual profesional y diagramas claros. Gestión óptima del tiempo y excelente capacidad de síntesis." 
+                        Excelente: "Exposición fluida, diseño visual profesional y diagramas claros. Gestión óptima del tiempo (25 min) y excelente capacidad de síntesis." 
                     } 
                 },
                 { 
                     nombre: "Aplicación Práctica y Casos", 
                     porcentaje: 20, 
                     niveles: { 
-                        Insuficiente: "Ejercicio ausente, copiado sin contextualizar o con errores aritméticos y metodológicos graves en los cálculos finales.", 
-                        Aceptable: "Ejercicio numérico o caso básico resuelto mecánicamente, sin interpretación ingenieril profunda de los resultados.", 
-                        Bueno: "Problema práctico acorde a la disciplina, cálculos correctos e interpretación analítica coherente del caso de estudio.", 
-                        Excelente: "Caso industrial o aplicado altamente contextualizado y riguroso. Resolución paso a paso, contraste gráfico claro y dictamen contundente." 
+                        Insuficiente: "Ejercicio ausente, copiado sin contextualizar o con errores aritméticos graves en los cálculos finales.", 
+                        Aceptable: "Ejercicio numérico básico resuelto mecánicamente, sin interpretación ingenieril de los resultados.", 
+                        Bueno: "Problema práctico acorde a la ingeniería, cálculos correctos e interpretación analítica coherente del intervalo o contraste.", 
+                        Excelente: "Caso industrial contextualizado y riguroso. Resolución analítica paso a paso, contraste gráfico claro y dictamen técnico contundente." 
                     } 
                 },
                 { 
                     nombre: "Defensa y Manejo de Preguntas", 
                     porcentaje: 20, 
                     niveles: { 
-                        Insuficiente: "Los integrantes no logran responder a los cuestionamientos o evidencian dependencia absoluta de un único expositor.", 
+                        Insuficiente: "Los integrantes no logran responder a los cuestionamientos o evidencian dependencia de un único expositor.", 
                         Aceptable: "Respuestas vagas, circulares o con evidente inseguridad conceptual ante las preguntas del auditorio.", 
-                        Bueno: "Responden con solvencia a la mayoría de las preguntas formuladas, mostrando cohesión y dominio general del tema.", 
-                        Excelente: "Defensa individual brillante, capacidad analítica inmediata, argumentación basada en principios teóricos y propiedad total." 
+                        Bueno: "Responden con solvencia a la mayoría de las preguntas formuladas, mostrando cohesión y dominio del tema.", 
+                        Excelente: "Defensa individual brillante, capacidad analítica inmediata, argumentación basada en teoremas y propiedad técnica total." 
                     } 
                 }
             ];
@@ -433,10 +434,14 @@
             filas.forEach((fila, idx) => {
                 const selectNivel = fila.querySelector('.select-nivel-cualitativo');
                 const inputNota = fila.querySelector('.input-nota-criterio');
+                const inputPorc = fila.querySelector('.input-porc-criterio');
                 
                 if (datosCalificacionesEstudiantes[estActual.id].criterios[idx]) {
                     datosCalificacionesEstudiantes[estActual.id].criterios[idx].nivelSeleccionado = selectNivel.value;
                     datosCalificacionesEstudiantes[estActual.id].criterios[idx].notaCriterio = parseFloat(inputNota.value) || 0;
+                    if (inputPorc) {
+                        datosCalificacionesEstudiantes[estActual.id].criterios[idx].porcentajeMaximo = parseFloat(inputPorc.value) || 0;
+                    }
                 }
             });
         }
@@ -471,9 +476,12 @@
 
                 criteriosHtml += `
                     <div class="criterio-eval-box">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                             <strong style="font-size: 14px; color: #333;">${idx + 1}. ${crit.nombreCriterio}</strong>
-                            <span style="font-size: 12px; color: #666; background: #e8def8; padding: 2px 8px; border-radius: 4px;">Ponderación: ${crit.porcentajeMaximo}%</span>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <span style="font-size: 12px; color: #666;">Ponderación (%):</span>
+                                <input type="number" class="input-porc-criterio input-desglose-num" value="${crit.porcentajeMaximo}" min="0" max="100" step="0.5" oninput="calcularNotaTotalEstudianteActivo()" style="width: 65px; padding: 2px 4px; text-align: center; font-weight: bold; border: 1.5px solid #4A1C6B; border-radius: 6px;">%
+                            </div>
                         </div>
                         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; align-items: center; margin-bottom: 8px;">
                             <div>
