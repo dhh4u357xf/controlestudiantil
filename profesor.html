@@ -372,7 +372,7 @@
             </div>
         </div>
 
-        <!-- SECCIÓN: Registrar Notas (SOPORTE UNO, VARIOS O TODOS) -->
+        <!-- SECCIÓN: Registrar Notas -->
         <div id="notas" class="section">
             <div class="card">
                 <h3>Registrar / Desglosar notas por actividad</h3>
@@ -424,15 +424,15 @@
             </div>
         </div>
 
-        <!-- SECCIÓN: Historial de Notas por Estudiante y Asignatura -->
+        <!-- SECCIÓN: Historial de Notas con Filtro por Corte -->
         <div id="historialNotas" class="section">
             <div class="card">
-                <h3>📊 Consulta de Calificaciones por Asignatura y Estudiante</h3>
+                <h3>📊 Consulta de Calificaciones por Asignatura, Estudiante y Corte</h3>
                 <p style="font-size:13px; color:#666; margin-bottom:12px;">
-                    Filtra y revisa las notas asentadas de cada alumno discriminadas por corte y porcentaje. Puedes editar parámetros o eliminar registros.
+                    Filtra y revisa las notas asentadas discriminadas por corte y porcentaje. Los promedios y acumulados se calculan en base al corte seleccionado.
                 </p>
 
-                <div class="grid-2">
+                <div class="grid-3" style="margin-bottom: 12px;">
                     <div>
                         <label style="display:block; font-size:12px; font-weight:600; color:#555; margin-bottom:4px;">Asignatura:</label>
                         <select id="filtroHistorialMateria" onchange="cargarEstudiantesFiltroHistorial()">
@@ -443,6 +443,15 @@
                         <label style="display:block; font-size:12px; font-weight:600; color:#555; margin-bottom:4px;">Estudiante:</label>
                         <select id="filtroHistorialEstudiante" onchange="consultarNotasFiltradas()">
                             <option value="TODOS">-- Todos los estudiantes --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:12px; font-weight:600; color:#555; margin-bottom:4px;">Corte:</label>
+                        <select id="filtroHistorialCorte" onchange="consultarNotasFiltradas()">
+                            <option value="TODOS">-- Todos los cortes --</option>
+                            <option value="1">Corte 1</option>
+                            <option value="2">Corte 2</option>
+                            <option value="3">Corte 3</option>
                         </select>
                     </div>
                 </div>
@@ -564,7 +573,7 @@
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec';
         let timerInterval = null;
         let listaEstudiantesGlobal = [];
-        let notasHistorialCargadas = []; // Almacén local de notas para edición puntual
+        let notasHistorialCargadas = []; 
 
         document.addEventListener('DOMContentLoaded', function() {
             const sesionStr = sessionStorage.getItem('usuarioSesion');
@@ -750,7 +759,6 @@
             }
         }
 
-        // Cargar checkboxes de estudiantes para la materia seleccionada
         async function filtrarEstudiantesPorMateriaSeleccionada() {
             const idAsignatura = document.getElementById('notaMateria').value;
             const contenedor = document.getElementById('listaCheckEstudiantes');
@@ -960,7 +968,6 @@
             }, 1000);
         }
 
-        // Guardar nota para uno, varios o todos los estudiantes seleccionados
         async function guardarNota() {
             const asignaturaId = document.getElementById('notaMateria').value;
             const corte = document.getElementById('notaCorte').value;
@@ -1016,7 +1023,7 @@
         }
 
         // ======================================================
-        // GESTIÓN DEL HISTORIAL DE NOTAS (CONSULTA, EDICIÓN Y ELIMINACIÓN)
+        // GESTIÓN DEL HISTORIAL DE NOTAS (CON FILTRO POR CORTE)
         // ======================================================
         async function cargarEstudiantesFiltroHistorial() {
             const asigId = document.getElementById('filtroHistorialMateria').value;
@@ -1056,6 +1063,7 @@
         async function consultarNotasFiltradas() {
             const asigId = document.getElementById('filtroHistorialMateria').value;
             const estId = document.getElementById('filtroHistorialEstudiante').value;
+            const corteFiltro = document.getElementById('filtroHistorialCorte').value;
             const tbody = document.getElementById('tablaHistorialNotas');
             const cajaResumen = document.getElementById('resumenEstadisticasNotas');
 
@@ -1077,12 +1085,25 @@
                 const data = await res.json();
 
                 if (data.ok && data.notas && data.notas.length > 0) {
-                    notasHistorialCargadas = data.notas;
+                    // Filtrar localmente por corte si se seleccionó uno específico
+                    let notasFiltradas = data.notas;
+                    if (corteFiltro !== "TODOS") {
+                        notasFiltradas = data.notas.filter(n => String(n.corte) === String(corteFiltro));
+                    }
+
+                    notasHistorialCargadas = notasFiltradas;
                     tbody.innerHTML = '';
+
+                    if (notasFiltradas.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No hay calificaciones para el corte seleccionado.</td></tr>';
+                        cajaResumen.style.display = 'none';
+                        return;
+                    }
+
                     let sumaNotas = 0;
                     let sumaPonderada = 0;
 
-                    data.notas.forEach(n => {
+                    notasFiltradas.forEach(n => {
                         const notaVal = parseFloat(n.nota) || 0;
                         const porcVal = parseFloat(n.porcentaje) || 0;
                         const aportePond = (notaVal * (porcVal / 100));
@@ -1116,8 +1137,8 @@
                         `;
                     });
 
-                    document.getElementById('cardTotalNotas').textContent = data.notas.length;
-                    document.getElementById('cardPromedioSimple').textContent = (sumaNotas / data.notas.length).toFixed(2);
+                    document.getElementById('cardTotalNotas').textContent = notasFiltradas.length;
+                    document.getElementById('cardPromedioSimple').textContent = (sumaNotas / notasFiltradas.length).toFixed(2);
                     document.getElementById('cardAcumuladoPond').textContent = sumaPonderada.toFixed(2) + " / 5.0";
                     cajaResumen.style.display = 'grid';
 
