@@ -73,7 +73,7 @@
             </div>
 
             <label for="inputTematicaGlobal">Temática o Tema Global de la Exposición (para todos los estudiantes):</label>
-            <input type="text" id="inputTematicaGlobal" value="Tema 1: Integración de Funciones Trigonométricas" placeholder="Ej: Tema 1: Integración de Funciones Trigonométricas">
+            <input type="text" id="inputTematicaGlobal" value="Tema 1: Fundamentos Teóricos y Aplicaciones" placeholder="Ej: Tema 1: Análisis de Procesos Industriales">
 
             <label for="archivoRubricaExpo">Cargar Rúbrica de Exposición (PDF oficial):</label>
             <input type="file" id="archivoRubricaExpo" accept="application/pdf">
@@ -252,7 +252,7 @@
             return dataUrl.replace(/^data:.*,/, '');
         }
 
-        // PROMPT 1: Extracción detallada de criterios, porcentajes y descripciones celda por celda
+        // Llamado al script backend para extraer criterios y descripciones detalladas con IA
         async function analizarRubricaEIniciarEvaluacion() {
             const checks = document.querySelectorAll('.check-estudiante:checked');
             estudiantesSeleccionadosGlobal = [];
@@ -283,40 +283,11 @@
                 const fileRubrica = inputRubrica.files[0];
                 const base64RubricaFull = await convertirBase64(fileRubrica);
 
-                const promptCriterios = `
-                Eres un experto en evaluación educativa universitaria. Analiza la rúbrica en este documento PDF y extrae ESTRICTAMENTE para cada criterio de evaluación:
-                1. El nombre exacto del criterio.
-                2. El porcentaje exacto (asegúrate de que sumen 100% exacto normalizándolos si es necesario).
-                3. La descripción textual específica que aparece en la rúbrica para cada nivel:
-                   - "insuficiente"
-                   - "aceptable"
-                   - "bueno"
-                   - "excelente"
-
-                RESPONDE ÚNICAMENTE EN FORMATO JSON PURO con esta estructura exacta:
-                {
-                  "criterios": [
-                    {
-                      "nombre": "Nombre exacto del criterio",
-                      "porcentaje": 35,
-                      "insuficiente": "Descripción textual...",
-                      "aceptable": "Descripción textual...",
-                      "bueno": "Descripción textual...",
-                      "excelente": "Descripción textual..."
-                    }
-                  ]
-                }
-                `;
-
                 const payloadData = {
-                    accion: 'evaluarParcial',
-                    nombreEstudiante: 'ExtraccionDetalladaRubrica',
-                    actividadEvaluada: promptCriterios,
-                    fileNameEstudiante: fileRubrica.name,
-                    fileTypeEstudiante: fileRubrica.type || "application/pdf",
-                    fileBase64Estudiante: extractBase64(base64RubricaFull),
-                    fileTypeSolucionario: fileRubrica.type || "application/pdf",
-                    fileBase64Solucionario: extractBase64(base64RubricaFull)
+                    accion: 'extraerRubricaExposicion',
+                    fileName: fileRubrica.name,
+                    fileType: fileRubrica.type || "application/pdf",
+                    fileBase64: extractBase64(base64RubricaFull)
                 };
 
                 const formData = new URLSearchParams();
@@ -329,24 +300,8 @@
 
                 const data = await response.json();
 
-                if (data.ok && data.evaluacion) {
-                    let rawCriterios = data.evaluacion.criterios || data.evaluacion.desglose;
-                    
-                    if (Array.isArray(rawCriterios) && rawCriterios.length > 0) {
-                        criteriosRubricaGlobal = rawCriterios.map(d => ({
-                            nombre: d.nombre || d.ejercicio || "Criterio",
-                            porcentaje: parseFloat(d.porcentaje || d.puntajeMaximo) || 25,
-                            niveles: {
-                                Insuficiente: d.insuficiente || d.comentario || "Desempeño deficiente según rúbrica.",
-                                Aceptable: d.aceptable || "Desempeño básico.",
-                                Bueno: d.bueno || "Desempeño destacado.",
-                                Excelente: d.excelente || "Desempeño sobresaliente e impecable."
-                            }
-                        }));
-                    } else {
-                        cargarCriteriosEstandarPorDefecto();
-                    }
-
+                if (data.ok && data.criterios) {
+                    criteriosRubricaGlobal = data.criterios;
                     normalizarPorcentajesRubrica();
 
                     datosCalificacionesEstudiantes = {};
@@ -366,6 +321,7 @@
                     construirInterfazCalificacion();
                     document.getElementById('panelCalificacion').style.display = 'block';
                 } else {
+                    alert('No se pudo extraer la rúbrica automáticamente. Se usarán parámetros estándar.');
                     cargarCriteriosEstandarPorDefecto();
                 }
 
@@ -389,13 +345,13 @@
         function cargarCriteriosEstandarPorDefecto() {
             criteriosRubricaGlobal = [
                 { 
-                    nombre: "Dominio Conceptual y Rigor Matemático", 
+                    nombre: "Dominio Conceptual y Rigor Técnico", 
                     porcentaje: 35, 
                     niveles: { 
-                        Insuficiente: "Omite supuestos teóricos, confunde parámetros con estadísticos o comete errores graves en la deducción de fórmulas y ecuaciones.", 
-                        Aceptable: "Enuncia las fórmulas pero no demuestra solvencia en los supuestos de partida (normalidad, TCL, grados de libertad).", 
-                        Bueno: "Demuestra comprensión de los fundamentos teóricos; aplica y deduce adecuadamente los modelos con imprecisiones menores.", 
-                        Excelente: "Dominio impecable de la teoría matemática, justificación rigurosa de cada hipótesis, pivote, parámetro y grado de libertad." 
+                        Insuficiente: "Omite supuestos teóricos esenciales, confunde parámetros clave o comete errores graves en la deducción y formulación analítica.", 
+                        Aceptable: "Enuncia los fundamentos teóricos pero no demuestra plena solvencia ni rigor en los supuestos de partida.", 
+                        Bueno: "Demuestra comprensión clara de los fundamentos teóricos; aplica y deduce adecuadamente los modelos con imprecisiones menores.", 
+                        Excelente: "Dominio impecable de la teoría, justificación rigurosa de cada hipótesis, parámetro y rigor técnico absoluto." 
                     } 
                 },
                 { 
@@ -403,29 +359,29 @@
                     porcentaje: 25, 
                     niveles: { 
                         Insuficiente: "Presentación desordenada, saturada de texto, sin hilo conductor. Incumple los tiempos estipulados de forma crítica.", 
-                        Aceptable: "Presentación básica con lectura reiterada de diapositivas. Transición deficiente entre las fases de la exposición.", 
+                        Aceptable: "Presentación básica con lectura reiterada de apoyos visuales y transición deficiente entre las fases de la exposición.", 
                         Bueno: "Buena organización secuencial y visual. Manejo adecuado del tiempo asignado y discurso técnico entendible.", 
-                        Excelente: "Exposición fluida, diseño visual profesional y diagramas claros. Gestión óptima del tiempo (25 min) y excelente capacidad de síntesis." 
+                        Excelente: "Exposición fluida, diseño visual profesional y diagramas claros. Gestión óptima del tiempo y excelente capacidad de síntesis." 
                     } 
                 },
                 { 
                     nombre: "Aplicación Práctica y Casos", 
                     porcentaje: 20, 
                     niveles: { 
-                        Insuficiente: "Ejercicio ausente, copiado sin contextualizar o con errores aritméticos graves en los cálculos finales.", 
-                        Aceptable: "Ejercicio numérico básico resuelto mecánicamente, sin interpretación ingenieril de los resultados.", 
-                        Bueno: "Problema práctico acorde a la ingeniería, cálculos correctos e interpretación analítica coherente del intervalo o contraste.", 
-                        Excelente: "Caso industrial contextualizado y riguroso. Resolución analítica paso a paso, contraste gráfico claro y dictamen técnico contundente." 
+                        Insuficiente: "Ejercicio ausente, copiado sin contextualizar o con errores aritméticos y metodológicos graves en los cálculos finales.", 
+                        Aceptable: "Ejercicio numérico o caso básico resuelto mecánicamente, sin interpretación ingenieril profunda de los resultados.", 
+                        Bueno: "Problema práctico acorde a la disciplina, cálculos correctos e interpretación analítica coherente del caso de estudio.", 
+                        Excelente: "Caso industrial o aplicado altamente contextualizado y riguroso. Resolución paso a paso, contraste gráfico claro y dictamen contundente." 
                     } 
                 },
                 { 
                     nombre: "Defensa y Manejo de Preguntas", 
                     porcentaje: 20, 
                     niveles: { 
-                        Insuficiente: "Los integrantes no logran responder a los cuestionamientos o evidencian dependencia de un único expositor.", 
+                        Insuficiente: "Los integrantes no logran responder a los cuestionamientos o evidencian dependencia absoluta de un único expositor.", 
                         Aceptable: "Respuestas vagas, circulares o con evidente inseguridad conceptual ante las preguntas del auditorio.", 
-                        Bueno: "Responden con solvencia a la mayoría de las preguntas formuladas, mostrando cohesión y dominio del tema.", 
-                        Excelente: "Defensa individual brillante, capacidad analítica inmediata, argumentación basada en teoremas y propiedad técnica total." 
+                        Bueno: "Responden con solvencia a la mayoría de las preguntas formuladas, mostrando cohesión y dominio general del tema.", 
+                        Excelente: "Defensa individual brillante, capacidad analítica inmediata, argumentación basada en principios teóricos y propiedad total." 
                     } 
                 }
             ];
@@ -550,7 +506,7 @@
             calcularNotaTotalEstudianteActivo();
         }
 
-        // PROMPT 2: Generación específica del banco de preguntas por nivel de dificultad
+        // Llamado al script backend para generar preguntas de defensa mediante IA
         async function generarPreguntasAleatoriasIA() {
             const tematica = document.getElementById('inputTematicaGlobal').value.trim() || "Exposición General";
             const dificultad = document.getElementById('selectDificultadPregunta').value;
@@ -559,30 +515,10 @@
             contenedorP.innerHTML = `<div class="loading-spinner" style="padding: 10px 0;">⏳ Generando 3 preguntas de nivel ${dificultad} sobre "${tematica}" con IA...</div>`;
 
             try {
-                const promptPreguntas = `
-                Actúa como un profesor universitario riguroso. Genera exactamente 3 preguntas técnicas de sustentación oral con su respectiva respuesta modelo, basadas en la temática: "${tematica}".
-                El nivel de dificultad debe ser estrictamente: ${dificultad}.
-
-                RESPONDE ÚNICAMENTE EN FORMATO JSON PURO con esta estructura exacta, sin texto adicional:
-                {
-                  "preguntas": [
-                    {
-                      "enunciado": "Explique cómo...",
-                      "respuesta": "La respuesta correcta implica..."
-                    }
-                  ]
-                }
-                `;
-
                 const payloadData = {
-                    accion: 'evaluarParcial',
-                    nombreEstudiante: 'GeneradorPreguntasExpo',
-                    actividadEvaluada: promptPreguntas,
-                    fileNameEstudiante: 'tematica.txt',
-                    fileTypeEstudiante: 'text/plain',
-                    fileBase64Estudiante: btoa(unescape(encodeURIComponent(tematica))),
-                    fileTypeSolucionario: 'text/plain',
-                    fileBase64Solucionario: btoa(unescape(encodeURIComponent(tematica)))
+                    accion: 'generarPreguntasExposicion',
+                    tematica: tematica,
+                    dificultad: dificultad
                 };
 
                 const formData = new URLSearchParams();
@@ -595,29 +531,8 @@
 
                 const resJson = await response.json();
                 
-                let parsedPreguntas = null;
-                if (resJson.ok && resJson.evaluacion) {
-                    if (Array.isArray(resJson.evaluacion.preguntas)) {
-                        parsedPreguntas = resJson.evaluacion.preguntas;
-                    } else if (typeof resJson.evaluacion.resumen === 'string') {
-                        try {
-                            const cleanJson = resJson.evaluacion.resumen.replace(/```json/g, '').replace(/```/g, '').trim();
-                            const subParsed = JSON.parse(cleanJson);
-                            if (subParsed && Array.isArray(subParsed.preguntas)) {
-                                parsedPreguntas = subParsed.preguntas;
-                            }
-                        } catch (e) {
-                            console.error("Error al parsear JSON de preguntas:", e);
-                        }
-                    }
-                }
-
-                if (parsedPreguntas && parsedPreguntas.length > 0) {
-                    preguntasGlobalesGeneradas = parsedPreguntas.map(p => ({
-                        dificultad: dificultad,
-                        enunciado: p.enunciado || "Pregunta de sustentación",
-                        respuesta: p.respuesta || "Respuesta modelo institucional"
-                    }));
+                if (resJson.ok && Array.isArray(resJson.preguntas)) {
+                    preguntasGlobalesGeneradas = resJson.preguntas;
                 } else {
                     preguntasGlobalesGeneradas = [
                         { dificultad: dificultad, enunciado: `¿Cuáles son los fundamentos teóricos aplicados en ${tematica}?`, respuesta: "Se fundamenta en el análisis riguroso." },
@@ -764,7 +679,6 @@
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify(payloadGuardar)
                     });
-                    console.log(`Guardado en cola (${i+1}/${estudiantesSeleccionadosGlobal.length}): ${est.nombre}`);
                 } catch (e) {
                     console.error(`Error guardando a ${est.nombre}:`, e);
                 }
@@ -773,7 +687,6 @@
             alert("✅ ¡Proceso de asentamiento en cola finalizado con éxito para todos los estudiantes!");
         }
 
-        // PROMPT 3: Generación del reporte detallado basado en las descripciones independientes de cada criterio según su nota
         function generarReportesFinales() {
             guardarDatosFormularioActual();
             const contenedorReportes = document.getElementById('contenedorReportesFinales');
@@ -928,6 +841,63 @@
                 console.error('Error al enviar correo:', error);
                 alert('Error al intentar enviar el correo: ' + error.message);
             }
+        }
+
+        async function enviarTodosLosReportesEnCola() {
+            const confirmar = confirm(`¿Deseas enviar los correos de reporte a los ${estudiantesSeleccionadosGlobal.length} estudiantes en cola?`);
+            if (!confirmar) return;
+
+            let enviados = 0;
+            for (let i = 0; i < estudiantesSeleccionadosGlobal.length; i++) {
+                const est = estudiantesSeleccionadosGlobal[i];
+                const dataEst = datosCalificacionesEstudiantes[est.id];
+                let sumaPonderada = 0;
+                dataEst.criterios.forEach(crit => {
+                    sumaPonderada += crit.notaCriterio * (crit.porcentajeMaximo / 100);
+                });
+                let notaFinal = parseFloat(Math.min(5.0, Math.max(0.0, sumaPonderada)).toFixed(1));
+
+                const selectMat = document.getElementById('selectMateriaExpo');
+                const asignaturaId = selectMat.value;
+                const nombreAsignatura = selectMat.options[selectMat.selectedIndex]?.text || "Asignatura Unicaribe";
+                const tematicaGlobal = document.getElementById('inputTematicaGlobal').value.trim() || "Exposición General";
+                const criteriosEst = dataEst.criterios;
+
+                let fortalezasArr = [];
+                let mejorasArr = [];
+                let desgloseArr = criteriosEst.map(crit => {
+                    let descNivelCriterio = crit.nivelesTexto && crit.nivelesTexto[crit.nivelSeleccionado] ? crit.nivelesTexto[crit.nivelSeleccionado] : "";
+                    if (crit.notaCriterio >= 3.8) fortalezasArr.push(`${crit.nombreCriterio}: ${descNivelCriterio}`);
+                    else mejorasArr.push(`${crit.nombreCriterio}: ${descNivelCriterio}`);
+                    return { ejercicio: crit.nombreCriterio, puntajeObtenido: crit.notaCriterio, puntajeMaximo: 5.0, comentario: `[${crit.nivelSeleccionado}] ${descNivelCriterio}` };
+                });
+
+                try {
+                    const payloadData = {
+                        accion: 'enviarReporteCorreo',
+                        asignaturaId: asignaturaId,
+                        nombreAsignatura: nombreAsignatura,
+                        integrantes: JSON.stringify([{ id: est.id, nombre: est.nombre }]),
+                        actividad: `Exposición Oral (${tematicaGlobal})`,
+                        notaFinal: notaFinal,
+                        resumen: `Evaluación de exposición oral sobre "${tematicaGlobal}" completada bajo rúbrica institucional. Desempeño ponderado en nivel cuantitativo de ${notaFinal} / 5.0.`,
+                        desglose: JSON.stringify(desgloseArr),
+                        fortalezas: JSON.stringify(fortalezasArr),
+                        aspectosAMejorar: JSON.stringify(mejorasArr),
+                        urlDrive: "#"
+                    };
+
+                    const formData = new URLSearchParams();
+                    formData.append('payload', JSON.stringify(payloadData));
+                    const res = await fetch(URL_EVALUADOR_IA, { method: 'POST', body: formData });
+                    const resData = await res.json();
+                    if (resData.ok) enviados++;
+                } catch (e) {
+                    console.error("Error en cola de correo:", e);
+                }
+            }
+
+            alert(`✅ Proceso finalizado. Se enviaron ${enviados} de ${estudiantesSeleccionadosGlobal.length} correos exitosamente.`);
         }
     </script>
 </body>
