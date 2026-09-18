@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -76,6 +76,36 @@
             margin-bottom: 6px;
             color: #333;
             font-weight: 500;
+        }
+
+        /* Estilos para el contenedor del input y el botón de alternar visibilidad */
+        .input-password-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-password-container input {
+            width: 100%;
+            padding-right: 45px !important;
+        }
+
+        .toggle-password-btn {
+            position: absolute;
+            right: 12px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            color: #666;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toggle-password-btn:hover {
+            color: #4A1C6B;
         }
 
         input {
@@ -172,7 +202,12 @@
             <form id="loginForm">
                 <div class="form-group">
                     <label for="documento">Número de documento</label>
-                    <input type="text" id="documento" placeholder="Ej: 1001234567" required>
+                    <div class="input-password-container">
+                        <input type="password" id="documento" placeholder="Ej: 1001234567" required>
+                        <button type="button" class="toggle-password-btn" id="btnTogglePassword" onclick="alternarVisibilidadDocumento()" title="Mostrar/Ocultar documento">
+                            👁️
+                        </button>
+                    </div>
                 </div>
 
                 <button type="submit" id="btnIngresar" class="btn">Ingresar</button>
@@ -192,6 +227,20 @@
 
     <script>
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzpIxTje-E2wSvRKNhEQDiAQ9HgsXC8T_ztBVJVz5vVgbij6K8_Gb8KiGNT9Qzu8z8Jsg/exec';
+
+        // Función para alternar la visibilidad de los puntos/asteriscos en el input de documento
+        function alternarVisibilidadDocumento() {
+            const inputDoc = document.getElementById('documento');
+            const btnToggle = document.getElementById('btnTogglePassword');
+            
+            if (inputDoc.type === 'password') {
+                inputDoc.type = 'text';
+                btnToggle.textContent = '👁️‍🗨️'; // Cambia el icono para reflejar que está visible
+            } else {
+                inputDoc.type = 'password';
+                btnToggle.textContent = '👁️'; // Vuelve al icono de ojo normal
+            }
+        }
 
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
