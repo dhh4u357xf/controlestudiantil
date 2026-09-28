@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -494,23 +494,40 @@
             </div>
         </div>
 
-        <!-- SECCIÓN: Reportes -->
+        <!-- SECCIÓN: Reportes con Rango de Fechas y Compilado -->
         <div id="reportes" class="section">
             <div class="card">
                 <h3>Reporte de asistencia detallado</h3>
                 
-                <div class="grid-2">
-                    <select id="reporteMateria" onchange="actualizarFiltrosReporte()">
-                        <option value="">-- Selecciona Materia --</option>
-                    </select>
-
-                    <select id="reporteEstudiante" onchange="cargarReporteAsistencia()">
-                        <option value="">-- Todos los Estudiantes --</option>
-                    </select>
+                <div class="grid-3" style="margin-bottom: 12px;">
+                    <div>
+                        <label style="display:block; font-size:12px; font-weight:600; color:#555; margin-bottom:4px;">Asignatura:</label>
+                        <select id="reporteMateria" onchange="actualizarFiltrosReporte()">
+                            <option value="">-- Selecciona Materia --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:12px; font-weight:600; color:#555; margin-bottom:4px;">Estudiante:</label>
+                        <select id="reporteEstudiante" onchange="cargarReporteAsistencia()">
+                            <option value="">-- Todos los Estudiantes --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:12px; font-weight:600; color:#555; margin-bottom:4px;">Desde / Hasta:</label>
+                        <div style="display: flex; gap: 6px;">
+                            <input type="date" id="filtroFechaInicio" onchange="cargarReporteAsistencia()" style="margin-bottom:0;" title="Fecha Inicio">
+                            <input type="date" id="filtroFechaFin" onchange="cargarReporteAsistencia()" style="margin-bottom:0;" title="Fecha Fin">
+                        </div>
+                    </div>
                 </div>
 
-                <div id="contadorBox" class="contador-box" style="display:none;">
-                    Total de asistencias acumuladas: <span id="numAsistencias">0</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <div id="contadorBox" class="contador-box" style="display:none; margin:0; flex:1;">
+                        Total de asistencias acumuladas: <span id="numAsistencias">0</span>
+                    </div>
+                    <button type="button" class="btn btn-green" id="btnDescargarCompilado" onclick="descargarCompiladoAsistencias()" style="display:none; padding: 10px 16px; font-size: 13px; margin-left: 10px; white-space: nowrap;">
+                        📥 Descargar Compilado
+                    </button>
                 </div>
 
                 <table>
@@ -574,6 +591,7 @@
         let timerInterval = null;
         let listaEstudiantesGlobal = [];
         let notasHistorialCargadas = []; 
+        let reporteAsistenciaCargadoGlobal = []; 
 
         document.addEventListener('DOMContentLoaded', function() {
             const sesionStr = sessionStorage.getItem('usuarioSesion');
@@ -854,12 +872,17 @@
         async function cargarReporteAsistencia() {
             const idAsignatura = document.getElementById('reporteMateria').value;
             const idEstudiante = document.getElementById('reporteEstudiante').value;
+            const fechaIni = document.getElementById('filtroFechaInicio').value;
+            const fechaFin = document.getElementById('filtroFechaFin').value;
+            
             const tabla = document.getElementById('tablaReporte');
             const contadorBox = document.getElementById('contadorBox');
+            const btnDescarga = document.getElementById('btnDescargarCompilado');
 
             if (!idAsignatura) {
                 tabla.innerHTML = '<tr><td colspan="3" class="empty-state">Selecciona una materia para consultar...</td></tr>';
                 contadorBox.style.display = 'none';
+                btnDescarga.style.display = 'none';
                 return;
             }
 
@@ -879,9 +902,35 @@
                 const data = await response.json();
 
                 if (data.ok && data.reporte && data.reporte.length > 0) {
+                    let registrosFiltrados = data.reporte;
+
+                    if (fechaIni || fechaFin) {
+                        registrosFiltrados = data.reporte.filter(r => {
+                            let fechaRegStr = r.fecha;
+                            if (fechaRegStr.includes(',')) fechaRegStr = fechaRegStr.split(',')[0];
+                            
+                            const dReg = new Date(fechaRegStr);
+                            if (isNaN(dReg.getTime())) return true;
+
+                            const regIso = dReg.toISOString().split('T')[0];
+
+                            if (fechaIni && regIso < fechaIni) return false;
+                            if (fechaFin && regIso > fechaFin) return false;
+                            return true;
+                        });
+                    }
+
+                    reporteAsistenciaCargadoGlobal = registrosFiltrados;
+
+                    if (registrosFiltrados.length === 0) {
+                        tabla.innerHTML = '<tr><td colspan="3" class="empty-state">No hay registros de asistencia en el rango de fechas seleccionado.</td></tr>';
+                        contadorBox.style.display = 'none';
+                        btnDescarga.style.display = 'none';
+                        return;
+                    }
+
                     tabla.innerHTML = '';
-                    
-                    data.reporte.forEach(r => {
+                    registrosFiltrados.forEach(r => {
                         tabla.innerHTML += `
                             <tr>
                                 <td><strong>${r.estudianteNombre}</strong></td>
@@ -892,24 +941,57 @@
                     });
 
                     contadorBox.style.display = 'block';
-                    const total = (data.totalAsistencias !== undefined) ? data.totalAsistencias : data.reporte.length;
+                    btnDescarga.style.display = 'inline-block';
+                    const total = registrosFiltrados.length;
 
                     if (idEstudiante) {
                         const selectElement = document.getElementById('reporteEstudiante');
                         const nombreEst = selectElement.options[selectElement.selectedIndex].text;
-                        contadorBox.innerHTML = `Total de asistencias acumuladas de <strong>${nombreEst}</strong>: <span id="numAsistencias">${total}</span>`;
+                        contadorBox.innerHTML = `Total de asistencias de <strong>${nombreEst}</strong> en el rango: <span id="numAsistencias">${total}</span>`;
                     } else {
-                        contadorBox.innerHTML = `Total de asistencias registradas en esta clase: <span id="numAsistencias">${total}</span>`;
+                        contadorBox.innerHTML = `Total de asistencias filtradas: <span id="numAsistencias">${total}</span>`;
                     }
 
                 } else {
+                    reporteAsistenciaCargadoGlobal = [];
                     tabla.innerHTML = '<tr><td colspan="3" class="empty-state">No hay registros de asistencia con los filtros seleccionados.</td></tr>';
                     contadorBox.style.display = 'none';
+                    btnDescarga.style.display = 'none';
                 }
             } catch (error) {
                 console.error('Error al cargar reporte:', error);
                 tabla.innerHTML = '<tr><td colspan="3" class="empty-state">Error al conectar con el servidor.</td></tr>';
+                contadorBox.style.display = 'none';
+                btnDescarga.style.display = 'none';
             }
+        }
+
+        function descargarCompiladoAsistencias() {
+            if (!reporteAsistenciaCargadoGlobal || reporteAsistenciaCargadoGlobal.length === 0) {
+                alert("No hay datos de asistencia para descargar en este momento.");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,Estudiante,Fecha,Hora\r\n";
+
+            reporteAsistenciaCargadoGlobal.forEach(r => {
+                const nombreLimpio = `"${(r.estudianteNombre || '').replace(/"/g, '""')}"`;
+                const fechaLimpia = `"${(r.fecha || '').replace(/"/g, '""')}"`;
+                const horaLimpia = `"${(r.hora || 'Registrada').replace(/"/g, '""')}"`;
+                
+                csvContent += `${nombreLimpio},${fechaLimpia},${horaLimpia}\r\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            
+            const fechaActual = new Date().toISOString().split('T')[0];
+            link.setAttribute("download", `Compilado_Asistencias_${fechaActual}.csv`);
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         async function generarContrasena() {
@@ -1085,7 +1167,6 @@
                 const data = await res.json();
 
                 if (data.ok && data.notas && data.notas.length > 0) {
-                    // Filtrar localmente por corte si se seleccionó uno específico
                     let notasFiltradas = data.notas;
                     if (corteFiltro !== "TODOS") {
                         notasFiltradas = data.notas.filter(n => String(n.corte) === String(corteFiltro));
